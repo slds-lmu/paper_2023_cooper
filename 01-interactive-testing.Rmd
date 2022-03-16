@@ -1,0 +1,148 @@
+---
+title: "Interative Experiments"
+author: "Lukas"
+date: "`r Sys.Date()`"
+output: 
+  html_document: 
+    fig_caption: yes
+    self_contained: no
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+# Load helper functions in R/
+devtools::load_all(here::here())
+
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  out.width = "100%"
+)
+
+library(fwelnet)
+library(ggplot2)
+```
+
+Before we set up a proper benchmarking experiment, this serves as a platform for quick-and-dirty interactive experimentation.
+
+## Simulate data
+
+Generate predictors:
+
+```{r sim-data-x}
+n <- 1000
+# create data set with covariates
+df <- tibble::tibble(
+  x0 = sample(c(-1,1), n, .3),
+  x1 = runif(n, -3, 3),
+  x2 = runif(n, -3, 3),
+  x3 = runif(n, -3, 3))
+df2 <- mvtnorm::rmvnorm(n = nrow(df), mean = rep(0, 10))
+# noise variables
+colnames(df2) <- paste0("x", 4:(ncol(df2)+3))
+df <- cbind(df, df2)
+```
+
+Generate CR endpoint via formula specification and note true effects in separate tbl for plotting purposes (a cleaner solution would be preferable):
+
+```{r sim-data-y}
+sim1 <- sim_wrapper_cr(
+  formula = 
+    ~ -3.5 + 2*dgamma(t, 8, 2) + 2 * x1 + 0.1 * x2 | 
+      -3.5 + 2*dgamma(t, 8, 2) + 0.1 * x1 + x2,
+  data = df
+)
+
+table(sim1$status)
+
+true_effects <- tibble::tribble(
+  ~x, ~beta, ~truth,
+  "x1", "beta1", 2,
+  "x2", "beta1", 0.1,
+  "x1", "beta2", 0.1,
+  "x2", "beta2", 1
+)
+```
+
+## Run algorithm
+
+Run and plot result individually:
+
+```{r run-plot}
+set.seed(997)
+fwelnet_mt_cox(
+  sim1, verbose = FALSE, mt_max_iter = 5,
+  z_scale = 1, z_method = "original"
+) |>
+  tidy_mt_res(true_effects) |>
+  plot_mt_res(true_effects)
+
+set.seed(997)
+fwelnet_mt_cox(
+  sim1, verbose = FALSE, mt_max_iter = 5,
+  z_scale = 100, z_method = "original"
+) |>
+  tidy_mt_res(true_effects) |>
+  plot_mt_res(true_effects)
+
+set.seed(997)
+fwelnet_mt_cox(
+  sim1, verbose = FALSE, mt_max_iter = 5,
+  z_scale = 1, z_method = "aligned"
+) |>
+  tidy_mt_res(true_effects) |>
+  plot_mt_res(true_effects)
+
+set.seed(997)
+fwelnet_mt_cox(
+  sim1, verbose = FALSE, mt_max_iter = 5,
+  z_scale = 100, z_method = "aligned"
+) |>
+  tidy_mt_res(true_effects) |>
+  plot_mt_res(true_effects)
+```
+
+Or maybe something like this, to plot multiple settings side by side?
+
+```{r run-plot-all, fig.height = 8, fig.width = 13}
+set.seed(997)
+res1 <- fwelnet_mt_cox(sim1, mt_max_iter = 5, z_scale = 1, z_method = "original") 
+set.seed(997)
+res2 <- fwelnet_mt_cox(sim1, mt_max_iter = 5, z_scale = 100, z_method = "original") 
+set.seed(997)
+res3 <- fwelnet_mt_cox(sim1, mt_max_iter = 5, z_scale = 1, z_method = "aligned") 
+set.seed(997)
+res4 <- fwelnet_mt_cox(sim1, mt_max_iter = 5, z_scale = 100, z_method = "aligned") 
+
+res_full <- purrr::map_df(list(res1, res2, res3, res4), ~tidy_mt_res(.x, true_effects))
+
+ggplot(res_full, aes(x = iter, y = value, color = xcol, alpha = is_noise)) +
+  facet_grid(
+    cols = vars(z_method, z_scale), rows = vars(beta),
+    labeller = label_context
+  ) +
+  geom_hline(data = true_effects, aes(yintercept = truth), lty = "dotted") +
+  geom_path() +
+  scale_x_continuous(breaks = scales::pretty_breaks()) +
+  scale_color_brewer(palette = "Dark2") +
+  scale_alpha_manual(
+    values = c("True effect" = 1, "Noise" = 0.2),
+    guide = "none"
+  ) +
+  labs(
+    title = "Multi-Task fwelnet: Multiple results",
+    x = "# of Multi-Task Iterations",
+    y = "Effect estimate",
+    color = "Variable"
+  ) +
+  theme_minimal() +
+  theme(
+    panel.spacing.y = unit(1, "cm"),
+    legend.position = "top", 
+    plot.title.position = "plot"
+  )
+
+```
+
