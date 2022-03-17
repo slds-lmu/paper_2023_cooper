@@ -12,7 +12,8 @@ editor_options:
 
 ```{r setup, include=FALSE}
 # Load helper functions in R/
-devtools::load_all(here::here())
+source(here::here("R/sim_cr.R"))
+source(here::here("R/mt_res_tidy_plot.R"))
 
 knitr::opts_chunk$set(
   echo = TRUE,
@@ -48,10 +49,11 @@ df <- cbind(df, df2)
 Generate CR endpoint via formula specification and note true effects in separate tbl for plotting purposes (a cleaner solution would be preferable):
 
 ```{r sim-data-y}
+set.seed(997)
 sim1 <- sim_wrapper_cr(
   formula = 
-    ~ -3.5 + 2*dgamma(t, 8, 2) + 2 * x1 + 0.1 * x2 | 
-      -3.5 + 2*dgamma(t, 8, 2) + 0.1 * x1 + x2,
+    ~ -1 + 2*dgamma(t, 8, 2) + 1 * x1 + 0.1 * x2 | 
+      -3.5 + dgamma(t, 8, 2) + 0.1 * x1 + 1 * x2,
   data = df
 )
 
@@ -59,7 +61,7 @@ table(sim1$status)
 
 true_effects <- tibble::tribble(
   ~x, ~beta, ~truth,
-  "x1", "beta1", 2,
+  "x1", "beta1", 1,
   "x2", "beta1", 0.1,
   "x1", "beta2", 0.1,
   "x2", "beta2", 1
@@ -73,7 +75,7 @@ Run and plot result individually:
 ```{r run-plot}
 set.seed(997)
 fwelnet_mt_cox(
-  sim1, verbose = FALSE, mt_max_iter = 5,
+  sim1, mt_max_iter = 5,
   z_scale = 1, z_method = "original"
 ) |>
   tidy_mt_res(true_effects) |>
@@ -81,24 +83,8 @@ fwelnet_mt_cox(
 
 set.seed(997)
 fwelnet_mt_cox(
-  sim1, verbose = FALSE, mt_max_iter = 5,
+  sim1, mt_max_iter = 5,
   z_scale = 100, z_method = "original"
-) |>
-  tidy_mt_res(true_effects) |>
-  plot_mt_res(true_effects)
-
-set.seed(997)
-fwelnet_mt_cox(
-  sim1, verbose = FALSE, mt_max_iter = 5,
-  z_scale = 1, z_method = "aligned"
-) |>
-  tidy_mt_res(true_effects) |>
-  plot_mt_res(true_effects)
-
-set.seed(997)
-fwelnet_mt_cox(
-  sim1, verbose = FALSE, mt_max_iter = 5,
-  z_scale = 100, z_method = "aligned"
 ) |>
   tidy_mt_res(true_effects) |>
   plot_mt_res(true_effects)
