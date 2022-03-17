@@ -4,7 +4,7 @@ sim_wrapper_cr <- function(
     time_grid  = seq(0, 10, by = 0.1)) {
 
   # baseline hazard
-  instance <- pem.xgb::sim_pexp_cr(
+  instance <- sim_pexp_cr(
     formula = formula,
     data    = data,
     cut     = time_grid)
