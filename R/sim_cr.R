@@ -1,3 +1,30 @@
+sim_wrapper_cr <- function(
+    formula,
+    data,
+    time_grid  = seq(0, 10, by = 0.1)) {
+
+  # baseline hazard
+  instance <- sim_pexp_cr(
+    formula = formula,
+    data    = data,
+    cut     = time_grid
+  )
+  instance$status <- instance$type
+  instance$type <- NULL
+  # add censoring
+  cens_times <- runif(nrow(instance), 0, 20)
+  cens <- instance$time > cens_times
+  instance$time <- pmin(instance$time, cens_times)
+  instance$status[cens] <- 0
+  instance$status[instance$time == 10] <- 0
+  instance <- as.data.frame(instance)
+  instance$id <- instance$hazard1 <- instance$hazard2 <- NULL
+  instance$x0 <- as.factor(instance$x0)
+
+  instance
+}
+
+
 # Copied verbatim from https://raw.githubusercontent.com/adibender/pem.xgb/master/R/sim-cr.R
 # to reduce dependencies, and explicitly namespaced functions
 #' Simulate competing risks time-to-event data via piece-wise exponential distribution
@@ -95,6 +122,7 @@ sim_pexp_cr <- function(formula, data, cut) {
       status = 1L * (.data$time <= max(cut)),
       time   = pmin(.data$time, max(cut))) |>
     dplyr::filter(.data$t < .data$time & .data$time <= .data$tend)
+
   sim_df$type <- apply(sim_df[paste0("hazard", seq_rhs)], 1,
                        function(probs)
                          sample(seq_rhs, 1, prob = probs))
