@@ -6,6 +6,7 @@ output:
   html_document: 
     fig_caption: yes
     self_contained: no
+    code_folding: hide
 editor_options: 
   chunk_output_type: console
 ---
@@ -52,19 +53,19 @@ Generate CR endpoint via formula specification and note true effects in separate
 set.seed(997)
 sim1 <- sim_wrapper_cr(
   formula = 
-    ~ -1 + 2*dgamma(t, 8, 2) + 1 * x1 + 0.1 * x2 | 
-      -3.5 + dgamma(t, 8, 2) + 0.1 * x1 + 1 * x2,
+    ~ -1 + 2*dgamma(t, 8, 2) + 1 * x1 + 0.5 * x2 | 
+      -1 + 2*dgamma(t, 8, 2) + 1 * x1 + 0.5 * x2,
   data = df
 )
 
 table(sim1$status)
 
 true_effects <- tibble::tribble(
-  ~x, ~beta, ~truth,
-  "x1", "beta1", 1,
-  "x2", "beta1", 0.1,
-  "x1", "beta2", 0.1,
-  "x2", "beta2", 1
+  ~beta,    ~x,  ~truth,
+  "beta1", "x1", 1,
+  "beta1", "x2", 0.5,
+  "beta2", "x1", 1,
+  "beta2", "x2", 0.5
 )
 ```
 
@@ -72,7 +73,7 @@ true_effects <- tibble::tribble(
 
 Run and plot result individually:
 
-```{r run-plot}
+```{r run-plot, eval=FALSE}
 set.seed(997)
 fwelnet_mt_cox(
   sim1, mt_max_iter = 5,
@@ -94,13 +95,13 @@ Or maybe something like this, to plot multiple settings side by side?
 
 ```{r run-plot-all, fig.height = 8, fig.width = 13}
 set.seed(997)
-res1 <- fwelnet_mt_cox(sim1, mt_max_iter = 5, z_scale = 1, z_method = "original") 
+res1 <- fwelnet_mt_cox(sim1, mt_max_iter = 2, z_scale = 1, z_method = "original") 
 set.seed(997)
-res2 <- fwelnet_mt_cox(sim1, mt_max_iter = 5, z_scale = 100, z_method = "original") 
+res2 <- fwelnet_mt_cox(sim1, mt_max_iter = 2, z_scale = 100, z_method = "original") 
 set.seed(997)
-res3 <- fwelnet_mt_cox(sim1, mt_max_iter = 5, z_scale = 1, z_method = "aligned") 
+res3 <- fwelnet_mt_cox(sim1, mt_max_iter = 2, z_scale = 1, z_method = "aligned") 
 set.seed(997)
-res4 <- fwelnet_mt_cox(sim1, mt_max_iter = 5, z_scale = 100, z_method = "aligned") 
+res4 <- fwelnet_mt_cox(sim1, mt_max_iter = 2, z_scale = 100, z_method = "aligned") 
 
 res_full <- purrr::map_df(list(res1, res2, res3, res4), ~tidy_mt_res(.x, true_effects))
 
@@ -111,7 +112,7 @@ ggplot(res_full, aes(x = iter, y = value, color = xcol, alpha = is_noise)) +
   ) +
   geom_hline(data = true_effects, aes(yintercept = truth), lty = "dotted") +
   geom_path() +
-  scale_x_continuous(breaks = scales::pretty_breaks()) +
+  scale_x_continuous(breaks = seq(0, 100, 1)) +
   scale_color_brewer(palette = "Dark2") +
   scale_alpha_manual(
     values = c("True effect" = 1, "Noise" = 0.2),
@@ -130,5 +131,26 @@ ggplot(res_full, aes(x = iter, y = value, color = xcol, alpha = is_noise)) +
     plot.title.position = "plot"
   )
 
+```
+
+Comparing `z_method` and `z_scale`:
+
+```{r tab-comparison}
+# res_full |>
+#   dplyr::filter(is_noise != "Noise", z_scale == 1) |>
+#   dplyr::select(-is_noise, -xcol, -z_scale, -converged) |> 
+#   tidyr::pivot_wider(id_cols = c("x", "iter", "beta"), names_from = "z_method", values_from = "value")
+
+res_full |>
+  dplyr::filter(is_noise != "Noise") |>
+  dplyr::select(-is_noise, -xcol, -converged) |> 
+  tidyr::pivot_wider(id_cols = c("x", "iter", "beta"), names_from = c("z_method", "z_scale"), values_from = "value") |>
+  dplyr::select(beta, dplyr::everything()) |>
+  dplyr::left_join(true_effects, by = c("beta", "x")) |>
+  knitr::kable(
+    caption = "Comparison of z_method = {original, aligned} and z_scale = {1, 100}"
+  ) |>
+  kableExtra::kable_styling() |>
+  kableExtra::collapse_rows(columns = c(1, 2))
 ```
 
