@@ -411,9 +411,9 @@
       "RemoteUsername": "jemus42",
       "RemoteRepo": "fwelnet",
       "RemoteRef": "master",
-      "RemoteSha": "03d56a6b82a8756c860ab74791860aaf794fb411",
+      "RemoteSha": "c7a25d7b688026204e840c2b04c1d944e2dd394f",
       "RemoteHost": "api.github.com",
-      "Hash": "11069499b6481a44dba63f6d02c7f0b8",
+      "Hash": "f7163a1a568d6f1de4bc86d0a8cffdd5",
       "Requirements": [
         "Matrix",
         "glmnet",
