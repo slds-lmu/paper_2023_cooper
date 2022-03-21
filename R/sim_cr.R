@@ -1,12 +1,23 @@
 sim_wrapper_cr <- function(
     formula,
-    data,
+    n = 1000,
     time_grid  = seq(0, 10, by = 0.1)) {
+
+  # create data set with covariates
+  xdf1 <- tibble::tibble(
+    x0 = sample(c(-1,1), n, .3),
+    x1 = runif(n, -3, 3),
+    x2 = runif(n, -3, 3),
+    x3 = runif(n, -3, 3))
+  xdf2 <- mvtnorm::rmvnorm(n = nrow(xdf1), mean = rep(0, 10))
+  # noise variables
+  colnames(xdf2) <- paste0("x", 4:(ncol(xdf2)+3))
+  xdf <- cbind(xdf1, xdf2)
 
   # baseline hazard
   instance <- sim_pexp_cr(
     formula = formula,
-    data    = data,
+    data    = xdf,
     cut     = time_grid
   )
   instance$status <- instance$type
