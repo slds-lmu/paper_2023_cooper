@@ -9,10 +9,13 @@
 #' |x1 |beta2 |   0.5|
 #' |x2 |beta2 |   1.0|
 #' @return A data.frame in long format suitable for plotting.
-tidy_mt_res <- function(mtres, truth) {
+tidy_mt_res <- function(mtres, truth, problem = NULL) {
+
+  if (!is.null(problem)) truth <- truth[truth$problem == problem, ]
+
   betalist <- mtres[grepl("beta", names(mtres))]
 
-  purrr::map2_df(names(betalist), betalist, ~{
+  xdf <- purrr::map2_df(names(betalist), betalist, ~{
     data.frame(.y) |>
       tibble::rownames_to_column("x") |>
       tidyr::pivot_longer(
@@ -33,6 +36,11 @@ tidy_mt_res <- function(mtres, truth) {
       z_method = factor(mtres$z_method, levels = c("original", "aligned")),
       converged = mtres$converged
     )
+
+  if (!is.null(problem)) xdf$problem <- problem
+
+  xdf
+
 }
 
 #' Plot the tidied up results for a single run
@@ -64,3 +72,41 @@ plot_mt_res <- function(mtres, true_effects) {
     ggplot2::theme_minimal() +
     ggplot2::theme(legend.position = "top", plot.title.position = "plot")
 }
+
+# line plot version of above, but for batchtoolsified output
+plot_bt_res <- function(res, truth, problem) {
+
+  truth <- truth[truth$problem == problem, ]
+  res <- res[res$problem == problem, ]
+
+  # Sort so Noise comes last in legend
+  x_lvl <- c(sort(levels(res2$xcol))[-1], "Noise")
+
+  ggplot2::ggplot(res, ggplot2::aes(x = iter, y = value, color = xcol, alpha = is_noise)) +
+    ggplot2::facet_grid(
+      cols = vars(z_method, z_scale), rows = ggplot2::vars(beta),
+      labeller = label_context
+    ) +
+    ggplot2::geom_path() +
+    ggplot2::geom_point() +
+    ggplot2::geom_hline(data = truth, ggplot2::aes(yintercept = truth), lty = "dashed") +
+    ggplot2::scale_x_continuous(breaks = seq(0, 100, 1)) +
+    ggplot2::scale_color_brewer(palette = "Dark2", breaks = x_lvl) +
+    ggplot2::scale_alpha_manual(
+      values = c("True effect" = 0.5, "Noise" = 0.05),
+      guide = "none"
+    ) +
+    ggplot2::labs(
+      title = glue::glue("Multi-Task fwelnet: Setting {problem}"),
+      x = "# of Multi-Task Iterations",
+      y = "Effect estimate",
+      color = "Variable"
+    ) +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(
+      panel.spacing.y = ggplot2::unit(1, "cm"),
+      legend.position = "top",
+      plot.title.position = "plot"
+    )
+}
+

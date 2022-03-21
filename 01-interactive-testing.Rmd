@@ -31,31 +31,16 @@ Before we set up a proper benchmarking experiment, this serves as a platform for
 
 ## Simulate data
 
-Generate predictors:
-
-```{r sim-data-x}
-n <- 1000
-# create data set with covariates
-df <- tibble::tibble(
-  x0 = sample(c(-1,1), n, .3),
-  x1 = runif(n, -3, 3),
-  x2 = runif(n, -3, 3),
-  x3 = runif(n, -3, 3))
-df2 <- mvtnorm::rmvnorm(n = nrow(df), mean = rep(0, 10))
-# noise variables
-colnames(df2) <- paste0("x", 4:(ncol(df2)+3))
-df <- cbind(df, df2)
-```
 
 Generate CR endpoint via formula specification and note true effects in separate tbl for plotting purposes (a cleaner solution would be preferable):
 
 ```{r sim-data-y}
-set.seed(997)
+#set.seed(997)
 sim1 <- sim_wrapper_cr(
   formula = 
-    ~ -1 + 2*dgamma(t, 8, 2) + 1 * x1 + 0.5 * x2 | 
-      -1 + 2*dgamma(t, 8, 2) + 1 * x1 + 0.5 * x2,
-  data = df
+    ~ -1 + 2*dgamma(t, 8, 2) + 1 * x1 | 
+      -3.5 + dgamma(t, 8, 2) + .2 * x1 ,
+  n = 1000
 )
 
 table(sim1$status)
@@ -63,9 +48,9 @@ table(sim1$status)
 true_effects <- tibble::tribble(
   ~beta,    ~x,  ~truth,
   "beta1", "x1", 1,
-  "beta1", "x2", 0.5,
-  "beta2", "x1", 1,
-  "beta2", "x2", 0.5
+  #"beta1", "x2", 0.5,
+  "beta2", "x1", 0.2,
+  #"beta2", "x2", 0.5
 )
 ```
 
@@ -95,13 +80,13 @@ Or maybe something like this, to plot multiple settings side by side?
 
 ```{r run-plot-all, fig.height = 8, fig.width = 13}
 set.seed(997)
-res1 <- fwelnet_mt_cox(sim1, mt_max_iter = 2, z_scale = 1, z_method = "original") 
+res1 <- fwelnet_mt_cox(sim1, mt_max_iter = 5, z_scale = 1, z_method = "original") 
 set.seed(997)
-res2 <- fwelnet_mt_cox(sim1, mt_max_iter = 2, z_scale = 100, z_method = "original") 
+res2 <- fwelnet_mt_cox(sim1, mt_max_iter = 5, z_scale = 20, z_method = "original") 
 set.seed(997)
-res3 <- fwelnet_mt_cox(sim1, mt_max_iter = 2, z_scale = 1, z_method = "aligned") 
+res3 <- fwelnet_mt_cox(sim1, mt_max_iter = 5, z_scale = 60, z_method = "original") 
 set.seed(997)
-res4 <- fwelnet_mt_cox(sim1, mt_max_iter = 2, z_scale = 100, z_method = "aligned") 
+res4 <- fwelnet_mt_cox(sim1, mt_max_iter = 5, z_scale = 100, z_method = "original") 
 
 res_full <- purrr::map_df(list(res1, res2, res3, res4), ~tidy_mt_res(.x, true_effects))
 
