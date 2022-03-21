@@ -1,6 +1,24 @@
 source(here::here("R/sim_cr.R"))
 
 # Simulation settings -----------------------------------------------------
+true_effects <- tibble::tribble(
+  ~problem, ~beta,    ~x,  ~truth,
+  "sim_a", "beta1", "x1", 1,
+  "sim_a", "beta2", "x1", 1,
+
+  "sim_b", "beta1", "x1", 1,
+  "sim_b", "beta2", "x2", 1,
+
+  "sim_c", "beta1", "x1", 1,
+  "sim_c", "beta2", "x2", 0.25,
+
+  "sim_d", "beta1", "x1", 1,
+  "sim_d", "beta1", "x2", 0.75,
+  "sim_d", "beta1", "x3", -0.5,
+  "sim_d", "beta2", "x1", 1,
+  "sim_d", "beta2", "x2", 0.75,
+  "sim_d", "beta2", "x3", -0.5,
+)
 
 # A: x1 has the same (large) effect in both causes, both causes have equal prevalence
 # Censoring about as likely as event 1 or 2
@@ -52,8 +70,8 @@ sim_c <- function(data, job, n = 1000) {
 sim_d <- function(data, job, n = 1000) {
   xdat <- sim_wrapper_cr(
     formula =
-      ~ -2 + 2*dgamma(t, 8, 2) + 1 * x1 + 0.75 * x2 - 0.5 * x3 + 0.15 * x4 |
-        -4 + 2*dgamma(t, 8, 2) + 1 * x1 + 0.75 * x2 - 0.5 * x3 + 0.15 * x4,
+      ~ -2 + 2*dgamma(t, 8, 2) + 1 * x1 + 0.75 * x2 - 0.5 * x3 |
+        -4 + 2*dgamma(t, 8, 2) + 1 * x1 + 0.75 * x2 - 0.5 * x3,
     n = n
   )
 
