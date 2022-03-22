@@ -2,7 +2,11 @@
 title: "Simulation Results"
 author: "Lukas"
 date: "`r Sys.Date()`"
-output: html_document
+output: 
+  html_document: 
+    fig_width: 11
+    fig_height: 9
+    self_contained: no
 editor_options: 
   chunk_output_type: console
 ---
@@ -14,14 +18,46 @@ library(batchtools)
 library(ggplot2)
 library(dplyr)
 
+reg_name <- "fwel_simulations"
+reg_dir <- here::here("registries", reg_name)
+loadRegistry(reg_dir)
+
 # Load helper functions in R/
 source(here::here("R/sim_cr.R"))
 source(here::here("R/mt_res_tidy_plot.R"))
+
+source(here::here("02-problems.R"))
 ```
 
-```{r}
+```{r get-results}
 res <-  ijoin(reduceResultsDataTable(), flatten(getJobPars()))
-res
+nrow(res)/nrow(getJobTable())
+nrow(findErrors())/nrow(getJobTable())
+
+res |>
+  count(problem, z_scale, z_method)
+```
+
+
+```{r runtime-plot}
+getJobTable() |>
+  select(time.running, problem) |>
+  mutate(time.running = as.double(time.running, units = "secs")) |>
+  ggplot(aes(x = problem, y = time.running)) +
+  geom_boxplot() +
+  labs(
+    title = "Job Runtime",
+    x = "Setting", y = "Runtime (s)"
+  ) +
+  theme_minimal()
+
+getJobTable() |>
+  select(time.running, problem) |>
+  mutate(time.running = as.double(time.running, units = "secs")) |>
+  summarize(
+    total_s = sum(time.running),
+    total_h = total_s/60/60
+  )
 ```
 
 ```{r}
@@ -29,7 +65,7 @@ res_long <- purrr::map2_df(res$problem, res$result, ~tidy_mt_res(.y, true_effect
 
 ```
 
-```{r}
+```{r, include = FALSE, eval = FALSE}
 (plot_bt_res(res_long, true_effects, "sim_a") + plot_bt_res(res_long, true_effects, "sim_b")) /
   (plot_bt_res(res_long, true_effects, "sim_c") + plot_bt_res(res_long, true_effects, "sim_d"))
 ```
@@ -38,31 +74,58 @@ res_long <- purrr::map2_df(res$problem, res$result, ~tidy_mt_res(.y, true_effect
 Boxplot for `true-estimated`
 
 ```{r}
-res_long |>
-  filter(iter %in% c(0, 2), is_noise != "Noise", z_method == "original") |>
-  select(-is_noise, -converged, -xcol) |>
-  left_join(true_effects, by = c("problem", "beta", "x")) |>
-  mutate(
-    iter = if_else(iter == 0, "glmnet", "fwelnet_mt"),
-    error = truth - value
-  ) |>
-  filter(problem == "sim_a") |> 
-  ggplot(aes(x = x, y = error, fill = iter, color = iter)) +
-  facet_grid(rows = vars(beta), cols = vars(z_scale), labeller = label_both) +
-  geom_hline(yintercept = 0, lty = "longdash", size = 1) +
-  #geom_jitter(alpha = 0.1, position = position_dodge2(width = .5, preserve = "single")) +
-  geom_boxplot(alpha = 0.2) +
-  scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill"), name = NULL) +
-  labs(
-    title = "A: Equal effect of x1 on both causes",
-    subtitle = "Causes have same prevalence",
-    x = NULL, y = "Error (true - estimated)"
-  ) +
-  theme_minimal(base_size = 16) +
-  theme(
-    panel.spacing = ggplot2::unit(1, "cm"),
-    legend.position = "top",
-    plot.title.position = "plot"
-  )
+plot_errors_boxplot <- function(res_long, true_effects, problem) {
+  res_long |>
+    filter(iter %in% range(iter), xcol != "Noise", z_method == "original") |>
+    select(-is_noise, -converged, -xcol) |>
+    # join true betas from design tbl for nonzero-effects
+    left_join(true_effects, by = c("problem", "beta", "x")) |>
+    mutate(
+      iter = if_else(iter == 0, "glmnet", "fwelnet_mt"),
+      # truth doesn't contain true 0s, manually hacking them in here
+      truth = ifelse(is.na(truth), 0, truth),
+      error = truth - value,
+      # Just for optics
+      beta = stringr::str_replace_all(beta, "beta", "Cause "),
+      z_scale = paste("Z-scalar:", z_scale)
+    ) |>
+    filter(.data$problem == !!problem) |> 
+    ggplot(aes(x = x, y = error, fill = iter, color = iter)) +
+    facet_grid(rows = vars(beta), cols = vars(z_scale)) +
+    geom_hline(yintercept = 0, lty = "longdash", size = 1) +
+    #geom_jitter(alpha = 0.1, position = position_dodge2(width = .5, preserve = "single")) +
+    geom_boxplot(alpha = 0.2) +
+    scale_color_brewer(
+      palette = "Dark2", aesthetics = c("color", "fill"), 
+      labels = c(fwelnet_mt = "Multi-Task fwelnet", glmnet = "Cause-Specific glmnet"),
+      name = NULL
+    ) +
+    labs(
+      title = NULL,
+      subtitle = sim_labels[[problem]],
+      x = NULL, y = "Error (true - estimated)"
+    ) +
+    theme_minimal(base_size = 16) +
+    theme(
+      panel.spacing = ggplot2::unit(1, "cm"),
+      legend.position = "bottom",
+      plot.title.position = "plot"
+    )
+}
 ```
 
+```{r error-bp-A}
+plot_errors_boxplot(res_long, true_effects,  "sim_a")
+```
+
+```{r error-bp-B}
+plot_errors_boxplot(res_long, true_effects,  "sim_b")
+```
+
+```{r error-bp-C}
+plot_errors_boxplot(res_long, true_effects,  "sim_c")
+```
+
+```{r error-bp-D}
+plot_errors_boxplot(res_long, true_effects,  "sim_d")
+```
