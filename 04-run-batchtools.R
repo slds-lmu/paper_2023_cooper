@@ -42,8 +42,8 @@ algo_design <- list(
   fwel_mt = expand.grid(
     mt_max_iter = 2,
     alpha = 1,
-    z_scale = c(1, 10, 100),
-    z_method = c("original", "aligned")
+    z_scale = c(1, 10, 100, 1000),
+    z_method = c("original")
   )
 )
 
