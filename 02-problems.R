@@ -20,6 +20,13 @@ true_effects <- tibble::tribble(
   "sim_d", "beta2", "x3", -0.5,
 )
 
+sim_labels <- c(
+  "sim_a" = "A: x1 has equal effect on both causes / same prevalence",
+  "sim_b" = "B: x1 has effect on cause 1, x2 has equal effect on cause 2 / same prevalence",
+  "sim_c" = "C: x1 has effect on cause 1 and smaller effect on cause2 / cause 2 less prevalent",
+  "sim_d" = "D: x{1,2,3} have equal effects in both causes / cause 2 less prevalent"
+)
+
 # A: x1 has the same (large) effect in both causes, both causes have equal prevalence
 # Censoring about as likely as event 1 or 2
 sim_a <- function(data, job, n = 1000) {
@@ -35,7 +42,7 @@ sim_a <- function(data, job, n = 1000) {
   )
 }
 
-# B: x1 has effect on cause 1, x2 effect auf cause 2, causes have same prevalence
+# B: x1 has effect on cause 1, x2 effect on cause 2, causes have same prevalence
 # Censoring about as likely as event 1 or 2
 sim_b <- function(data, job, n = 1000) {
   xdat <- sim_wrapper_cr(
@@ -56,7 +63,7 @@ sim_c <- function(data, job, n = 1000) {
   xdat <- sim_wrapper_cr(
     formula =
       ~ -2 + 2*dgamma(t, 8, 2) + 1 * x1 |
-        -4 + 2*dgamma(t, 8, 2) + 0.25 * x2,
+        -4 + 2*dgamma(t, 8, 2) + 0.25 * x1,
     n = n
   )
 
@@ -66,7 +73,7 @@ sim_c <- function(data, job, n = 1000) {
 }
 
 # D: Various effects but identical in both causes, cause 2 less likely
-# Censoring about less likely than cause 1, cause 2 less likely than both
+# Censoring less likely than cause 1, cause 2 less likely than both
 sim_d <- function(data, job, n = 1000) {
   xdat <- sim_wrapper_cr(
     formula =
