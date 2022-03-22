@@ -80,7 +80,7 @@ plot_bt_res <- function(res, truth, problem) {
   res <- res[res$problem == problem, ]
 
   # Sort so Noise comes last in legend
-  x_lvl <- c(sort(levels(res2$xcol))[-1], "Noise")
+  x_lvl <- c(sort(levels(res$xcol))[-1], "Noise")
 
   ggplot2::ggplot(res, ggplot2::aes(x = iter, y = value, color = xcol, alpha = is_noise)) +
     ggplot2::facet_grid(
