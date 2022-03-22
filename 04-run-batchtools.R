@@ -52,7 +52,7 @@ summarizeExperiments()
 unwrap(getJobPars(), c("algo.pars", "prob.pars"))
 
 # Test jobs -----------------------------------------------------------
-testJob(id = 1)
+if (interactive()) testJob(id = 1)
 
 # Submit -----------------------------------------------------------
 if (grepl("node\\d{2}|bipscluster", system("hostname", intern = TRUE))) {
@@ -70,18 +70,14 @@ waitForJobs()
 
 
 # Monitor jobs ------------------------------------------------------------
+if (interactive()) {
+  getStatus()
 
-nrow(findRunning())
-nrow(findExpired())
-nrow(findDone())
-nrow(findNotDone())
-nrow(findErrors())
-
-ijoin(
-  unwrap(getJobPars(findErrors()), c("algo.pars", "prob.pars")),
-  getErrorMessages(findErrors())
-)
-
+  ijoin(
+    unwrap(getJobPars(findErrors()), c("algo.pars", "prob.pars")),
+    getErrorMessages(findErrors())
+  )
+}
 
 # Get results -------------------------------------------------------------
 res <-  ijoin(reduceResultsDataTable(), flatten(getJobPars()))
