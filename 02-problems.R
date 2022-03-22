@@ -10,7 +10,7 @@ true_effects <- tibble::tribble(
   "sim_b", "beta2", "x2", 1,
 
   "sim_c", "beta1", "x1", 1,
-  "sim_c", "beta2", "x2", 0.25,
+  "sim_c", "beta2", "x1", 0.25,
 
   "sim_d", "beta1", "x1", 1,
   "sim_d", "beta1", "x2", 0.75,
