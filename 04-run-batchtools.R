@@ -1,6 +1,6 @@
 library(batchtools)
 
-# settings ----------------------------------------------------------------
+# Settings ----------------------------------------------------------------
 config <- list(
   global_seed = 563,
   sim_seed = 569,
@@ -64,7 +64,6 @@ if (grepl("node\\d{2}|bipscluster", system("hostname", intern = TRUE))) {
                               max.concurrent.jobs = 40))
 } else {
   ids <- findNotStarted()
-  ids <- sample(ids$job.id, 250)
   submitJobs(ids = ids)
 }
 waitForJobs()
@@ -76,6 +75,13 @@ nrow(findRunning())
 nrow(findExpired())
 nrow(findDone())
 nrow(findNotDone())
+nrow(findErrors())
+
+ijoin(
+  unwrap(getJobPars(findErrors()), c("algo.pars", "prob.pars")),
+  getErrorMessages(findErrors())
+)
+
 
 # Get results -------------------------------------------------------------
 res <-  ijoin(reduceResultsDataTable(), flatten(getJobPars()))
