@@ -30,7 +30,7 @@ source(here::here("R/mt_res_tidy_plot.R"))
 source(here::here("02-problems.R"))
 ```
 
-```{r get-results}
+```{r get-results, cache = TRUE}
 res <-  ijoin(reduceResultsDataTable(), flatten(getJobPars()))
 nrow(res)/nrow(getJobTable())
 nrow(findErrors())/nrow(getJobTable())
@@ -79,10 +79,32 @@ res_long <- purrr::pmap_dfr(res, ~{
 ```
 
 
-Boxplot for `true-estimated`
+## Boxplot for `true-estimated`
 
 ```{r}
 plot_errors_boxplot <- function(res_long, true_effects, problem, z_method = "original", z_scale = 1, iter_max = 2) {
+  
+  # shoddy vectorization with auto-patchworking
+  if (length(problem) > 1) {
+    p_list <- purrr::map(
+      problem, ~plot_errors_boxplot(
+        res_long = res_long,
+        true_effects = true_effects, problem = .x, z_method = z_method, 
+        z_scale = z_scale, iter_max = iter_max        
+        )
+      )
+    
+    p <- Reduce(`+`, p_list) + 
+      patchwork::plot_layout(ncol = 2, guides = "collect") +
+      patchwork::plot_annotation(
+        # title = "Test title pls ignore", 
+        caption = glue::glue("z_method: {z_method}, iter_max: {iter_max}")
+      ) & 
+      theme(legend.position = "bottom", plot.caption = element_text(size = 12))
+    
+    return(p)
+  }
+  
   res_long |>
     filter(
       # iter == 0 is the glmnet solution, compare that with a given iteration of fwelnet
@@ -129,34 +151,23 @@ plot_errors_boxplot <- function(res_long, true_effects, problem, z_method = "ori
 ### Original `z_method`
 
 ```{r error-bp-A}
-(pa <- plot_errors_boxplot(res_long, true_effects,  "sim_a", z_scale = 1))
-
-# (pa <- plot_errors_boxplot(res_long, true_effects,  "sim_a", z_scale = 1, iter_max = 1))
-# (pa <- plot_errors_boxplot(res_long, true_effects,  "sim_a", z_scale = 1, iter_max = 2))
+(pa <- plot_errors_boxplot(res_long, true_effects,  "sim_a", z_scale = 1, z_method = "original"))
 ```
 
 ```{r error-bp-B}
-(pb <- plot_errors_boxplot(res_long, true_effects,  "sim_b", z_scale = 1))
+(pb <- plot_errors_boxplot(res_long, true_effects,  "sim_b", z_scale = 1, z_method = "original"))
 ```
 
 ```{r error-bp-C}
-(pc <- plot_errors_boxplot(res_long, true_effects,  "sim_c", z_scale = 1))
-
-# (pc <- plot_errors_boxplot(res_long, true_effects,  "sim_c", z_scale = 1, iter_max = 1))
-# (pc <- plot_errors_boxplot(res_long, true_effects,  "sim_c", z_scale = 1, iter_max = 2))
+(pc <- plot_errors_boxplot(res_long, true_effects,  "sim_c", z_scale = 1, z_method = "original"))
 ```
 
 ```{r error-bp-D}
-(pd <- plot_errors_boxplot(res_long, true_effects,  "sim_d", z_scale = 1))
-
-# (pd <- plot_errors_boxplot(res_long, true_effects,  "sim_d", z_scale = 1, iter_max = 1)) +
-# (pd <- plot_errors_boxplot(res_long, true_effects,  "sim_d", z_scale = 1, iter_max = 2))
+(pd <- plot_errors_boxplot(res_long, true_effects,  "sim_d", z_scale = 1, z_method = "original"))
 ```
 
-```{r error-bp-all, fig.width=18, fig.height=14}
-((pa + pb) / (pc + pd)) + 
-  plot_layout(guides = "collect") & 
-  theme(legend.position = "bottom")
+```{r error-bp-all, fig.width=18, fig.height=16}
+plot_errors_boxplot(res_long, true_effects, names(sim_labels), z_scale = 1, z_method = "original")
 ```
 
 ### RMSE ± SD Maybe?
@@ -206,7 +217,7 @@ plot_rmse_errorbars <- function(res_long, true_effects, problem, z_method = "ori
 }
 ```
 
-```{r rmse-errorbars-all}
+```{r rmse-errorbars-all, fig.width=18, fig.height=16}
 ((plot_rmse_errorbars(res_long, true_effects, "sim_a") + plot_rmse_errorbars(res_long, true_effects, "sim_b")) /
   (plot_rmse_errorbars(res_long, true_effects, "sim_c") + plot_rmse_errorbars(res_long, true_effects, "sim_d"))) +
   plot_layout(guides = "collect") & 
