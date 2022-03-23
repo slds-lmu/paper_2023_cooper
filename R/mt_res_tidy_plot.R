@@ -88,7 +88,7 @@ plot_bt_res <- function(res, truth, problem) {
 
   ggplot2::ggplot(res, ggplot2::aes(x = iter, y = value, color = xcol, alpha = is_noise)) +
     ggplot2::facet_grid(
-      cols = vars(z_method, z_scale), rows = ggplot2::vars(beta),
+      cols = vars(z_method, z_scale, theta), rows = ggplot2::vars(beta),
       labeller = label_context
     ) +
     ggplot2::geom_path() +

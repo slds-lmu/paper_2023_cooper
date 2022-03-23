@@ -36,7 +36,7 @@ nrow(res)/nrow(getJobTable())
 nrow(findErrors())/nrow(getJobTable())
 
 res |>
-  count(problem, z_scale, z_method)
+  count(problem, z_scale, z_method, theta)
 ```
 
 
@@ -64,6 +64,13 @@ getJobTable() |>
 ```{r}
 res_long <- purrr::map2_df(res$problem, res$result, ~tidy_mt_res(.y, true_effects, problem = .x))
 
+# Need a cleaner solution that's maybe also faster
+res_long <- purrr::pmap_dfr(res, ~{
+  res_tidy <- tidy_mt_res(..2, true_effects, problem = ..3)
+  res_tidy$theta <- ..10
+  res_tidy
+})
+
 ```
 
 ```{r, include = FALSE, eval = FALSE}
@@ -75,9 +82,12 @@ res_long <- purrr::map2_df(res$problem, res$result, ~tidy_mt_res(.y, true_effect
 Boxplot for `true-estimated`
 
 ```{r}
-plot_errors_boxplot <- function(res_long, true_effects, problem, z_method = "original") {
+plot_errors_boxplot <- function(res_long, true_effects, problem, z_method = "original", z_scale = 1, iter_max = 2) {
   res_long |>
-    filter(iter %in% range(iter), xcol != "Noise", z_method == !!z_method) |>
+    filter(
+      # iter == 0 is the glmnet solution, compare that with a given iteration of fwelnet
+      iter %in% c(0, !!iter_max), 
+      xcol != "Noise", z_method == !!z_method, z_scale %in% !!z_scale) |>
     select(-is_noise, -converged, -xcol) |>
     # join true betas from design tbl for nonzero-effects
     left_join(true_effects, by = c("problem", "beta", "x")) |>
@@ -88,11 +98,12 @@ plot_errors_boxplot <- function(res_long, true_effects, problem, z_method = "ori
       error = truth - value,
       # Just for optics
       beta = stringr::str_replace_all(beta, "beta", "Cause "),
-      z_scale = paste("Z-scalar:", z_scale)
+      z_scale = paste("Z-scalar:", z_scale),
+      theta = paste("theta:", theta)
     ) |>
     filter(.data$problem == !!problem) |> 
     ggplot(aes(x = x, y = error, fill = iter, color = iter)) +
-    facet_grid(rows = vars(beta), cols = vars(z_scale)) +
+    facet_grid(rows = vars(beta), cols = vars(z_scale, theta)) +
     geom_hline(yintercept = 0, lty = "longdash", size = 1) +
     #geom_jitter(alpha = 0.1, position = position_dodge2(width = .5, preserve = "single")) +
     geom_boxplot(alpha = 0.2) +
@@ -118,19 +129,28 @@ plot_errors_boxplot <- function(res_long, true_effects, problem, z_method = "ori
 ### Original `z_method`
 
 ```{r error-bp-A}
-(pa <- plot_errors_boxplot(res_long, true_effects,  "sim_a"))
+(pa <- plot_errors_boxplot(res_long, true_effects,  "sim_a", z_scale = 1))
+
+# (pa <- plot_errors_boxplot(res_long, true_effects,  "sim_a", z_scale = 1, iter_max = 1))
+# (pa <- plot_errors_boxplot(res_long, true_effects,  "sim_a", z_scale = 1, iter_max = 2))
 ```
 
 ```{r error-bp-B}
-(pb <- plot_errors_boxplot(res_long, true_effects,  "sim_b"))
+(pb <- plot_errors_boxplot(res_long, true_effects,  "sim_b", z_scale = 1))
 ```
 
 ```{r error-bp-C}
-(pc <- plot_errors_boxplot(res_long, true_effects,  "sim_c"))
+(pc <- plot_errors_boxplot(res_long, true_effects,  "sim_c", z_scale = 1))
+
+# (pc <- plot_errors_boxplot(res_long, true_effects,  "sim_c", z_scale = 1, iter_max = 1))
+# (pc <- plot_errors_boxplot(res_long, true_effects,  "sim_c", z_scale = 1, iter_max = 2))
 ```
 
 ```{r error-bp-D}
-(pd <- plot_errors_boxplot(res_long, true_effects,  "sim_d"))
+(pd <- plot_errors_boxplot(res_long, true_effects,  "sim_d", z_scale = 1))
+
+# (pd <- plot_errors_boxplot(res_long, true_effects,  "sim_d", z_scale = 1, iter_max = 1)) +
+# (pd <- plot_errors_boxplot(res_long, true_effects,  "sim_d", z_scale = 1, iter_max = 2))
 ```
 
 ```{r error-bp-all}
@@ -142,9 +162,9 @@ plot_errors_boxplot <- function(res_long, true_effects, problem, z_method = "ori
 ### RMSE ± SD Maybe?
 
 ```{r rmse-errorbars-fun}
-plot_rmse_errorbars <- function(res_long, true_effects, problem, z_method = "original") {
+plot_rmse_errorbars <- function(res_long, true_effects, problem, z_method = "original", z_scale = 1) {
   res_long |>
-    filter(iter %in% range(iter), xcol != "Noise", problem == !!problem, z_method == !!z_method) |>
+    filter(iter %in% range(iter), xcol != "Noise", problem == !!problem, z_method == !!z_method, z_scale %in% !!z_scale) |>
     select(-is_noise, -converged, -xcol) |>
     # join true betas from design tbl for nonzero-effects
     left_join(true_effects, by = c("problem", "beta", "x")) |>
@@ -155,17 +175,18 @@ plot_rmse_errorbars <- function(res_long, true_effects, problem, z_method = "ori
       error = (truth - value),
       # Just for optics
       beta = stringr::str_replace_all(beta, "beta", "Cause "),
-      z_scale = paste("Z-scalar:", z_scale)
+      z_scale = paste("Z-scalar:", z_scale),
+      theta = paste("theta:", theta)
     ) |>
-    group_by(x, iter, beta, z_scale, z_method, problem) |>
+    group_by(x, iter, beta, z_scale, z_method, problem, theta) |>
     summarize(
       rmse = sqrt(mean(error^2)),
       rmse_sd = sd(error),
       .groups = "drop"
     ) |>
     ggplot(aes(x = x, y = rmse, color = iter, fill = iter)) +
-    facet_grid(rows = vars(beta), cols = vars(z_method, z_scale)) +
-    geom_errorbar(aes(ymin = rmse - rmse_sd, ymax = rmse + rmse_sd), size = 2, position = "dodge2") +
+    facet_grid(rows = vars(beta), cols = vars(z_method, z_scale, theta)) +
+    geom_errorbar(aes(ymin = rmse - rmse_sd, ymax = rmse + rmse_sd), size = 2, position = "dodge2", width = .5) +
     scale_color_brewer(
       palette = "Dark2", aesthetics = c("color", "fill"),
       labels = c(fwelnet_mt = "Multi-Task fwelnet", glmnet = "Cause-Specific glmnet"),
@@ -195,7 +216,9 @@ plot_rmse_errorbars <- function(res_long, true_effects, problem, z_method = "ori
 
 ## What is theta even
 
-```{r plot-theta-lambda}
+Needs adjusting after introducing theta as a simulation param
+
+```{r plot-theta-lambda, eval = FALSE}
 res_long |>
   filter(iter == 2, xcol != "Noise", problem == "sim_c", z_method == "original") |>
   select(-is_noise, -converged, -xcol, -z_method, -iter) |>
@@ -209,7 +232,7 @@ res_long |>
   mutate(cause = stringr::str_replace_all(cause, "c", "Cause ")) |>
   filter(param != "beta") |>
   ggplot(aes(x = param, y = val, color = cause, fill = cause)) +
-  facet_grid(cols = vars(z_scale), labeller = label_both) +
+  facet_grid(cols = vars(z_scale, theta), labeller = label_both) +
   geom_boxplot(alpha = .75) +
   scale_y_log10() +
   scale_color_manual(
