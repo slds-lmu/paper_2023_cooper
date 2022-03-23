@@ -16,6 +16,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(batchtools)
 library(ggplot2)
+library(patchwork)
 library(dplyr)
 
 reg_name <- "fwel_simulations"
@@ -132,76 +133,111 @@ plot_errors_boxplot <- function(res_long, true_effects, problem, z_method = "ori
 (pd <- plot_errors_boxplot(res_long, true_effects,  "sim_d"))
 ```
 
-```{r boxplot-err-z-orig}
+```{r error-bp-all}
 ((pa + pb) / (pc + pd)) + 
-  plot_layout(guides = "collect") & 
-  theme(legend.position = "bottom")
-```
-
-### With `z_method = "aligned"`
-
-```{r error-bp-A-aligned}
-(pa_aligned <- plot_errors_boxplot(res_long, true_effects,  "sim_a", z_method = "aligned"))
-```
-
-```{r error-bp-B-aligned}
-(pb_aligned <- plot_errors_boxplot(res_long, true_effects,  "sim_b", z_method = "aligned"))
-```
-
-```{r error-bp-C-aligned}
-(pc_aligned <- plot_errors_boxplot(res_long, true_effects,  "sim_c", z_method = "aligned"))
-```
-
-```{r error-bp-D-aligned}
-(pd_aligned <- plot_errors_boxplot(res_long, true_effects,  "sim_d", z_method = "aligned"))
-```
-
-```{r boxplot-err-z-aligned}
-((pa_aligned + pb_aligned) / (pc_aligned + pd_aligned)) + 
   plot_layout(guides = "collect") & 
   theme(legend.position = "bottom")
 ```
 
 ### RMSE ± SD Maybe?
 
-```{r rmse-errorbars-A}
-res_long |>
-  filter(iter %in% range(iter), xcol != "Noise", problem == "sim_a") |>
-  select(-is_noise, -converged, -xcol) |>
-  # join true betas from design tbl for nonzero-effects
-  left_join(true_effects, by = c("problem", "beta", "x")) |>
-  mutate(
-    iter = if_else(iter == 0, "glmnet", "fwelnet_mt"),
-    # truth doesn't contain true 0s, manually hacking them in here
-    truth = ifelse(is.na(truth), 0, truth),
-    error = (truth - value),
-    # Just for optics
-    beta = stringr::str_replace_all(beta, "beta", "Cause "),
-    z_scale = paste("Z-scalar:", z_scale)
-  ) |>
-  group_by(x, iter, beta, z_scale, z_method, problem) |>
-  summarize(
-    rmse = sqrt(mean(error^2)),
-    rmse_sd = sd(error)
-  ) |>
-  ggplot(aes(x = x, y = rmse, color = iter, fill = iter)) +
-  facet_grid(rows = vars(beta), cols = vars(z_method, z_scale)) +
-  geom_errorbar(aes(ymin = rmse - rmse_sd, ymax = rmse + rmse_sd), size = 2, position = "dodge2") +
-  scale_color_brewer(
-    palette = "Dark2", aesthetics = c("color", "fill"), 
-    labels = c(fwelnet_mt = "Multi-Task fwelnet", glmnet = "Cause-Specific glmnet"),
-    name = NULL
-  ) +
-  labs(
-    title = NULL,
-    subtitle = sim_labels[["sim_a"]],
-    x = NULL, y = "RMSE ± SD"
-  ) +
-  theme_minimal(base_size = 16) +
-  theme(
+```{r rmse-errorbars-fun}
+plot_rmse_errorbars <- function(res_long, true_effects, problem, z_method = "original") {
+  res_long |>
+    filter(iter %in% range(iter), xcol != "Noise", problem == !!problem, z_method == !!z_method) |>
+    select(-is_noise, -converged, -xcol) |>
+    # join true betas from design tbl for nonzero-effects
+    left_join(true_effects, by = c("problem", "beta", "x")) |>
+    mutate(
+      iter = if_else(iter == 0, "glmnet", "fwelnet_mt"),
+      # truth doesn't contain true 0s, manually hacking them in here
+      truth = ifelse(is.na(truth), 0, truth),
+      error = (truth - value),
+      # Just for optics
+      beta = stringr::str_replace_all(beta, "beta", "Cause "),
+      z_scale = paste("Z-scalar:", z_scale)
+    ) |>
+    group_by(x, iter, beta, z_scale, z_method, problem) |>
+    summarize(
+      rmse = sqrt(mean(error^2)),
+      rmse_sd = sd(error),
+      .groups = "drop"
+    ) |>
+    ggplot(aes(x = x, y = rmse, color = iter, fill = iter)) +
+    facet_grid(rows = vars(beta), cols = vars(z_method, z_scale)) +
+    geom_errorbar(aes(ymin = rmse - rmse_sd, ymax = rmse + rmse_sd), size = 2, position = "dodge2") +
+    scale_color_brewer(
+      palette = "Dark2", aesthetics = c("color", "fill"),
+      labels = c(fwelnet_mt = "Multi-Task fwelnet", glmnet = "Cause-Specific glmnet"),
+      name = NULL
+    ) +
+    labs(
+      title = NULL,
+      subtitle = sim_labels[[problem]],
+      x = NULL, y = "RMSE ± SD"
+    ) +
+    theme_minimal(base_size = 16) +
+    theme(
       panel.spacing = ggplot2::unit(1, "cm"),
       legend.position = "bottom",
       plot.title.position = "plot"
     )
+}
+```
+
+```{r rmse-errorbars-all}
+((plot_rmse_errorbars(res_long, true_effects, "sim_a") + plot_rmse_errorbars(res_long, true_effects, "sim_b")) /
+  (plot_rmse_errorbars(res_long, true_effects, "sim_c") + plot_rmse_errorbars(res_long, true_effects, "sim_d"))) +
+  plot_layout(guides = "collect") & 
+  theme(legend.position = "bottom")
+```
+
+
+## What is theta even
+
+```{r plot-theta-lambda}
+res_long |>
+  filter(iter == 2, xcol != "Noise", problem == "sim_c", z_method == "original") |>
+  select(-is_noise, -converged, -xcol, -z_method, -iter) |>
+  tidyr::pivot_wider(names_from = "beta", values_from = "value") |>
+  rename(beta_c1 = beta1, beta_c2 = beta2) |>
+  tidyr::pivot_longer(
+    cols = matches("(c1$)|(c2$)"), 
+    names_to = c("param", "cause"), names_sep = "_", 
+    values_to = "val"
+  ) |>
+  mutate(cause = stringr::str_replace_all(cause, "c", "Cause ")) |>
+  filter(param != "beta") |>
+  ggplot(aes(x = param, y = val, color = cause, fill = cause)) +
+  facet_grid(cols = vars(z_scale), labeller = label_both) +
+  geom_boxplot(alpha = .75) +
+  scale_y_log10() +
+  scale_color_manual(
+    values = RColorBrewer::brewer.pal(4, "Dark2")[3:4],
+    aesthetics = c("color", "fill")
+  ) +
+  labs(
+    title = sim_labels[["sim_c"]],
+    subtitle = "Parameter values after final fwelnet fit",
+    color = NULL, fill = NULL,
+    x = NULL, y = "Value"
+  ) +
+  theme_minimal(base_size = 16) +
+  theme(legend.position = "top")
+
+res_long |>
+  filter(iter == 2, xcol != "Noise", problem == "sim_c", z_method == "original") |>
+  select(-is_noise, -converged, -xcol, -z_method, -iter) |>
+  tidyr::pivot_wider(names_from = "beta", values_from = "value") |>
+  rename(beta_c1 = beta1, beta_c2 = beta2) |>
+  tidyr::pivot_longer(
+    cols = matches("(c1$)|(c2$)"), 
+    names_to = c("param", "cause"), names_sep = "_", 
+    values_to = "val"
+  ) |>
+  mutate(cause = stringr::str_replace_all(cause, "c", "Cause ")) |>
+  filter(param != "beta") |>
+  group_by(x, z_scale, problem, param, cause) |>
+  summarize(val_m = mean(val))
 ```
 
