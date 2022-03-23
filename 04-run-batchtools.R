@@ -42,8 +42,9 @@ algo_design <- list(
   fwel_mt = expand.grid(
     mt_max_iter = 2,
     alpha = 1,
-    z_scale = c(1, 10, 100, 1000),
-    z_method = c("original")
+    z_scale = c(1, 10, 100),
+    z_method = c("original", "aligned"),
+    theta = c("original", 1)
   )
 )
 
@@ -52,7 +53,7 @@ summarizeExperiments()
 unwrap(getJobPars(), c("algo.pars", "prob.pars"))
 
 # Test jobs -----------------------------------------------------------
-if (interactive()) testJob(id = 1)
+if (interactive()) testJob(id = 4796)
 
 # Submit -----------------------------------------------------------
 if (grepl("node\\d{2}|bipscluster", system("hostname", intern = TRUE))) {

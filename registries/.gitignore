@@ -1,2 +1,3 @@
+# Ignore batchtools artifacts
 *.rds
 *.log
