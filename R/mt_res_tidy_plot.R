@@ -34,7 +34,11 @@ tidy_mt_res <- function(mtres, truth, problem = NULL) {
         factor(levels = c(unique(truth$x), "Noise")),
       z_scale = mtres$z_scale,
       z_method = factor(mtres$z_method, levels = c("original", "aligned")),
-      converged = mtres$converged
+      converged = mtres$converged,
+      theta_c1 =  as.numeric(mtres$fwfit1$glmfit$theta),
+      theta_c2 =  as.numeric(mtres$fwfit2$glmfit$theta),
+      lambda_c1 = mtres$fwfit1$lambda.min,
+      lambda_c2 = mtres$fwfit2$lambda.min
     )
 
   if (!is.null(problem)) xdf$problem <- problem
