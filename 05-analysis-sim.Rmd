@@ -62,14 +62,14 @@ getJobTable() |>
 ```
 
 ```{r tidy-results, cache = TRUE, dependson="get-results"}
-res_long <- purrr::map2_df(res$problem, res$result, ~tidy_mt_res(.y, true_effects, problem = .x))
+# # Need a cleaner solution that's maybe also faster
+# res_long <- purrr::pmap_dfr(res, ~{
+#   res_tidy <- tidy_mt_res(..2, true_effects, problem = ..3)
+#   res_tidy$theta <- ..10
+#   res_tidy
+# })
 
-# Need a cleaner solution that's maybe also faster
-res_long <- purrr::pmap_dfr(res, ~{
-  res_tidy <- tidy_mt_res(..2, true_effects, problem = ..3)
-  res_tidy$theta <- ..10
-  res_tidy
-})
+res_long <- tidy_mt_res_bt(res, true_effects)
 
 ```
 
@@ -173,9 +173,33 @@ plot_errors_boxplot(res_long, true_effects, names(sim_labels), z_scale = 1, z_me
 ### RMSE ± SD Maybe?
 
 ```{r rmse-errorbars-fun}
-plot_rmse_errorbars <- function(res_long, true_effects, problem, z_method = "original", z_scale = 1) {
+plot_rmse_errorbars <- function(res_long, true_effects, problem, z_method = "original", z_scale = 1, iter_max = 2) {
+    # shoddy vectorization with auto-patchworking
+  if (length(problem) > 1) {
+    p_list <- purrr::map(
+      problem, ~plot_rmse_errorbars(
+        res_long = res_long,
+        true_effects = true_effects, problem = .x, z_method = z_method, 
+        z_scale = z_scale, iter_max = iter_max        
+        )
+      )
+    
+    p <- Reduce(`+`, p_list) + 
+      patchwork::plot_layout(ncol = 2, guides = "collect") +
+      patchwork::plot_annotation(
+        # title = "Test title pls ignore", 
+        caption = glue::glue("z_method: {z_method}, iter_max: {iter_max}")
+      ) & 
+      theme(legend.position = "bottom", plot.caption = element_text(size = 12))
+    
+    return(p)
+  }
+  
   res_long |>
-    filter(iter %in% range(iter), xcol != "Noise", problem == !!problem, z_method == !!z_method, z_scale %in% !!z_scale) |>
+    filter(
+      # iter == 0 is the glmnet solution, compare that with a given iteration of fwelnet
+      iter %in% c(0, !!iter_max), 
+      xcol != "Noise", problem == !!problem, z_method == !!z_method, z_scale %in% !!z_scale) |>
     select(-is_noise, -converged, -xcol) |>
     # join true betas from design tbl for nonzero-effects
     left_join(true_effects, by = c("problem", "beta", "x")) |>
@@ -196,7 +220,7 @@ plot_rmse_errorbars <- function(res_long, true_effects, problem, z_method = "ori
       .groups = "drop"
     ) |>
     ggplot(aes(x = x, y = rmse, color = iter, fill = iter)) +
-    facet_grid(rows = vars(beta), cols = vars(z_method, z_scale, theta)) +
+    facet_grid(rows = vars(beta), cols = vars(z_scale, theta)) +
     geom_errorbar(aes(ymin = rmse - rmse_sd, ymax = rmse + rmse_sd), size = 2, position = "dodge2", width = .5) +
     scale_color_brewer(
       palette = "Dark2", aesthetics = c("color", "fill"),
@@ -218,10 +242,7 @@ plot_rmse_errorbars <- function(res_long, true_effects, problem, z_method = "ori
 ```
 
 ```{r rmse-errorbars-all, fig.width=18, fig.height=16}
-((plot_rmse_errorbars(res_long, true_effects, "sim_a") + plot_rmse_errorbars(res_long, true_effects, "sim_b")) /
-  (plot_rmse_errorbars(res_long, true_effects, "sim_c") + plot_rmse_errorbars(res_long, true_effects, "sim_d"))) +
-  plot_layout(guides = "collect") & 
-  theme(legend.position = "bottom")
+plot_rmse_errorbars(res_long, true_effects, names(sim_labels))
 ```
 
 

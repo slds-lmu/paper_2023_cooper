@@ -47,6 +47,47 @@ tidy_mt_res <- function(mtres, truth, problem = NULL) {
 
 }
 
+#' Hacky version of the above to work on the batchtools output
+#' I'm so sorry
+tidy_mt_res_bt <- function(res, truth) {
+  purrr::pmap_dfr(res, ~ {
+    job_id <- ..1
+    mtres <- ..2
+    problem <- ..3
+
+    if (!is.null(problem)) truth <- truth[truth$problem == problem, ]
+
+    betalist <- mtres[grepl("beta", names(mtres))]
+
+    res_tidy <- purrr::map2_df(names(betalist), betalist, ~ {
+      data.frame(.y) |>
+        tibble::rownames_to_column("x") |>
+        tidyr::pivot_longer(
+          cols = -1,
+          names_to = "iter",
+          names_transform = ~ stringr::str_extract(.x, "\\d+") |> as.integer()
+        ) |>
+        dplyr::mutate(
+          beta = .x
+        )
+    }) |>
+      dplyr::mutate(
+        job.id = job_id,
+        iter = iter - 1,
+        is_noise = ifelse(x %in% unique(truth$x), "True effect", "Noise"),
+        xcol = ifelse(is_noise == "Noise", "Noise", x) |>
+          factor(levels = c(unique(truth$x), "Noise")),
+        converged = mtres$converged,
+        theta_c1 = as.numeric(mtres$fwfit1$glmfit$theta),
+        theta_c2 = as.numeric(mtres$fwfit2$glmfit$theta),
+        lambda_c1 = mtres$fwfit1$lambda.min,
+        lambda_c2 = mtres$fwfit2$lambda.min
+      )
+
+    dplyr::left_join(res_tidy, res[, -2], by = "job.id")
+  })
+}
+
 #' Plot the tidied up results for a single run
 #' @param mtres As returned by [`tidy_mt_res()`].
 #' @param truth A data.frame of true effects as in [`tidy_mt_res`]
