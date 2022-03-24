@@ -167,7 +167,7 @@ plot_errors_boxplot <- function(res_long, true_effects, problem, z_method = "ori
 ```
 
 ```{r error-bp-all, fig.width=18, fig.height=16}
-plot_errors_boxplot(res_long, true_effects, names(sim_labels), z_scale = 1, z_method = "original")
+plot_errors_boxplot(res_long, true_effects, names(sim_labels), z_scale = c(1, 100), z_method = "original", iter_max = 2)
 ```
 
 ### RMSE ± SD Maybe?
@@ -252,8 +252,8 @@ Needs adjusting after introducing theta as a simulation param
 
 ```{r plot-theta-lambda, eval = FALSE}
 res_long |>
-  filter(iter == 2, xcol != "Noise", problem == "sim_c", z_method == "original") |>
-  select(-is_noise, -converged, -xcol, -z_method, -iter) |>
+  filter(iter == 2, xcol != "Noise", problem == "sim_c", z_method == "original", theta == "original") |>
+  select(-is_noise, -converged, -xcol, -z_method, -iter, -theta) |>
   tidyr::pivot_wider(names_from = "beta", values_from = "value") |>
   rename(beta_c1 = beta1, beta_c2 = beta2) |>
   tidyr::pivot_longer(
@@ -264,7 +264,7 @@ res_long |>
   mutate(cause = stringr::str_replace_all(cause, "c", "Cause ")) |>
   filter(param != "beta") |>
   ggplot(aes(x = param, y = val, color = cause, fill = cause)) +
-  facet_grid(cols = vars(z_scale, theta), labeller = label_both) +
+  facet_grid(cols = vars(z_scale), labeller = label_both) +
   geom_boxplot(alpha = .75) +
   scale_y_log10() +
   scale_color_manual(
