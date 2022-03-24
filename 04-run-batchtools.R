@@ -40,13 +40,16 @@ prob_design <- list(
 
 algo_design <- list(
   fwel_mt = expand.grid(
-    mt_max_iter = 2,
+    mt_max_iter = 10,
     alpha = 1,
     z_scale = c(1, 10, 100),
     z_method = c("original"),
     theta = c("original", 1)
   )
 )
+
+# theta == 1 only makes sense if we don't z_scale
+algo_design$fwel_mt <- dplyr::filter(algo_design$fwel_mt, !(z_scale > 1 & theta == "1"))
 
 addExperiments(prob_design, algo_design, repls = config$repls)
 summarizeExperiments()
