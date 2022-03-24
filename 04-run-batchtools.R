@@ -43,7 +43,7 @@ algo_design <- list(
     mt_max_iter = 2,
     alpha = 1,
     z_scale = c(1, 10, 100),
-    z_method = c("original", "aligned"),
+    z_method = c("original"),
     theta = c("original", 1)
   )
 )
