@@ -52,18 +52,18 @@
     },
     "MASS": {
       "Package": "MASS",
-      "Version": "7.3-55",
+      "Version": "7.3-56",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "c5232ffb549f6d7a04a152c34ca1353d",
+      "Hash": "af0e1955cb80bb36b7988cc657db261e",
       "Requirements": []
     },
     "Matrix": {
       "Package": "Matrix",
-      "Version": "1.4-0",
+      "Version": "1.4-1",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "130c0caba175739d98f2963c6a407cf6",
+      "Hash": "699c47c606293bdfbc9fd78a93c9c8fe",
       "Requirements": [
         "lattice"
       ]
@@ -398,10 +398,10 @@
     },
     "fansi": {
       "Package": "fansi",
-      "Version": "1.0.2",
+      "Version": "1.0.3",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "f28149c2d7a1342a834b314e95e67260",
+      "Hash": "83a8afdbe71839506baa9f90eebad7ec",
       "Requirements": []
     },
     "farver": {
@@ -476,12 +476,12 @@
       "Version": "0.1.0.9000",
       "Source": "GitHub",
       "RemoteType": "github",
-      "RemoteHost": "api.github.com",
       "RemoteUsername": "jemus42",
       "RemoteRepo": "fwelnet",
       "RemoteRef": "master",
-      "RemoteSha": "db9f5269ef2a60b0e07f26108a678488808a87ad",
-      "Hash": "1ddde72c0777c68e09ecba151f73f2f0",
+      "RemoteSha": "2366352a1186e41c5407ec4490fdc0b4dcd92c21",
+      "RemoteHost": "api.github.com",
+      "Hash": "bc9e68da15eabeaa62c5689ea3972279",
       "Requirements": [
         "Matrix",
         "glmnet",
@@ -1145,10 +1145,10 @@
     },
     "riskRegression": {
       "Package": "riskRegression",
-      "Version": "2022.03.09",
+      "Version": "2022.03.22",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "ef136175ad2a885a7cb1a725d3b879cf",
+      "Hash": "619cc310ee1facf6fe14ef44b35dcf22",
       "Requirements": [
         "Publish",
         "Rcpp",
@@ -1273,10 +1273,10 @@
     },
     "sass": {
       "Package": "sass",
-      "Version": "0.4.0",
+      "Version": "0.4.1",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "50cf822feb64bb3977bda0b7091be623",
+      "Hash": "f37c0028d720bab3c513fd65d28c7234",
       "Requirements": [
         "R6",
         "fs",
