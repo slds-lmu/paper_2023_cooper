@@ -84,6 +84,6 @@ if (interactive()) {
 }
 
 # Get results -------------------------------------------------------------
-res <-  ijoin(reduceResultsDataTable(), flatten(getJobPars()))
-res
+# res <-  ijoin(reduceResultsDataTable(), flatten(getJobPars()))
+# res
 
