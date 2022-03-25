@@ -73,9 +73,12 @@ res_long <- tidy_mt_res_bt(res, true_effects)
 
 ```
 
-```{r, include = FALSE, eval = FALSE}
-(plot_bt_res(res_long, true_effects, "sim_a") + plot_bt_res(res_long, true_effects, "sim_b")) /
-  (plot_bt_res(res_long, true_effects, "sim_c") + plot_bt_res(res_long, true_effects, "sim_d"))
+## Estimates over mt-iterations
+
+```{r plot-estimates-per-iter}
+lineplot_bt_res(res_long, true_effects, "sim_a", exclude_noise = TRUE)
+lineplot_bt_res(res_long, true_effects, "sim_b", exclude_noise = TRUE)
+lineplot_bt_res(res_long, true_effects, "sim_c", exclude_noise = TRUE)
 ```
 
 
@@ -119,13 +122,13 @@ plot_errors_boxplot <- function(res_long, true_effects, problem, z_method = "ori
       truth = ifelse(is.na(truth), 0, truth),
       error = truth - value,
       # Just for optics
-      beta = stringr::str_replace_all(beta, "beta", "Cause "),
-      z_scale = paste("Z-scalar:", z_scale),
-      theta = paste("theta:", theta)
+      beta = stringr::str_replace_all(beta, "beta", "Cause ")
+      # z_scale = paste("Z-scalar:", z_scale),
+      # theta = paste("theta:", theta)
     ) |>
     filter(.data$problem == !!problem) |> 
     ggplot(aes(x = x, y = error, fill = iter, color = iter)) +
-    facet_grid(rows = vars(beta), cols = vars(z_scale, theta)) +
+    facet_grid(rows = vars(beta), cols = vars(z_scale, theta), labeller = label_context) +
     geom_hline(yintercept = 0, lty = "longdash", size = 1) +
     #geom_jitter(alpha = 0.1, position = position_dodge2(width = .5, preserve = "single")) +
     geom_boxplot(alpha = 0.2) +
@@ -167,7 +170,11 @@ plot_errors_boxplot <- function(res_long, true_effects, problem, z_method = "ori
 ```
 
 ```{r error-bp-all, fig.width=18, fig.height=16}
-plot_errors_boxplot(res_long, true_effects, names(sim_labels), z_scale = c(1, 100), z_method = "original", iter_max = 2)
+plot_errors_boxplot(res_long, true_effects, names(sim_labels), z_scale = c(1, 100), z_method = "original", iter_max = 10)
+
+
+plot_errors_boxplot(res_long, true_effects, "sim_a", z_scale = c(1, 100), z_method = "original", iter_max = 1)
+plot_errors_boxplot(res_long, true_effects, "sim_a", z_scale = c(1, 100), z_method = "original", iter_max = 10)
 ```
 
 ### RMSE ± SD Maybe?

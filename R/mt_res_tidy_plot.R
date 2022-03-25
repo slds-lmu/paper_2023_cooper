@@ -118,40 +118,79 @@ plot_mt_res <- function(mtres, true_effects) {
     ggplot2::theme(legend.position = "top", plot.title.position = "plot")
 }
 
-# line plot version of above, but for batchtoolsified output
-plot_bt_res <- function(res, truth, problem) {
 
-  truth <- truth[truth$problem == problem, ]
-  res <- res[res$problem == problem, ]
+#' Box/lineplots of effect estimates for each mt iteration step based on longified batchtools
+#' output
+#' @param res_long As returned by `tidy_mt_res_bt`.
+#' @param true_effects Table of true effects as defined in `02-problems.R`.
+#' @param problem Setting to supset by, e.g. `"sim_a"`. Vectorized, multiple
+#'   plots will be added together via `patchwork`.
+#' @param exclude_noise `[FALSE]` If `TRUE`, only effect variables are shown
+lineplot_bt_res <- function(res_long, true_effects, problem, exclude_noise = FALSE) {
+  # shoddy vectorization with auto-patchworking
+  if (length(problem) > 1) {
+    p_list <- purrr::map(
+      problem, ~lineplot_bt_res(
+        res_long = res_long,
+        true_effects = true_effects, problem = .x,
+        exclude_noise = exclude_noise
+      )
+    )
 
-  # Sort so Noise comes last in legend
-  x_lvl <- c(sort(levels(res$xcol))[-1], "Noise")
+    p <- Reduce(`+`, p_list) +
+      patchwork::plot_layout(ncol = 2, guides = "collect") &
+      ggplot2::theme(legend.position = "top")
 
-  ggplot2::ggplot(res, ggplot2::aes(x = iter, y = value, color = xcol, alpha = is_noise)) +
+    return(p)
+  }
+
+  xdf <- res_long |>
+    dplyr::filter(problem == !!problem, z_method == "original")
+
+  if (exclude_noise) {
+    xdf <- xdf |> dplyr::filter(is_noise != "Noise")
+    x_lvl <- sort(levels(xdf$xcol))
+  } else {
+    # Sort so Noise comes last in legend
+    x_lvl <- c(sort(levels(xdf$xcol))[-1], "Noise")
+  }
+
+
+
+  xdf |>
+    dplyr::mutate(beta = stringr::str_replace_all(beta, "beta", "Cause ")) |>
+    ggplot2::ggplot(ggplot2::aes(x = iter, y = value, color = xcol, alpha = is_noise, group = paste0(xcol, job.id))) +
     ggplot2::facet_grid(
-      cols = vars(z_method, z_scale, theta), rows = ggplot2::vars(beta),
-      labeller = label_context
+      cols = ggplot2::vars(z_scale, theta), rows = ggplot2::vars(beta),
+      labeller = label_context, scales = "free"
     ) +
-    ggplot2::geom_path() +
-    ggplot2::geom_point() +
-    ggplot2::geom_hline(data = truth, ggplot2::aes(yintercept = truth), lty = "dashed") +
-    ggplot2::scale_x_continuous(breaks = seq(0, 100, 1)) +
+    # stat_summary(aes(group = x), geom = "point", fun = mean, size = 2) +
+    ggplot2::geom_boxplot(aes(x = factor(iter), group = NULL)) +
+    # ggplot2::geom_path(size = 1.5) +
+    # ggplot2::geom_point(size = 2) +
+    ggplot2::geom_hline(
+      data = dplyr::filter(true_effects, problem == !!problem) |>
+        dplyr::mutate(beta = stringr::str_replace_all(beta, "beta", "Cause ")),
+      ggplot2::aes(yintercept = truth),
+      lty = "dashed"
+    ) +
+    #ggplot2::scale_x_continuous(breaks = seq(0, 100, 1)) +
+    ggplot2::scale_y_continuous(breaks = seq(-1, 2, .25)) +
     ggplot2::scale_color_brewer(palette = "Dark2", breaks = x_lvl) +
     ggplot2::scale_alpha_manual(
-      values = c("True effect" = 0.5, "Noise" = 0.05),
+      values = c("True effect" = 0.75, "Noise" = 0.05),
       guide = "none"
     ) +
     ggplot2::labs(
-      title = glue::glue("Multi-Task fwelnet: Setting {problem}"),
+      title = sim_labels[[problem]],
       x = "# of Multi-Task Iterations",
       y = "Effect estimate",
       color = "Variable"
     ) +
-    ggplot2::theme_minimal() +
+    ggplot2::theme_minimal(base_size = 16) +
     ggplot2::theme(
-      panel.spacing.y = ggplot2::unit(1, "cm"),
+      panel.spacing = ggplot2::unit(1, "cm"),
       legend.position = "top",
       plot.title.position = "plot"
     )
 }
-
