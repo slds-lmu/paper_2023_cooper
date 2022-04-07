@@ -160,7 +160,7 @@ lineplot_bt_res <- function(res_long, true_effects, problem, exclude_noise = FAL
     dplyr::mutate(beta = stringr::str_replace_all(beta, "beta", "Cause ")) |>
     ggplot2::ggplot(ggplot2::aes(x = iter, y = value, color = xcol, alpha = is_noise, group = paste0(xcol, job.id))) +
     ggplot2::facet_grid(
-      cols = ggplot2::vars(z_scale, theta, t), rows = ggplot2::vars(beta),
+      cols = ggplot2::vars(z_scale, theta, t, thresh), rows = ggplot2::vars(beta),
       labeller = label_context, scales = "free"
     ) +
     # stat_summary(aes(group = x), geom = "point", fun = mean, size = 2) +
