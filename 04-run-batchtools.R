@@ -53,6 +53,8 @@ algo_design <- list(
 algo_design$fwel_mt <- dplyr::filter(algo_design$fwel_mt, !(z_scale > 1 & theta == "1"))
 # t == also makes more sense if we don't z_scale
 algo_design$fwel_mt <- dplyr::filter(algo_design$fwel_mt, !(z_scale > 1 & t > 1))
+# and only if we optimize theta
+algo_design$fwel_mt <- dplyr::filter(algo_design$fwel_mt, !(theta != "original" & t > 1))
 
 addExperiments(prob_design, algo_design, repls = config$repls)
 summarizeExperiments()
