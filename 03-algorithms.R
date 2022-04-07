@@ -3,7 +3,9 @@ fwel_mt_wrapper <- function(
     data, job, instance,
     alpha = 1, z_scale = 1, z_method = "original",
     theta = "original",
-    mt_max_iter = 2) {
+    mt_max_iter = 2,
+    t = 1, a = 0.5
+    ) {
 
   # batchtools stores possible theta values in a factor column, so we need
   # to convert "original" to NULL as fwelnet() expects
@@ -20,6 +22,8 @@ fwel_mt_wrapper <- function(
     instance$data, mt_max_iter = mt_max_iter,
     z_scale = z_scale, z_method = as.character(z_method),
     alpha = alpha,
-    theta = theta
+    theta = theta,
+    t = t,
+    a = a
   )
 }

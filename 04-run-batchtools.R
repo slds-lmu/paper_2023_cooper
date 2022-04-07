@@ -40,23 +40,26 @@ prob_design <- list(
 
 algo_design <- list(
   fwel_mt = expand.grid(
-    mt_max_iter = 10,
+    mt_max_iter = 5,
     alpha = 1,
     z_scale = c(1, 10, 100),
     z_method = c("original"),
-    theta = c("original", 1)
+    theta = c("original", 1),
+    t = c(1, 10, 100)
   )
 )
 
 # theta == 1 only makes sense if we don't z_scale
 algo_design$fwel_mt <- dplyr::filter(algo_design$fwel_mt, !(z_scale > 1 & theta == "1"))
+# t == also makes more sense if we don't z_scale
+algo_design$fwel_mt <- dplyr::filter(algo_design$fwel_mt, !(z_scale > 1 & t > 1))
 
 addExperiments(prob_design, algo_design, repls = config$repls)
 summarizeExperiments()
 unwrap(getJobPars(), c("algo.pars", "prob.pars"))
 
 # Test jobs -----------------------------------------------------------
-if (interactive()) testJob(id = 4796)
+if (interactive()) testJob(id = 3169)
 
 # Submit -----------------------------------------------------------
 if (grepl("node\\d{2}|bipscluster", system("hostname", intern = TRUE))) {
