@@ -42,10 +42,11 @@ algo_design <- list(
   fwel_mt = expand.grid(
     mt_max_iter = 5,
     alpha = 1,
-    z_scale = c(1, 10, 100),
+    z_scale = c(1, 100),
     z_method = c("original"),
     theta = c("original", 1),
-    t = c(1, 10, 100)
+    t = c(1, 10, 50, 100),
+    thresh = c(1e-3, 1e-7, 0)
   )
 )
 
@@ -55,13 +56,16 @@ algo_design$fwel_mt <- dplyr::filter(algo_design$fwel_mt, !(z_scale > 1 & theta 
 algo_design$fwel_mt <- dplyr::filter(algo_design$fwel_mt, !(z_scale > 1 & t > 1))
 # and only if we optimize theta
 algo_design$fwel_mt <- dplyr::filter(algo_design$fwel_mt, !(theta != "original" & t > 1))
+# threshold only for default z_scale and optimized theta
+algo_design$fwel_mt <- dplyr::filter(algo_design$fwel_mt, !(theta != "original" & thresh != 1e-3))
+algo_design$fwel_mt <- dplyr::filter(algo_design$fwel_mt, !(z_scale > 1 & thresh < 1e-3))
 
 addExperiments(prob_design, algo_design, repls = config$repls)
 summarizeExperiments()
 unwrap(getJobPars(), c("algo.pars", "prob.pars"))
 
 # Test jobs -----------------------------------------------------------
-if (interactive()) testJob(id = 3169)
+if (interactive()) testJob(id = 5600)
 
 # Submit -----------------------------------------------------------
 if (grepl("node\\d{2}|bipscluster", system("hostname", intern = TRUE))) {
