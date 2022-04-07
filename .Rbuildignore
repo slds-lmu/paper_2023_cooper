@@ -3,3 +3,6 @@
 ^LICENSE\.md$
 ^.*\.Rproj$
 ^\.Rproj\.user$
+^fwelnet_cr_sim\.Rcheck$
+^fwelnet_cr_sim.*\.tar\.gz$
+^fwelnet_cr_sim.*\.tgz$
