@@ -169,7 +169,7 @@ plot_errors_boxplot(
 
 plot_errors_boxplot(res_long, true_effects, "sim_a", z_scale = c(1, 100), z_method = "original", iter_max = 1)
 plot_errors_boxplot(res_long, true_effects, "sim_a", z_scale = c(1, 100), z_method = "original", iter_max = 2)
-plot_errors_boxplot(res_long, true_effects, "sim_a", z_scale = c(1, 100), z_method = "original", iter_max = 10)
+plot_errors_boxplot(res_long, true_effects, "sim_a", z_scale = c(1, 100), z_method = "original", iter_max = 5,  t = c(1, 100))
 ```
 
 ### RMSE ± SD Maybe?
