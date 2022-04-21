@@ -126,7 +126,7 @@ plot_mt_res <- function(mtres, true_effects) {
 #' @param problem Setting to supset by, e.g. `"sim_a"`. Vectorized, multiple
 #'   plots will be added together via `patchwork`.
 #' @param exclude_noise `[FALSE]` If `TRUE`, only effect variables are shown
-lineplot_bt_res <- function(res_long, true_effects, problem, exclude_noise = FALSE) {
+lineplot_bt_res <- function(res_long, true_effects, problem, exclude_noise = FALSE, ...) {
   # shoddy vectorization with auto-patchworking
   if (length(problem) > 1) {
     p_list <- purrr::map(
@@ -145,7 +145,7 @@ lineplot_bt_res <- function(res_long, true_effects, problem, exclude_noise = FAL
   }
 
   xdf <- res_long |>
-    dplyr::filter(problem == !!problem, z_method == "original")
+    dplyr::filter(problem == !!problem, z_method == "original", ...)
 
   if (exclude_noise) {
     xdf <- xdf |> dplyr::filter(is_noise != "Noise")

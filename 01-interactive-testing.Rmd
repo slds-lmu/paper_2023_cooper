@@ -13,6 +13,7 @@ editor_options:
 
 ```{r setup, include=FALSE}
 # Load helper functions in R/
+source(here::here("02-problems.R"))
 source(here::here("R/sim_cr.R"))
 source(here::here("R/mt_res_tidy_plot.R"))
 
@@ -25,6 +26,7 @@ knitr::opts_chunk$set(
 
 library(fwelnet)
 library(ggplot2)
+library(patchwork)
 ```
 
 Before we set up a proper benchmarking experiment, this serves as a platform for quick-and-dirty interactive experimentation.
@@ -34,24 +36,11 @@ Before we set up a proper benchmarking experiment, this serves as a platform for
 
 Generate CR endpoint via formula specification and note true effects in separate tbl for plotting purposes (a cleaner solution would be preferable):
 
-```{r sim-data-y}
-#set.seed(997)
-sim1 <- sim_wrapper_cr(
-  formula = 
-    ~ -1 + 2*dgamma(t, 8, 2) + 1 * x1 | 
-      -3.5 + dgamma(t, 8, 2) + .2 * x1 ,
-  n = 1000
-)
-
-table(sim1$status)
-
-true_effects <- tibble::tribble(
-  ~beta,    ~x,  ~truth,
-  "beta1", "x1", 1,
-  #"beta1", "x2", 0.5,
-  "beta2", "x1", 0.2,
-  #"beta2", "x2", 0.5
-)
+```{r sim-data}
+set.seed(997)
+sim_a_dat <- sim_a(n = 1000)$data
+sim_b_dat <- sim_b(n = 1000)$data
+sim_c_dat <- sim_c(n = 1000)$data
 ```
 
 ## Run algorithm
@@ -60,20 +49,22 @@ Run and plot result individually:
 
 ```{r run-plot, eval=FALSE}
 set.seed(997)
-fwelnet_mt_cox(
-  sim1, mt_max_iter = 5,
-  z_scale = 1, z_method = "original"
+p1 <- fwelnet_mt_cox(
+  sim_c_dat, mt_max_iter = 5,
+  z_scale = 1, z_method = "original", t = 100, thresh = 0, a = 0.5, max_iter = 40
 ) |>
   tidy_mt_res(true_effects) |>
   plot_mt_res(true_effects)
 
 set.seed(997)
-fwelnet_mt_cox(
-  sim1, mt_max_iter = 5,
-  z_scale = 100, z_method = "original"
+p2 <- fwelnet_mt_cox(
+  sim_c_dat, mt_max_iter = 5,
+  z_scale = 1, z_method = "aligned", t = 100, thresh = 0, a = 0.5, max_iter = 40
 ) |>
   tidy_mt_res(true_effects) |>
   plot_mt_res(true_effects)
+
+p1 + p2 + plot_annotation(tag_levels = "I")
 ```
 
 Or maybe something like this, to plot multiple settings side by side?
