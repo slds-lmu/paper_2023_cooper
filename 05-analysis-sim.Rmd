@@ -7,6 +7,8 @@ output:
     fig_width: 11
     fig_height: 9
     self_contained: no
+    code_folding: hide
+    toc: true
 editor_options: 
   chunk_output_type: console
 ---
@@ -18,6 +20,7 @@ library(batchtools)
 library(ggplot2)
 library(patchwork)
 library(dplyr)
+library(kableExtra)
 
 reg_name <- "fwel_simulations"
 reg_dir <- here::here("registries", reg_name)
@@ -148,30 +151,83 @@ plot_errors_boxplot <- function(res_long, true_effects, problem,
 ### Original `z_method`
 
 ```{r error-bp-A}
-(pa <- plot_errors_boxplot(res_long, true_effects,  "sim_a", z_scale = 1, z_method = "original"))
+plot_errors_boxplot(res_long, true_effects, "sim_a", z_scale = c(1, 100), iter_max = 1, t = c(1, 50, 100), thresh = c(0, 1e-3))
 ```
 
 ```{r error-bp-B}
-(pb <- plot_errors_boxplot(res_long, true_effects,  "sim_b", z_scale = 1, z_method = "original"))
+plot_errors_boxplot(res_long, true_effects, "sim_b", z_scale = c(1, 100), iter_max = 1, t = c(1, 50, 100), thresh = c(0, 1e-3))
 ```
 
 ```{r error-bp-C}
-(pc <- plot_errors_boxplot(res_long, true_effects,  "sim_c", z_scale = 1, z_method = "original"))
+plot_errors_boxplot(res_long, true_effects, "sim_c", z_scale = c(1, 100), iter_max = 1, t = c(1, 50, 100), thresh = c(0, 1e-3))
 ```
 
 ```{r error-bp-D}
-(pd <- plot_errors_boxplot(res_long, true_effects,  "sim_d", z_scale = 1, z_method = "original"))
+plot_errors_boxplot(res_long, true_effects, "sim_c", z_scale = c(1, 100), iter_max = 1, t = c(1, 50, 100), thresh = c(0, 1e-3))
 ```
 
 ```{r error-bp-all, fig.width=18, fig.height=16}
 plot_errors_boxplot(
-  res_long, true_effects, names(sim_labels), z_scale = c(1), iter_max = 5, t = c(1, 50, 100), thresh = c(0)
+  res_long, true_effects, names(sim_labels), z_scale = c(1), iter_max = 5, t = c(1, 100), thresh = c(0)
 )
-
-plot_errors_boxplot(res_long, true_effects, "sim_a", z_scale = c(1, 100), iter_max = 1)
-plot_errors_boxplot(res_long, true_effects, "sim_a", z_scale = c(1, 100), iter_max = 2)
-plot_errors_boxplot(res_long, true_effects, "sim_c", z_scale = c(1, 100), iter_max = 5,  t = c(1, 100), thresh = c(0, 0.001))
 ```
+
+### Tabular maybe?
+
+```{r median-q-table}
+res_long |>
+  filter(
+    iter %in% c(0, 5), 
+    xcol != "Noise", z_method == "original", theta == "original") |>
+  select(-is_noise, -converged, -xcol, -z_method, -theta) |>
+  # join true betas from design tbl for nonzero-effects
+  left_join(true_effects, by = c("problem", "beta", "x")) |>
+  mutate(
+    iter = if_else(iter == 0, "glmnet", "fwelnet_mt"),
+    # truth doesn't contain true 0s, manually hacking them in here
+    truth = ifelse(is.na(truth), 0, truth),
+    error = truth - value,
+    # Just for optics
+    #beta = stringr::str_replace_all(beta, "beta", "Cause "),
+    thresh = case_when(
+      thresh == 0 ~ "0",
+      thresh == 1e-3 ~ "10^-3",
+      thresh == 1e-7 ~ "10^-7"
+    )
+  ) |>
+  group_by(problem, beta, iter, z_scale, t, thresh) |>
+  summarize(
+    # mean_error = round(mean(error), 3),
+    # sd_error = round(sd(error), 3),
+    median_error = round(median(error), 3),
+    #q1_error = round(quantile(error, prob = 0.25), 2),
+    #q3_error = round(quantile(error, prob = 0.75), 2),
+    # mean_sd = glue::glue("{mean_error} ({sd_error})"),
+    # median_q = glue::glue("{median_error} ({q1_error}, {q3_error})"),
+    .groups = "drop"
+  ) |>
+  #arrange(problem, beta, iter, mean_sd) |>
+  ungroup() |>
+  #select(-ends_with("error")) |>
+  mutate(
+    median_error = cell_spec(median_error, color = spec_color(median_error, direction = -1, end = 0.8, option = "B"))
+  ) |>
+  tidyr::pivot_wider(names_from = c("iter", "beta"), values_from = c("median_error")) |>
+  select(-problem) |>
+  kable(
+    escape = FALSE, 
+    caption = "Median error (true-estimated) for all effect/non-noise variable per cause and setting",
+    col.names = c("z-scale", "t", "threshold", "fwelnet", "glmnet", "fwelnet", "glmnet")
+  ) |>
+  kable_styling(bootstrap_options = c("striped", "hover")) |>
+  add_header_above(c(" " = 3, "Cause 1" = 2, "Cause 2" = 2)) |>
+  pack_rows(sim_labels[["sim_a"]], 1, 13) |>
+  pack_rows(sim_labels[["sim_b"]], 14, 26) |>
+  pack_rows(sim_labels[["sim_c"]], 27, 39) |>
+  pack_rows(sim_labels[["sim_d"]], 40, 52) |>
+  collapse_rows(columns = c(1))
+```
+
 
 ### RMSE ± SD Maybe?
 
