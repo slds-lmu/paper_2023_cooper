@@ -1,5 +1,5 @@
 # Rendered Rmd
-/*.html
+*.html
 
 # Created by https://www.toptal.com/developers/gitignore/api/r
 # Edit at https://www.toptal.com/developers/gitignore?templates=r
@@ -41,7 +41,8 @@ po/*~
 rsconnect/
 ### R.Bookdown Stack ###
 # R package: bookdown caching files
-/*_files/
+*_files/
+*_cache/
 # End of https://www.toptal.com/developers/gitignore/api/r
 fiddle.R
 fwelnet_cr_sim.Rcheck/

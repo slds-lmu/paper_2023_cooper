@@ -25,12 +25,6 @@ library(kableExtra)
 reg_name <- "fwel_simulations"
 reg_dir <- here::here("registries", reg_name)
 loadRegistry(reg_dir)
-
-# Load helper functions in R/
-source(here::here("R/sim_cr.R"))
-source(here::here("R/mt_res_tidy_plot.R"))
-
-source(here::here("02-problems.R"))
 ```
 
 ```{r get-results, cache = TRUE}
