@@ -1,5 +1,5 @@
 # Simulate competing risk data with different baseline hazards
-# Vased on exercise from Lifetime Data Analysis course via AB
+# Based on exercise from Lifetime Data Analysis course via AB
 
 sim_compRisks_fullData <- function(w_param, X, beta_, max.int = 5000) {
   #browser()
