@@ -1,5 +1,3 @@
-source(here::here("R/sim_cr.R"))
-
 # Simulation settings -----------------------------------------------------
 true_effects <- tibble::tribble(
   ~problem, ~beta,    ~x,  ~truth,
