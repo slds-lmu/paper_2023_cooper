@@ -23,9 +23,11 @@
 #' 0.05 for 0.1p < j ≤ 0.2p,
 #' 0.32 for 0.2p < j ≤ 0.3p,
 #' and no correlation otherwise."
+#'
+#' Block 4 is not filled with correlated data to adhere to setup in Binder (2009), p. 893
 #' @param n Number of obs. (must be even).
 #' @param p Number of predictors.
-block_corr_binder <- function(n = 50, p = 1000) {
+block_corr_binder <- function(n = 400, p = 5000) {
   stopifnot("n must be even" = n %% 2 == 0)
   stopifnot("p should be > 20" = 0.05 * p > 1)
 
@@ -39,30 +41,31 @@ block_corr_binder <- function(n = 50, p = 1000) {
   X[seq_len(n/2), block1] <- -1 + X[seq_len(n/2), block1]
   X[-seq_len(n/2), block1] <- 1 + X[-seq_len(n/2), block1]
 
-
   block2 <- which((j_seq > (0.05 * p)) & (j_seq <= (0.1 * p)))
   X[, block2] <- 1.5 * (ui1 < 0.4) + X[, block2]
-
 
   block3 <- which((0.1 * p < j_seq) & (j_seq <= 0.2 * p))
   X[, block3] <- 0.5 * (ui2 < 0.7) + X[, block3]
 
-  block4 <- which((0.2 * p < j_seq) & (j_seq <= 0.3 * p))
-  X[, block4] <- 1.5 * (ui3 < 0.3) + X[, block4]
+  # Binder (2009) only use 3 blocks of correlated variables
+  # block4 <- which((0.2 * p < j_seq) & (j_seq <= 0.3 * p))
+  # X[, block4] <- 1.5 * (ui3 < 0.3) + X[, block4]
 
   X
 }
 
 #' Take a covariate matrix and simulate a survival outcome, based on the same paper.
+#' @param job,data For batchtools use only.
 #' @param n,p Passed to block_corr_binder().
-#' @param ce Effect constant. Used as magnitude of effect.
-#' @param lambda,lambda_c Constants for Cox-exponential model for survival & censoring times.
+#' @param ce Effect constant. Used as magnitude of effect. Binder et al 2009 use 0.5.
+#' @param lambda,lambda_c Baseline-hazard constants for Cox-exponential model for survival & censoring times.
 #'
-#' Binder et al use ce in {0.05, 0.075, 0.1} for the censored survival setting.
+#' Binder 2008 use ce in {0.05, 0.075, 0.1} for the censored survival setting.
+#' Target Binder 2009 paper uses ce = +/-0.5.
 #' @note Binder et. al. describe U = runif(n), but log(runif(n)) is used to ensure results as stated
 #' with mean baseline survival time of around 10, rather than negative survival times.
 #' This is also consistent with other descriptions of the Cox exponential model.
-sim_surv_binder <- function(n = 50, p = 1000, ce = 0.05, lambda = 0.1, lambda_c = 0.1) {
+sim_surv_binder <- function(job, data, n = 50, p = 1000, ce = 0.5, lambda = 0.1, lambda_c = 0.1) {
   checkmate::assert_integerish(n, lower = 10, len = 1)
   checkmate::assert_true(n %% 2 == 0)
   checkmate::assert_integerish(p, lower = 400, len = 1)
@@ -71,43 +74,114 @@ sim_surv_binder <- function(n = 50, p = 1000, ce = 0.05, lambda = 0.1, lambda_c 
   checkmate::assert_numeric(lambda_c, lower = 0.01, len = 1)
 
   X <- block_corr_binder(n = n, p = p)
-  beta <- rep(0, p)
+  beta1 <- rep(0, p)
+  beta2 <- beta1
 
+  # Original Binder 2008 setup differs from target setup in Binder 2009
   # j * 200/p: if odd -> ce, if even -> -ce, else 0
-  tmp <- ((seq_len(p) * 200) / p) %% 2
-  j_odd <- which(tmp == 1)
-  j_even <- which(tmp == 0)
+  # tmp <- ((seq_len(p) * 200) / p) %% 2
+  # j_odd <- which(tmp == 1)
+  # j_even <- which(tmp == 0)
+  # beta[j_odd] <- ce
+  # beta[j_even] <- -ce
 
-  checkmate::assert_integer(j_odd, null.ok = FALSE, min.len = 1)
-  checkmate::assert_integer(j_even, null.ok = FALSE, min.len = 1)
+  # From Binder 2009: (increasing/decreasing means ce = +/- 0.5 )
+  # In the first block, four covariates have an increasing effect on both hazards.
+  # The second block has four informative covariates with an
+  #   increasing effect on the cause-specific hazard for type 1 events, and a
+  #   decreasing effect on the competing cause-specific hazard.
+  # In the third block, there are
+  #   - four covariates that have a decreasing effect on the event type 1 hazard only, and
+  #   - four other covariates that have an increasing effect on the event type 2 hazard.
 
-  beta[j_odd] <- ce
-  beta[j_even] <- -ce
-  nonzero <- sum(beta > 0)
-  checkmate::assert_count(nonzero, positive = TRUE, null.ok = FALSE)
+  j_seq <- seq_len(p)
 
-  lp <- X %*% beta
+  # first block: just use coefs 1-4, since block starts at j = 1
+  beta1[1:4] <- ce
+  beta2[1:4] <- ce
+
+  # second block:
+  j_block2 <- which((j_seq > (0.05 * p)) & (j_seq <= (0.1 * p)))
+  beta1[j_block2[1:4]] <- ce
+  beta2[j_block2[1:4]] <- -ce
+
+  # third block
+  j_block3 <- which((0.1 * p < j_seq) & (j_seq <= 0.2 * p))
+  beta1[j_block3[1:4]] <- -ce
+  beta2[j_block3[5:8]] <- ce # offset by 4, b/c "four *other* covariates..."
+
+  # Keep track of number of nonzero effects, total count is identical for both causes in setup above
+  nonzero1 <- sum(beta1 > 0)
+  nonzero2 <- sum(beta2 > 0)
+  checkmate::assert_count(nonzero1, positive = TRUE, null.ok = FALSE)
+  checkmate::assert_count(nonzero2, positive = TRUE, null.ok = FALSE)
+  # Triple sanity check wie have 16 unique informative covariates
+  checkmate::assert_true(length(c(1:4, j_block2[1:4], j_block3[1:4], j_block3[5:8])) == 16)
+
+  # Linear predictors
+  lp1 <- X %*% beta1
+  lp2 <- X %*% beta2
 
   # Survival and censoring times
-  Ti <- -log(runif(n)) / (lambda * exp(lp))
+  Ti1 <- -log(runif(n)) / (lambda * exp(lp1))
+  Ti2 <- -log(runif(n)) / (lambda * exp(lp2))
+  # Default lambda_c = 0.1 should yield roughly 36% censored events.
   Ci <- -log(runif(n)) / lambda_c
 
-  ti <- pmin(Ti, Ci)
-  di <- as.integer(Ti <= Ci)
+  ti <- pmin(Ti1, Ti2, Ci)
+  # Censored where either event occurs before censoring time
+  di <- as.integer(Ti1 <= Ci | Ti2 <= Ci)
+  # Set status == 2 if Ti2 is observed
+  di[which(Ti2 <= Ti1 & Ti2 <= Ci)] <- 2
+
+  # Glimpse for debugging because thinking is hard
+  # data.frame(Ti1, Ti2, Ci, ti, di)
 
   X <- as.data.frame(X)
   names(X) <- paste0("x", seq_len(p))
   res <- data.frame(time = ti, status = di, X)
 
-  list(data = res, beta = beta, nonzero = nonzero)
-
+  list(data = res, beta_truth = cbind(beta1 = beta1, beta2 = beta2))
 }
 
 
 # Debugging and sanity checking -----------------------------------------------------------------------------------
 
 if (FALSE) {
-  xdat <- sim_surv_binder(n = 100, p = 600)
+  n <- 400
+  xdat <- sim_surv_binder(n = n, p = 5000)
+
+  xsum <- purrr::map_df(1:1000, ~{
+    status <- sim_surv_binder(n = n, p = 5000)$data$status
+
+    data.frame(rep = .x, table(status))
+  })
+
+  library(dplyr)
+  xsum |>
+    group_by(status) |>
+    summarize(
+      freq_min = min(Freq),
+      freq_mean = mean(Freq),
+      freq_max = max(Freq),
+      prop_min = min(Freq/n),
+      prop_mean = mean(Freq/n),
+      prop_max = max(n), .groups = "keep"
+    ) |>
+    mutate(across(starts_with("prop"), round, 2)) |>
+    transmute(
+      n = glue::glue("{freq_mean} ({freq_min} - {freq_max})}"),
+      prop = glue::glue("{prop_mean} ({prop_min} - {prop_max})}")
+    )
+
+  bench::press(
+    n = c(100, 1000),
+    p = 5000,
+    bench::mark(
+      sim_surv_binder(n = n, p = p)
+    )
+  )
+
 }
 
 if (FALSE) {
@@ -139,7 +213,7 @@ if (FALSE) {
   survdat <- sim_surv_binder(n = 200, p = 200)
 }
 
-# Original/naive/"safe" implementation
+# Original/naive/"safe" implementation for reference
 # block_corr_binder <- function(n = 50, p = 1000) {
 #   stopifnot("n must be even" = n %% 2 == 0)
 #
