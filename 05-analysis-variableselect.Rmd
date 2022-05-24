@@ -49,3 +49,26 @@ getJobTable() |>
   ) +
   theme_minimal()
 ```
+
+```{r}
+res$result[[1]]$beta1[,6]
+```
+
+## Covariates & true effects
+
+- block 1: correlation of 0.50 for j ≤ 0.05p
+- block 2: correlation of 0.35 for 0.05p < j ≤ 0.1p
+- block 3: correlation of 0.05 for 0.1p < j ≤ 0.2p
+- block 4: correlation of 0.32 for 0.2p < j ≤ 0.3p
+
+  # The second block has four informative covariates with an
+  #   increasing effect on the cause-specific hazard for type 1 events, and a
+  #   decreasing effect on the competing cause-specific hazard.
+  # In the third block, there are
+  #   - four covariates that have a decreasing effect on the event type 1 hazard only, and
+  #   - four other covariates that have an increasing effect on the event type 2 hazard.
+  
+- Block 1: Same effect (0.5) on both causes: $\beta_\{1,2,3,4\}$
+- Block 2: 0.5 on one, -0.5 on other cause: $\beta_\{\}$
+- Block 3a: Effect on c1 only: $\beta_\{\}$
+- Block 3b: Effect on c2 only: $\beta_\{\}$

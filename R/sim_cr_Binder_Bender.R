@@ -47,9 +47,9 @@ block_corr_binder <- function(n = 400, p = 5000) {
   block3 <- which((0.1 * p < j_seq) & (j_seq <= 0.2 * p))
   X[, block3] <- 0.5 * (ui2 < 0.7) + X[, block3]
 
-  # Binder (2009) only use 3 blocks of correlated variables
-  # block4 <- which((0.2 * p < j_seq) & (j_seq <= 0.3 * p))
-  # X[, block4] <- 1.5 * (ui3 < 0.3) + X[, block4]
+  # Binder (2009) only use 3 blocks of correlated variables, we still include it as part of the setup though.
+  block4 <- which((0.2 * p < j_seq) & (j_seq <= 0.3 * p))
+  X[, block4] <- 1.5 * (ui3 < 0.3) + X[, block4]
 
   X
 }
@@ -97,8 +97,9 @@ sim_surv_binder <- function(job, data, n = 50, p = 1000, ce = 0.5, lambda = 0.1,
   j_seq <- seq_len(p)
 
   # first block: just use coefs 1-4, since block starts at j = 1
-  beta1[1:4] <- ce
-  beta2[1:4] <- ce
+  j_block1 <- which(j_seq <= 0.05 * p)
+  beta1[j_block1[1:4]] <- ce
+  beta2[j_block1[1:4]] <- ce
 
   # second block:
   j_block2 <- which((j_seq > (0.05 * p)) & (j_seq <= (0.1 * p)))
@@ -109,6 +110,28 @@ sim_surv_binder <- function(job, data, n = 50, p = 1000, ce = 0.5, lambda = 0.1,
   j_block3 <- which((0.1 * p < j_seq) & (j_seq <= 0.2 * p))
   beta1[j_block3[1:4]] <- -ce
   beta2[j_block3[5:8]] <- ce # offset by 4, b/c "four *other* covariates..."
+
+  # Unused for true efefcts but tracked to see if false positives pop up here
+  j_block4 <- which((0.2 * p < j_seq) & (j_seq <= 0.3 * p))
+
+  # Save indices of effect variables grouped by their covar blocks for later
+  # since effects/direction on causes depends on blocks, and they have different correlations
+  covar_true_effect <- list(
+    block1 = j_block1[1:4],
+    block2 = j_block2[1:4],
+    block31 = j_block3[1:4],
+    block32 = j_block3[5:8],
+    block4 = integer(0) # no true effects, so empty set (of integers for later assertions)
+  )
+
+  # Blocks have unequal length so don't use a data.frame to avoid recycling
+  covar_blocks <- list(
+    block1 = j_block1,
+    block2 = j_block2,
+    block31 = j_block3,
+    block32 = j_block3,
+    block4 = j_block4
+  )
 
   # Keep track of number of nonzero effects, total count is identical for both causes in setup above
   nonzero1 <- sum(beta1 > 0)
@@ -141,7 +164,7 @@ sim_surv_binder <- function(job, data, n = 50, p = 1000, ce = 0.5, lambda = 0.1,
   names(X) <- paste0("x", seq_len(p))
   res <- data.frame(time = ti, status = di, X)
 
-  list(data = res, beta_truth = cbind(beta1 = beta1, beta2 = beta2))
+  list(data = res, covar_blocks = covar_blocks, covar_true_effect = covar_true_effect)
 }
 
 

@@ -21,20 +21,20 @@ makeExperimentRegistry(file.dir = reg_dir)
 addProblem(name = "sim_surv_binder", fun = sim_surv_binder, seed = config$sim_seed, cache = config$sim_cache)
 
 # Algorithms -----------------------------------------------------------
-addAlgorithm(name = "fwel_mt", fun = fwel_mt_wrapper)
+addAlgorithm(name = "fwel_mt", fun = fwel_mt_varselect_wrapper)
 
 
 # Experiments -----------------------------------------------------------
 prob_design <- list(
-  sim_surv_binder = expand.grid(n = 400, p = 5000)
+  sim_surv_binder = expand.grid(n = 400, p = 5000, ce = 0.5, lambda = 0.1, lambda_c = 0.1)
 )
 
 algo_design <- list(
   fwel_mt = expand.grid(
-    mt_max_iter = 5,
+    mt_max_iter = 3,
     alpha = c(1),
-    t = c(1, 50, 100),
-    thresh = c(1e-3, 0)
+    t = c(100),
+    thresh = c(1e-3, 1e-7)
   )
 )
 
