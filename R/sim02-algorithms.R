@@ -64,7 +64,7 @@ fwel_mt_varselect_wrapper <- function(
 }
 
 get_confusion <- function(beta, truth, total, block = "block1", model = "glmnet", cause = 1L) {
-
+#browser()
   checkmate::assert_numeric(beta)
   checkmate::assert_list(truth, types = "integer")
   checkmate::assert_list(total, types = "integer")
@@ -87,8 +87,11 @@ get_confusion <- function(beta, truth, total, block = "block1", model = "glmnet"
       all.equal(as.integer(sub(pattern = "x", replacement = "", names(predicted0))), unname(predicted0))
     )
   )
+  # block31 has only effect on cause 1 -> true effect index set is empty for cause 2 + vice versa
+  if (cause == 1L & block == "block32") truth[["block32"]] <- integer(0)
+  if (cause == 2L & block == "block31") truth[["block31"]] <- integer(0)
 
-  # block4 has no true effects, list contains integer 0 for reasons
+  # block4 has no true effects, list contains integer 0 for reasons, so this works
   total_pos <- length(truth[[block]])
   total_neg <- length(total[[block]]) - total_pos
 
@@ -106,6 +109,10 @@ get_confusion <- function(beta, truth, total, block = "block1", model = "glmnet"
   checkmate::assert_true(total_pos + total_neg == length(total[[block]]))
   checkmate::assert_true(tp + fn == total_pos)
   checkmate::assert_true(fp + tn == total_neg)
+  # For cause 1 we can't have TPs / FNs in block32 and vice versa
+  if ((cause == 1L & block == "block32") | (cause == 2L & block == "block31")) {
+    checkmate::assert_true(tp == 0 & fn == 0)
+  }
 
   data.frame(
     model = model,
