@@ -111,7 +111,7 @@ sim_surv_binder <- function(job, data, n = 50, p = 1000, ce = 0.5, lambda = 0.1,
   beta1[j_block3[1:4]] <- -ce
   beta2[j_block3[5:8]] <- ce # offset by 4, b/c "four *other* covariates..."
 
-  # Unused for true efefcts but tracked to see if false positives pop up here
+  # Unused for true effects but tracked to see if false positives pop up here
   j_block4 <- which((0.2 * p < j_seq) & (j_seq <= 0.3 * p))
 
   # Save indices of effect variables grouped by their covar blocks for later
