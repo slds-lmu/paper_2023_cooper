@@ -1,6 +1,6 @@
 {
   "R": {
-    "Version": "4.2.0",
+    "Version": "4.2.1",
     "Repositories": [
       {
         "Name": "CRAN",
@@ -493,11 +493,12 @@
       "RemoteUsername": "jemus42",
       "RemoteRepo": "fwelnet",
       "RemoteRef": "master",
-      "RemoteSha": "970cc909f6f7635206958c91c90605dc429c08af",
+      "RemoteSha": "7cbcc4e198941bd69cfb29b93b89ca5000d1ac24",
       "RemoteHost": "api.github.com",
-      "Hash": "4f71611ea05454aec02a75284e20c727",
+      "Hash": "a4b8ddc8b938e4b5d33578158041daa5",
       "Requirements": [
         "Matrix",
+        "checkmate",
         "glmnet",
         "survival"
       ]
@@ -1169,10 +1170,15 @@
     },
     "riskRegression": {
       "Package": "riskRegression",
-      "Version": "2022.03.22",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "619cc310ee1facf6fe14ef44b35dcf22",
+      "Version": "2022.08.24",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteUsername": "tagteam",
+      "RemoteRepo": "riskRegression",
+      "RemoteRef": "master",
+      "RemoteSha": "15eb8fcc88f778343551aec788887c80bcd42492",
+      "Hash": "b5da4cfe6bc97a5dcc580d87d5c4c078",
       "Requirements": [
         "Publish",
         "Rcpp",
