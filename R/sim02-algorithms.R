@@ -1,3 +1,5 @@
+# Variable selection ----------------------------------------------------------------------------------------------
+
 # fwelnet wrapper for variable selection sim
 fwel_mt_varselect_wrapper <- function(
     data, job, instance,
@@ -7,6 +9,12 @@ fwel_mt_varselect_wrapper <- function(
     a = 0.5,
     thresh = 1e-7
 ) {
+
+  checkmate::assert_numeric(alpha)
+  checkmate::assert_int(mt_max_iter)
+  checkmate::assert_int(t)
+  checkmate::assert_numeric(a)
+  checkmate::assert_numeric(thresh)
 
   # instance <- sim_surv_binder(n = 400, p = 5000)
 
@@ -64,7 +72,7 @@ fwel_mt_varselect_wrapper <- function(
 }
 
 get_confusion <- function(beta, truth, total, block = "block1", model = "glmnet", cause = 1L) {
-#browser()
+
   checkmate::assert_numeric(beta)
   checkmate::assert_list(truth, types = "integer")
   checkmate::assert_list(total, types = "integer")
@@ -125,3 +133,5 @@ get_confusion <- function(beta, truth, total, block = "block1", model = "glmnet"
   )
 
 }
+
+
