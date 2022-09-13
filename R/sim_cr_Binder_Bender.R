@@ -56,7 +56,9 @@ block_corr_binder <- function(n = 400, p = 5000) {
 
 #' Take a covariate matrix and simulate a survival outcome, based on the same paper.
 #' @param job,data For batchtools use only.
-#' @param n,p Passed to block_corr_binder().
+#' @param n_train,n_test Number of observations in train- and test sets. Training data will be in element `$data`,
+#'   and test data in element `$test_data` for legacy reasons.
+#' @param p Passed to block_corr_binder().
 #' @param ce Effect constant. Used as magnitude of effect. Binder et al 2009 use 0.5.
 #' @param lambda,lambda_c Baseline-hazard constants for Cox-exponential model for survival & censoring times.
 #'
@@ -65,15 +67,18 @@ block_corr_binder <- function(n = 400, p = 5000) {
 #' @note Binder et. al. describe U = runif(n), but log(runif(n)) is used to ensure results as stated
 #' with mean baseline survival time of around 10, rather than negative survival times.
 #' This is also consistent with other descriptions of the Cox exponential model.
-sim_surv_binder <- function(job, data, n = 50, p = 1000, ce = 0.5, lambda = 0.1, lambda_c = 0.1) {
-  checkmate::assert_integerish(n, lower = 10, len = 1)
-  checkmate::assert_true(n %% 2 == 0)
+sim_surv_binder <- function(job, data, n_train = 50, n_test = 0, p = 1000, ce = 0.5, lambda = 0.1, lambda_c = 0.1) {
+  checkmate::assert_integerish(n_train, lower = 10, len = 1)
+  checkmate::assert_integerish(n_test, lower = 0, len = 1)
+  checkmate::assert_true((n_train + n_test) %% 2 == 0)
   checkmate::assert_integerish(p, lower = 400, len = 1)
   checkmate::assert_numeric(ce, lower = 0.01, len = 1)
   checkmate::assert_numeric(lambda, lower = 0.01, len = 1)
   checkmate::assert_numeric(lambda_c, lower = 0.01, len = 1)
 
-  X <- block_corr_binder(n = n, p = p)
+  n <- n_train + n_test
+
+  X <- block_corr_binder(n = n_train + n_test, p = p)
   beta1 <- rep(0, p)
   beta2 <- beta1
 
@@ -138,7 +143,7 @@ sim_surv_binder <- function(job, data, n = 50, p = 1000, ce = 0.5, lambda = 0.1,
   nonzero2 <- sum(beta2 > 0)
   checkmate::assert_count(nonzero1, positive = TRUE, null.ok = FALSE)
   checkmate::assert_count(nonzero2, positive = TRUE, null.ok = FALSE)
-  # Triple sanity check wie have 16 unique informative covariates
+  # Triple sanity check we have 16 unique informative covariates
   checkmate::assert_true(length(c(1:4, j_block2[1:4], j_block3[1:4], j_block3[5:8])) == 16)
 
   # Linear predictors
@@ -164,7 +169,12 @@ sim_surv_binder <- function(job, data, n = 50, p = 1000, ce = 0.5, lambda = 0.1,
   names(X) <- paste0("x", seq_len(p))
   res <- data.frame(time = ti, status = di, X)
 
-  list(data = res, covar_blocks = covar_blocks, covar_true_effect = covar_true_effect)
+  list(
+    data = res[seq_len(n_train), ],
+    test_data = res[-seq_len(n_train), ],
+    covar_blocks = covar_blocks,
+    covar_true_effect = covar_true_effect
+  )
 }
 
 
