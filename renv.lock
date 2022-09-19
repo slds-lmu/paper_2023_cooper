@@ -3,6 +3,10 @@
     "Version": "4.2.1",
     "Repositories": [
       {
+        "Name": "RSPM-Focal",
+        "URL": "https://packagemanager.rstudio.com/all/__linux__/focal/latest"
+      },
+      {
         "Name": "CRAN",
         "URL": "https://cloud.r-project.org"
       }
