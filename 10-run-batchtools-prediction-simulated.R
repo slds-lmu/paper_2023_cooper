@@ -26,7 +26,7 @@ addAlgorithm(name = "fwel_mt", fun = fwel_mt_prediction_wrapper)
 
 # Experiments -----------------------------------------------------------
 prob_design <- list(
-  sim_surv_binder = expand.grid(n = 400, p = 5000, ce = 0.5, lambda = 0.1, lambda_c = 0.1)
+  sim_surv_binder = expand.grid(n_train = 400, n_test = 200, p = 5000, ce = 0.5, lambda = 0.1, lambda_c = 0.1)
 )
 
 algo_design <- list(
@@ -37,7 +37,6 @@ algo_design <- list(
     thresh = c(1e-3, 1e-7)
   )
 )
-
 
 addExperiments(prob_design, algo_design, repls = config$repls)
 summarizeExperiments()
