@@ -1,7 +1,7 @@
 #! /usr/bin/env Rscript
 # monitor current status
 library(batchtools)
-reg_dir <- here::here("registries", "fwel_sim_variableselect")
+reg_dir <- here::here("registries", "fwel_sim_prediction")
 loadRegistry(reg_dir, writeable = FALSE)
 
 
