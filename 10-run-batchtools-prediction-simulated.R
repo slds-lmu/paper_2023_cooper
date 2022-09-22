@@ -1,4 +1,6 @@
 library(batchtools)
+library(survival)
+library(riskRegression)
 
 # Settings ----------------------------------------------------------------
 config <- list(
