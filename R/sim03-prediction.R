@@ -62,6 +62,7 @@ fwel_mt_prediction_wrapper <- function(
     metrics = c("AUC", "Brier"),
     summary = c("ibs", "ipa"),
     cause = 1,
+    se.fit = FALSE, # hail mary
     times = quantile(instance[["test_data"]][["time"]], probs = seq(0.1, 0.9, .1), names = FALSE)
   )
   # in case of runtime issues: se.fit = FALSE
