@@ -19,7 +19,7 @@ fwel_mt_prediction_wrapper <- function(
 
   # Only for quick debugging
   # instance <- sim_surv_binder(n_train = 400, n_test = 200, p = 5000)
-
+  message("Fitting fwelnet")
   fit <- fwelnet::fwelnet_mt_cox(
     instance[["data"]],
     mt_max_iter = mt_max_iter,
@@ -37,8 +37,10 @@ fwel_mt_prediction_wrapper <- function(
 
   # Use riskRegression for dummy model, needs recent GH version
   # Fit sacrifical CSC model to hold our glmnet/fwelnet coefs
+  message("Fitting dummy CSC model")
   dummy_csc <- CSC(formula = Hist(time, status) ~ x1 + x2 , data = instance[["data"]], singular.ok = TRUE)
 
+  message("Converting CSC models")
   csc_models <- convert_models_csc(train_data = instance[["data"]], fwel_fit = fit, dummy_csc = dummy_csc)
 
   checkmate::assert_numeric(csc_models$csc_glmnet$models[[1]]$coefficients, any.missing = FALSE, len = ncol(instance[["data"]]) - 2)
@@ -46,6 +48,7 @@ fwel_mt_prediction_wrapper <- function(
   checkmate::assert_numeric(csc_models$csc_fwelnet$models[[1]]$coefficients, any.missing = FALSE, len = ncol(instance[["data"]]) - 2)
   checkmate::assert_numeric(csc_models$csc_fwelnet$models[[2]]$coefficients, any.missing = FALSE, len = ncol(instance[["data"]]) - 2)
 
+  message("Running Score()")
   mod_scores <- Score(
     list(
       glmnet = csc_models$csc_glmnet,
@@ -63,6 +66,7 @@ fwel_mt_prediction_wrapper <- function(
   )
   # in case of runtime issues: se.fit = FALSE
 
+  message("Cleaning up results")
   # Extract Briert and AUC score tables and merge them
   scores_Brier <- mod_scores$Brier$score
   auc_names <- names(mod_scores$AUC$score)
@@ -71,6 +75,6 @@ fwel_mt_prediction_wrapper <- function(
 
   # Return right outer join including Brier scores + null model
   # and AUC with prefixed column names to avoid duplicate names
-  scores_AUC[scores_Brier, on = .(model, times)]
-
+  res <- scores_AUC[scores_Brier, on = .(model, times)]
+  return(data.table::copy(res))
 }
