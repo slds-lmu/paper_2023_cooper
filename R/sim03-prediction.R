@@ -48,8 +48,8 @@ fwel_mt_prediction_wrapper <- function(
   checkmate::assert_numeric(csc_models$csc_fwelnet$models[[1]]$coefficients, any.missing = FALSE, len = ncol(instance[["data"]]) - 2)
   checkmate::assert_numeric(csc_models$csc_fwelnet$models[[2]]$coefficients, any.missing = FALSE, len = ncol(instance[["data"]]) - 2)
 
-  message("Running Score()")
-  mod_scores <- Score(
+  message("Running Score() with AUC")
+  mod_scores_auc <- Score(
     list(
       glmnet = csc_models$csc_glmnet,
       fwelnet = csc_models$csc_fwelnet
@@ -59,20 +59,37 @@ fwel_mt_prediction_wrapper <- function(
     # predictRisk.args = list(CauseSpecificCox = list(product.limit = FALSE)),
     formula = Hist(time, status) ~ 1,
     data = instance[["test_data"]],
-    metrics = c("AUC", "Brier"),
-    summary = c("ibs", "ipa"),
+    metrics = c("AUC"),
     cause = 1,
-    se.fit = FALSE, # hail mary
+    se.fit = TRUE, # hail mary
     times = quantile(instance[["test_data"]][["time"]], probs = seq(0.1, 0.9, .1), names = FALSE)
   )
   # in case of runtime issues: se.fit = FALSE
 
+  message("Running Score() with Brier score")
+  mod_scores_brier <- Score(
+    list(
+      glmnet = csc_models$csc_glmnet,
+      fwelnet = csc_models$csc_fwelnet
+    ),
+    # FIXME: Out of bounds Brier scores, the following suggestion by error msg
+    # did not help and caused even worse values. AUC seems plausible though.
+    # predictRisk.args = list(CauseSpecificCox = list(product.limit = FALSE)),
+    formula = Hist(time, status) ~ 1,
+    data = instance[["test_data"]],
+    metrics = c("Brier"),
+    summary = c("ibs", "ipa"),
+    cause = 1,
+    se.fit = FALSE,
+    times = quantile(instance[["test_data"]][["time"]], probs = seq(0.1, 0.9, .1), names = FALSE)
+  )
+
   message("Cleaning up results")
   # Extract Briert and AUC score tables and merge them
-  scores_Brier <- mod_scores$Brier$score
-  auc_names <- names(mod_scores$AUC$score)
+  scores_Brier <- mod_scores_brier$Brier$score
+  auc_names <- names(mod_scores_auc$AUC$score)
   auc_newnames <- c("model", "times", "AUC", "AUC_se", "AUC_lower", "AUC_upper")
-  scores_AUC <- data.table::setnames(mod_scores$AUC$score, auc_names, auc_newnames)
+  scores_AUC <- data.table::setnames(mod_scores_auc$AUC$score, auc_names, auc_newnames)
 
   # Return right outer join including Brier scores + null model
   # and AUC with prefixed column names to avoid duplicate names
