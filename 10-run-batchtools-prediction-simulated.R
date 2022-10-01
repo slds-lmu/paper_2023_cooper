@@ -1,6 +1,6 @@
 library(batchtools)
-library(survival)
-library(riskRegression)
+# library(survival)
+# library(riskRegression)
 
 # Settings ----------------------------------------------------------------
 config <- list(
@@ -10,14 +10,14 @@ config <- list(
   repls = 100
 )
 
-set.seed(config$global_seed)
+# set.seed(config$global_seed)
 
 # Registry ----------------------------------------------------------------
 if (!file.exists(here::here("registries"))) dir.create(here::here("registries"))
 reg_name <- "fwel_sim_prediction"
 reg_dir <- here::here("registries", reg_name)
 unlink(reg_dir, recursive = TRUE)
-makeExperimentRegistry(file.dir = reg_dir)
+makeExperimentRegistry(file.dir = reg_dir, packages = c("riskRegression", "survival"), seed = config$global_seed)
 
 # Problems -----------------------------------------------------------
 addProblem(name = "sim_surv_binder", fun = sim_surv_binder, seed = config$sim_seed, cache = config$sim_cache)

@@ -8,8 +8,8 @@ fwel_mt_prediction_wrapper <- function(
     a = 0.5,
     thresh = 1e-7
 ) {
-  # require(survival)
-  # require(riskRegression)
+  # suppressMessages(require(survival))
+  # suppressMessages(require(riskRegression))
 
   checkmate::assert_numeric(alpha)
   checkmate::assert_int(mt_max_iter)
