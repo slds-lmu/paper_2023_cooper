@@ -85,7 +85,7 @@ fwel_mt_prediction_wrapper <- function(
   )
 
   message("Cleaning up results")
-  # Extract Briert and AUC score tables and merge them
+  # Extract Brier and AUC score tables and merge them
   scores_Brier <- mod_scores_brier$Brier$score
   auc_names <- names(mod_scores_auc$AUC$score)
   auc_newnames <- c("model", "times", "AUC", "AUC_se", "AUC_lower", "AUC_upper")

@@ -36,7 +36,7 @@ algo_design <- list(
     mt_max_iter = 3,
     alpha = c(1),
     t = c(100),
-    thresh = c(1e-3, 1e-7)
+    thresh = c(1e-3, 1e-5)
   )
 )
 
