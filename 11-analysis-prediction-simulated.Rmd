@@ -36,6 +36,8 @@ theme_set(
   )
 )
 
+res <-  ijoin(reduceResultsDataTable(), flatten(getJobPars()))
+
 # batchtools::unwrap() doesn't work, so quick tidyr-detour circling back to data.table
 res_long <- tidyr::unnest(res, "result") |> 
   as.data.table()
@@ -47,7 +49,6 @@ res_long[, thresh := format(thresh, scientific = TRUE)]
 # Job Overview
 
 ```{r get-results, cache = TRUE}
-res <-  ijoin(reduceResultsDataTable(), flatten(getJobPars()))
 jobs_total <- nrow(getJobTable())
 jobs_completed <- 100 * nrow(res)/jobs_total
 jobs_errored <- 100 * nrow(findErrors())/jobs_total

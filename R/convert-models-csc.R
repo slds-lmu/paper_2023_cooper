@@ -2,6 +2,7 @@ convert_models_csc <- function(train_data, fwel_fit, dummy_csc) {
   # Take csc model and fwelnet fit
   # create glmet/fwelnet "CSC" models
   dummy_glmnet <- dummy_csc
+  # browser()
 
   # Recreate a suitable model matrix with all predictors
   dummy_model_matrix <- model.matrix(prodlim::Hist(time, status) ~ . -1, data = train_data)

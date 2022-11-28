@@ -13,9 +13,9 @@ editor_options:
 
 ```{r setup, include=FALSE}
 # Load helper functions in R/
-source(here::here("02-problems.R"))
-source(here::here("R/sim_cr.R"))
-source(here::here("R/mt_res_tidy_plot.R"))
+# source(here::here("02-problems.R"))
+# source(here::here("R/sim_cr.R"))
+# source(here::here("R/mt_res_tidy_plot.R"))
 
 knitr::opts_chunk$set(
   echo = TRUE,
@@ -51,7 +51,7 @@ Run and plot result individually:
 set.seed(997)
 p1 <- fwelnet_mt_cox(
   sim_c_dat, mt_max_iter = 5,
-  z_scale = 1, z_method = "original", t = 100, thresh = 0, a = 0.5, max_iter = 40
+  z_method = "original", t = 100, thresh = 0, a = 0.5, max_iter = 40, include_mt_beta_history = TRUE
 ) |>
   tidy_mt_res(true_effects) |>
   plot_mt_res(true_effects)
@@ -59,7 +59,7 @@ p1 <- fwelnet_mt_cox(
 set.seed(997)
 p2 <- fwelnet_mt_cox(
   sim_c_dat, mt_max_iter = 5,
-  z_scale = 1, z_method = "aligned", t = 100, thresh = 0, a = 0.5, max_iter = 40
+  z_method = "aligned", t = 100, thresh = 0, a = 0.5, max_iter = 40, , include_mt_beta_history = TRUE
 ) |>
   tidy_mt_res(true_effects) |>
   plot_mt_res(true_effects)
@@ -128,5 +128,99 @@ res_full |>
   ) |>
   kableExtra::kable_styling() |>
   kableExtra::collapse_rows(columns = c(1, 2))
+```
+
+# Prediction
+
+```{r prediction-lowdim}
+library(riskRegression)
+set.seed(997)
+train <- sim_b(n = 400)$data[, -1] # exclude x1, factor, not properly supported yet
+test <- sim_b(n = 200)$data[, -1]
+
+fwel_fit <- fwelnet::fwelnet_mt_cox(
+  train,
+  mt_max_iter = 3,
+  z_method = "original",
+  alpha = 1,
+  t = 100,
+  a = 0.5,
+  thresh = 1e-5,
+  include_mt_beta_history = TRUE
+)
+
+message("Fitting dummy CSC model")
+dummy_csc <- CSC(formula = Hist(time, status) ~ . , data = train, singular.ok = TRUE)
+
+message("Converting CSC models")
+csc_models <- convert_models_csc(train_data = train, fwel_fit = fwel_fit, dummy_csc = dummy_csc)
+
+
+mod_scores <- Score(
+  list(
+    glmnet = csc_models$csc_glmnet,
+    fwelnet = csc_models$csc_fwelnet
+  ),
+  formula = Hist(time, status) ~ 1,
+  data = test,
+  metrics = c("AUC", "Brier"),
+  summary = c("ibs", "ipa"),
+  cause = 1,
+  se.fit = TRUE, # hail mary
+  times = quantile(test[["time"]], probs = seq(0.1, 0.9, .1), names = FALSE)
+)
+
+scores_Brier <- mod_scores$Brier$score
+auc_names <- names(mod_scores$AUC$score)
+auc_newnames <- c("model", "times", "AUC", "AUC_se", "AUC_lower", "AUC_upper")
+scores_AUC <- data.table::setnames(mod_scores$AUC$score, auc_names, auc_newnames)
+
+# Return right outer join including Brier scores + null model
+# and AUC with prefixed column names to avoid duplicate names
+scores <- scores_AUC[scores_Brier, on = .(model, times)]
+
+scores |>
+  ggplot(aes(x = times, y = Brier, color = model, fill = model)) +
+  #geom_ribbon(aes(ymin = lower, ymax = upper), alpha = .01) +
+  geom_point(size = 3) +
+  geom_path(size = 1.5) +
+  labs(
+    title = "CSC glmnet & fwelnet prediction performance (cause 1)",
+    subtitle = "Low dimensional setting, 1 variable w/ true effect",
+    x = "Time",
+    color = NULL, fill = NULL
+  )
+
+scores |>
+  select(model, times, AUC, Brier, IBS, IPA) |>
+  tidyr::pivot_longer(cols = c("AUC", "Brier", "IBS", "IPA"), names_to = "Metric", values_to = "value", values_drop_na = TRUE) |>
+  ggplot(aes(x = times, y = value, color = model, fill = model)) +
+  facet_wrap(~Metric, scales = "free_y") +
+  geom_point(size = 3, alpha = .75) +
+  geom_path(size = 1) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  labs(
+    title = "CSC glmnet & fwelnet prediction performance (cause 1)",
+    subtitle = "Low dimensional setting, 1 variable w/ true effect",
+    x = "Time", y = "Value * 100",
+    color = NULL, fill = NULL
+  )
+
+scores |>
+  filter(model != "Null model") |>
+  ggplot(aes(x = times, y = AUC, color = model, fill = model)) +
+  #geom_ribbon(aes(ymin = lower, ymax = upper), alpha = .01) +
+  geom_point(size = 3) +
+  geom_path(size = 1.5) +
+  labs(
+    title = "CSC glmnet & fwelnet prediction performance (cause 1)",
+    subtitle = "Low dimensional setting, 1 variable w/ true effect",
+    x = "Time",
+    color = NULL, fill = NULL
+  )
+
+csc_models$csc_glmnet$models$`Cause 1`$coefficients |> round(2)
+csc_models$csc_fwelnet$models$`Cause 1`$coefficients |> round(2)
+
 ```
 
