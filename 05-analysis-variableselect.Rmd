@@ -85,7 +85,7 @@ res_long[total_pos == 0, tp := NA]
 res_long[total_pos == 0, fn := NA]
 ```
 
-Calculating derived measures, generating a lot of NAs for blocks without true efefcts.
+Calculating derived measures, generating a lot of NAs for blocks without true effects.
 
 ```{r prep-calc-stats}
 # TPR, FPR, PPV, FDR...
@@ -103,7 +103,7 @@ res_long[, acc := (tp+tn)/total]
 ## Covariates & true effects
 
 ```{r, include = FALSE}
-tmp <- sim_surv_binder(n = 400, p = 5000)
+tmp <- sim_surv_binder(n_train = 400, p = 5000)
 truth <- tmp$covar_true_effect |> sapply(length)
 total <- tmp$covar_blocks |> sapply(length)
 ```

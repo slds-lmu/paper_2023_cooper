@@ -42,34 +42,102 @@ fwel_mt_varselect_wrapper <- function(
   # Get confusion matrix per block of predictors, by model, by cause.
   # I am painfully aware that this is not "nice", but time is finite and patience is, too.
 
-  rbind(
-    # glmnet, cause 1
-    get_confusion(glmnet_beta1, truth, total, "block1",  model = "glmnet", cause = 1L),
-    get_confusion(glmnet_beta1, truth, total, "block2",  model = "glmnet", cause = 1L),
-    get_confusion(glmnet_beta1, truth, total, "block31", model = "glmnet", cause = 1L),
-    get_confusion(glmnet_beta1, truth, total, "block32", model = "glmnet", cause = 1L),
-    get_confusion(glmnet_beta1, truth, total, "block4",  model = "glmnet", cause = 1L),
-    # Cause 2
-    get_confusion(glmnet_beta2, truth, total, "block1",  model = "glmnet", cause = 2L),
-    get_confusion(glmnet_beta2, truth, total, "block2",  model = "glmnet", cause = 2L),
-    get_confusion(glmnet_beta2, truth, total, "block31", model = "glmnet", cause = 2L),
-    get_confusion(glmnet_beta2, truth, total, "block32", model = "glmnet", cause = 2L),
-    get_confusion(glmnet_beta2, truth, total, "block4",  model = "glmnet", cause = 2L),
-    # fwelnet, cause 1
-    get_confusion(fwel_beta1, truth, total, "block1",  model = "fwelnet", cause = 1L),
-    get_confusion(fwel_beta1, truth, total, "block2",  model = "fwelnet", cause = 1L),
-    get_confusion(fwel_beta1, truth, total, "block31", model = "fwelnet", cause = 1L),
-    get_confusion(fwel_beta1, truth, total, "block32", model = "fwelnet", cause = 1L),
-    get_confusion(fwel_beta1, truth, total, "block4",  model = "fwelnet", cause = 1L),
-    # Cause 2
-    get_confusion(fwel_beta2, truth, total, "block1",  model = "fwelnet", cause = 2L),
-    get_confusion(fwel_beta2, truth, total, "block2",  model = "fwelnet", cause = 2L),
-    get_confusion(fwel_beta2, truth, total, "block31", model = "fwelnet", cause = 2L),
-    get_confusion(fwel_beta2, truth, total, "block32", model = "fwelnet", cause = 2L),
-    get_confusion(fwel_beta2, truth, total, "block4",  model = "fwelnet", cause = 2L)
-  )
+  data.table::rbindlist(c(
+    lapply(names(total), function(x) {
+      get_confusion(glmnet_beta1, truth, total, x,  model = "glmnet", cause = 1L)
+    }),
+    lapply(names(total), function(x) {
+      get_confusion(glmnet_beta2, truth, total, x,  model = "glmnet", cause = 2L)
+    }),
+    lapply(names(total), function(x) {
+      get_confusion(fwel_beta1, truth, total, x,  model = "fwelnet", cause = 2L)
+    }),
+    lapply(names(total), function(x) {
+      get_confusion(fwel_beta2, truth, total, x,  model = "fwelnet", cause = 2L)
+    })
+  ))
 
 }
+
+
+rfsrc_varselect_wrapper <- function(data, job, instance,
+                                    mtry = 2000,
+                                    nodesize = 30, splitrule = "logrank",
+                                    importance = "random", cutoff_method = "vita"
+                                    ) {
+  # batchtools passes params as factors, need to convert
+  importance <- as.character(importance)
+  splitrule <- as.character(splitrule)
+  cutoff_method <- as.character(cutoff_method)
+
+  # prbly won't use permute, since random should be equivalent
+  checkmate::assert_subset(importance, choices = c("random", "permute", "anti"))
+  # not sure about other methods yet
+  checkmate::assert_subset(cutoff_method, choices = "vita")
+
+  rf_c1 <- rfsrc(
+    Surv(time, status) ~ ., data = instance$data,
+    splitrule = splitrule,
+    cause = c(1, 0),
+    importance = importance,
+    mtry = mtry,
+    nodesize = nodesize
+  )
+
+  rf_c2 <- rfsrc(
+    Surv(time, status) ~ ., data = instance$data,
+    splitrule = splitrule,
+    cause = c(0, 1),
+    importance = importance,
+    mtry = mtry,
+    nodesize = nodesize
+  )
+
+  vimps <- data.table::data.table(
+    variable = rownames(rf_c1[["importance"]]),
+    vi_c1 = rf_c1[["importance"]][, 1],
+    vi_c2 = rf_c2[["importance"]][, 2]
+  )
+
+  # If these fail something is weird, but it would justify using abs(min(x)) rather than -min(x)
+  checkmate::assert_true(any(vimps$vi_c1 < 0))
+  checkmate::assert_true(any(vimps$vi_c2 < 0))
+
+  if (cutoff_method == "vita") {
+    # Apply vita/janitza shortcut
+    # Take absolute value of minimal importance value as cut-off for 0-classification
+    # Effectively equivalent with vita method in Degenhardt et al. (2019)
+    vimps[, vita_c1 := ifelse(vi_c1 <= abs(min(vi_c1)), 0, vi_c1)]
+    vimps[, vita_c2 := ifelse(vi_c2 <= abs(min(vi_c2)), 0, vi_c2)]
+  }
+
+  truth <- instance$covar_true_effect
+  total <- instance$covar_blocks
+
+  res_c1 <- lapply(names(total), function(x) {
+    get_confusion(vimps$vita_c1, truth, total, x,  model = "rfsrc", cause = 1L)
+  })
+
+  res_c2 <- lapply(names(total), function(x) {
+    get_confusion(vimps$vita_c2, truth, total, x,  model = "rfsrc", cause = 2L)
+  })
+
+  data.table::rbindlist(c(res_c1, res_c2))
+}
+
+
+#' Get confusion matrix stats from vector of coefficients and true effect info
+#'
+#' Only to be used with `sim_surv_binder` as it returns necessary covar block structure etc.
+#'
+#' @param beta Vector of estimated coefficients, numeric
+#' @param truth List of per-block true effects, `instance$covar_true_effect`
+#' @param total List of per-block indices, `instance$covar_blocks`
+#' @param block Block ID, character
+#' @param model Model identifier, e.g. `"fwelnet"`
+#' @param cause Integer cause 0 or 1
+#'
+#' @return A 1-row data.frame
 
 get_confusion <- function(beta, truth, total, block = "block1", model = "glmnet", cause = 1L) {
 
@@ -77,7 +145,7 @@ get_confusion <- function(beta, truth, total, block = "block1", model = "glmnet"
   checkmate::assert_list(truth, types = "integer")
   checkmate::assert_list(total, types = "integer")
   checkmate::assert_choice(block, choices = names(truth), null.ok = FALSE)
-  checkmate::assert_choice(model, choices = c("glmnet", "fwelnet"), null.ok = FALSE)
+  checkmate::assert_choice(model, choices = c("glmnet", "fwelnet", "rfsrc"), null.ok = FALSE)
   checkmate::assert_choice(cause, choices = c(1L, 2L))
 
   # Get indices of nonzero/zero coefs, need to offset with index of block
@@ -87,14 +155,15 @@ get_confusion <- function(beta, truth, total, block = "block1", model = "glmnet"
   predicted0 <- which(beta[total[[block]]] == 0) + (total[[block]][[1]] - 1)
 
   # Double check that indices are set correctly. Names are x<j>, so we can check that quickly
-  checkmate::assert(
-    checkmate::assert_true(
-      all.equal(as.integer(sub(pattern = "x", replacement = "", names(predicted))), unname(predicted))
-    ),
-    checkmate::assert_true(
-      all.equal(as.integer(sub(pattern = "x", replacement = "", names(predicted0))), unname(predicted0))
-    )
-  )
+  # checkmate::assert(
+  #   checkmate::assert_true(
+  #     all.equal(as.integer(sub(pattern = "x", replacement = "", names(predicted))), unname(predicted))
+  #   ),
+  #   checkmate::assert_true(
+  #     all.equal(as.integer(sub(pattern = "x", replacement = "", names(predicted0))), unname(predicted0))
+  #   )
+  # )
+
   # block31 has only effect on cause 1 -> true effect index set is empty for cause 2 + vice versa
   if (cause == 1L & block == "block32") truth[["block32"]] <- integer(0)
   if (cause == 2L & block == "block31") truth[["block31"]] <- integer(0)

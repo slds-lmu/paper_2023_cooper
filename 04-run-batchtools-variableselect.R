@@ -1,4 +1,5 @@
 library(batchtools)
+library(randomForestSRC)
 
 # Settings ----------------------------------------------------------------
 config <- list(
@@ -12,7 +13,7 @@ set.seed(config$global_seed)
 
 # Registry ----------------------------------------------------------------
 if (!file.exists(here::here("registries"))) dir.create(here::here("registries"))
-reg_name <- "fwel_sim_variableselect"
+reg_name <- "fwel_sim_varsel_rf"
 reg_dir <- here::here("registries", reg_name)
 unlink(reg_dir, recursive = TRUE)
 makeExperimentRegistry(file.dir = reg_dir)
@@ -22,11 +23,12 @@ addProblem(name = "sim_surv_binder", fun = sim_surv_binder, seed = config$sim_se
 
 # Algorithms -----------------------------------------------------------
 addAlgorithm(name = "fwel_mt", fun = fwel_mt_varselect_wrapper)
+addAlgorithm(name = "rfsrc", fun = rfsrc_varselect_wrapper)
 
 
 # Experiments -----------------------------------------------------------
 prob_design <- list(
-  sim_surv_binder = expand.grid(n = 400, p = 5000, ce = 0.5, lambda = 0.1, lambda_c = 0.1)
+  sim_surv_binder = expand.grid(n_train = 400, p = 5000, ce = 0.5, lambda = 0.1, lambda_c = 0.1)
 )
 
 algo_design <- list(
@@ -34,7 +36,14 @@ algo_design <- list(
     mt_max_iter = 3,
     alpha = c(1),
     t = c(100),
-    thresh = c(1e-3, 1e-7)
+    thresh = c(1e-7)
+  ),
+  rfsrc = expand.grid(
+    importance = "random",
+    cutoff_method = "vita",
+    mtry = 2000,
+    nodesize = 30,
+    splitrule = "logrank"
   )
 )
 
@@ -44,7 +53,7 @@ summarizeExperiments()
 unwrap(getJobPars(), c("algo.pars", "prob.pars"))
 
 # Test jobs -----------------------------------------------------------
-if (interactive()) testJob(id = 4)
+if (interactive()) testJob(id = 200)
 
 # Submit -----------------------------------------------------------
 if (grepl("node\\d{2}|bipscluster", system("hostname", intern = TRUE))) {
