@@ -16,7 +16,7 @@ if (!file.exists(here::here("registries"))) dir.create(here::here("registries"))
 reg_name <- "fwel_sim_varsel_rf"
 reg_dir <- here::here("registries", reg_name)
 unlink(reg_dir, recursive = TRUE)
-makeExperimentRegistry(file.dir = reg_dir)
+makeExperimentRegistry(file.dir = reg_dir, packages = c("randomForestSRC"))
 
 # Problems -----------------------------------------------------------
 addProblem(name = "sim_surv_binder", fun = sim_surv_binder, seed = config$sim_seed, cache = config$sim_cache)
