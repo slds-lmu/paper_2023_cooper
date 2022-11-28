@@ -25,7 +25,8 @@ fwel_mt_varselect_wrapper <- function(
     alpha = alpha,
     t = t,
     a = a,
-    thresh = thresh
+    thresh = thresh,
+    include_mt_beta_history = TRUE
   )
 
   p <- ncol(instance$data)
