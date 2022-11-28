@@ -64,8 +64,10 @@ if (grepl("node\\d{2}|bipscluster", system("hostname", intern = TRUE))) {
                               ncpus = 1, memory = 6000, walltime = 10*24*3600,
                               max.concurrent.jobs = 40))
 } else {
-  ids <- findNotStarted()
-  submitJobs(ids = ids)
+  # ids <- findNotStarted()
+
+  submitJobs(ids = findExperiments(algo.name = "rfsrc"))
+  submitJobs(ids = findExperiments(algo.name = "fwel_mt"))
 }
 waitForJobs()
 
