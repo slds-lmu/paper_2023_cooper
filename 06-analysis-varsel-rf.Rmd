@@ -133,7 +133,6 @@ Simulated data dimensions: n = 400, p = 5000
  
 ```{r confmat-measures-boxplot, fig.height=12}
 res_long |>
-  filter(thresh == "1e-07") |>
   mutate(
     block = stringr::str_replace_all(block, "31", "3.1"),
     block = stringr::str_replace_all(block, "32", "3.2"),
@@ -158,7 +157,6 @@ res_long |>
 
 ```{r confmat-measures-table}
 res_long |>
-  filter(thresh == "1e-07") |>
   group_by(block, cause, model) |>
   summarise(across(tpr:acc, ~{
     # m <- round(mean(.x, na.rm = TRUE) * 100, 2)
@@ -182,7 +180,6 @@ res_long |>
 
 ```{r confmat-measures-table-mean}
 res_long |>
-  filter(thresh == "1e-07") |>
   group_by(block, cause, model) |>
   summarise(across(tpr:acc, ~{
     m <- round(mean(.x, na.rm = TRUE) * 100, 2)
@@ -207,7 +204,6 @@ For completion's sake, the average confusion matrix stats (true positive, true n
 
 ```{r confmat-measures-table-median}
 res_long |>
-  filter(thresh == "1e-07") |>
   group_by(block, cause, model) |>
   summarise(across(c(tp, tn, fp, fn), ~{
     m <- round(mean(.x, na.rm = TRUE), 2)
@@ -243,7 +239,7 @@ res_long |>
   tidyr::pivot_longer(cols = tpr:acc, names_to = "measure", values_to = "value", names_transform = toupper) |>
   filter(measure %in% c("ACC","TPR", "PPV", "F1")) |>
   filter(!is.na(value)) |>
-  ggplot(aes(x = factor(thresh), y = value, color = model, fill = model)) +
+  ggplot(aes(x = model, y = value, color = model, fill = model)) +
   facet_grid(rows = vars(cause, measure), cols = vars(block), scales = "free") +
   #coord_flip() +
   geom_boxplot(alpha = 0.5) +
@@ -251,7 +247,7 @@ res_long |>
   scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill")) +
   labs(
     title = "Classification metrics by model and covariate block",
-    x = "Threshold", y = "Rate [%]", color = NULL, fill = NULL
+    x = "Model", y = "Rate [%]", color = NULL, fill = NULL
   )
 ```
 
@@ -268,7 +264,7 @@ res_long |>
     block = stringr::str_replace_all(block, "32", "3.2"),
     cause = paste0("Cause ", cause)
   ) |>
-  ggplot(aes(x = factor(thresh), y = fpr, color = model, fill = model)) +
+  ggplot(aes(x = model, y = fpr, color = model, fill = model)) +
   facet_grid(rows = vars(cause), cols = vars(block), scales = "free") +
   #coord_flip() +
   geom_boxplot(alpha = 0.5) +
@@ -277,7 +273,7 @@ res_long |>
   labs(
     title = "False Positive Rate by model and covariate block",
     subtitle = "No true effects on cause 1 in block 3.2 (and vice versa)\nNo true effects in block 4 at all",
-    x = "Threshold (lower = more theta optimization steps)", y = "False Positive Rate [%]", color = NULL, fill = NULL
+    x = "Model", y = "False Positive Rate [%]", color = NULL, fill = NULL
   )
 
 res_long |>
@@ -287,7 +283,7 @@ res_long |>
     block = stringr::str_replace_all(block, "32", "3.2"),
     cause = paste0("Cause ", cause)
   ) |>
-  ggplot(aes(x = factor(thresh), y = fpr, color = model, fill = model)) +
+  ggplot(aes(x = model, y = fpr, color = model, fill = model)) +
   facet_grid(rows = vars(cause), cols = vars(block), scales = "free") +
   #coord_flip() +
   geom_boxplot(alpha = 0.5) +
@@ -296,7 +292,7 @@ res_long |>
   labs(
     title = "False Positive Rate by model and covariate block",
     subtitle = "No true effects on cause 1 in block 3.2 (and vice versa)\nNo true effects in block 4 at all",
-    x = "Threshold (lower = more theta optimization steps)", y = "False Positive Rate [%]", color = NULL, fill = NULL
+    x = "Model", y = "False Positive Rate [%]", color = NULL, fill = NULL
   )
 ```
 
@@ -307,7 +303,6 @@ Hard to make out anything useful except that fwelnet seems to work fine and bloc
 
 ```{r roc-}
 res_long |>
-  filter(thresh == "1e-03")|>
   mutate(
     block = stringr::str_replace_all(block, "31", "3.1"),
     block = stringr::str_replace_all(block, "32", "3.2"),
