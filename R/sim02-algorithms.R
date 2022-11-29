@@ -51,7 +51,7 @@ fwel_mt_varselect_wrapper <- function(
       get_confusion(glmnet_beta2, truth, total, x,  model = "glmnet", cause = 2L)
     }),
     lapply(names(total), function(x) {
-      get_confusion(fwel_beta1, truth, total, x,  model = "fwelnet", cause = 2L)
+      get_confusion(fwel_beta1, truth, total, x,  model = "fwelnet", cause = 1L)
     }),
     lapply(names(total), function(x) {
       get_confusion(fwel_beta2, truth, total, x,  model = "fwelnet", cause = 2L)
