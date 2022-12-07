@@ -6,7 +6,7 @@ config <- list(
   global_seed = 563,
   sim_seed = 569,
   sim_cache = FALSE,
-  repls = 100
+  repls = 20
 )
 
 set.seed(config$global_seed)
@@ -15,8 +15,9 @@ set.seed(config$global_seed)
 if (!file.exists(here::here("registries"))) dir.create(here::here("registries"))
 reg_name <- "fwel_sim_varsel_rf"
 reg_dir <- here::here("registries", reg_name)
-unlink(reg_dir, recursive = TRUE)
-makeExperimentRegistry(file.dir = reg_dir, packages = c("randomForestSRC"))
+#unlink(reg_dir, recursive = TRUE)
+#makeExperimentRegistry(file.dir = reg_dir, packages = c("randomForestSRC"))
+loadRegistry(reg_dir, writeable = TRUE)
 
 # Problems -----------------------------------------------------------
 addProblem(name = "sim_surv_binder", fun = sim_surv_binder, seed = config$sim_seed, cache = config$sim_cache)
@@ -41,7 +42,7 @@ algo_design <- list(
   rfsrc = expand.grid(
     importance = "random",
     cutoff_method = "vita",
-    mtry = 2000,
+    mtry = c(2000, 3000),
     nodesize = 30,
     splitrule = "logrank"
   )
@@ -64,10 +65,9 @@ if (grepl("node\\d{2}|bipscluster", system("hostname", intern = TRUE))) {
                               ncpus = 1, memory = 6000, walltime = 10*24*3600,
                               max.concurrent.jobs = 40))
 } else {
-  # ids <- findNotStarted()
+  ids <- findNotStarted()
 
-  submitJobs(ids = findExperiments(algo.name = "rfsrc"))
-  submitJobs(ids = findExperiments(algo.name = "fwel_mt"))
+  submitJobs(ids)
 }
 waitForJobs()
 

@@ -136,7 +136,8 @@ res_long |>
   mutate(
     block = stringr::str_replace_all(block, "31", "3.1"),
     block = stringr::str_replace_all(block, "32", "3.2"),
-    cause = paste0("Cause ", cause)
+    cause = paste0("Cause ", cause),
+    model = ifelse(model == "rfsrc", glue::glue("{model} (mtry={mtry})"), model)
   ) |>
   tidyr::pivot_longer(cols = tpr:acc, names_to = "measure", values_to = "value", names_transform = toupper) |>
   ggplot(aes(x = block, y = value, color = model, fill = model)) +
@@ -301,7 +302,7 @@ res_long |>
 
 Hard to make out anything useful except that fwelnet seems to work fine and block3.2/cause 2 is harder than 3.1/cause 1 :/
 
-```{r roc-}
+```{r roc}
 res_long |>
   mutate(
     block = stringr::str_replace_all(block, "31", "3.1"),
