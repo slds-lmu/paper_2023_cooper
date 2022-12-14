@@ -118,7 +118,7 @@ Simulated data dimensions: n = 400, p = 5000
     - correlation of 0.35 for 0.05p < j ≤ 0.1p
     - Effects:
         - 0.5 on cause 1
-        - 0.5 on cause 2
+        - -0.5 on cause 2
     - true effects / variables per block: `r truth[["block2"]]` / `r total[["block2"]]`
 - **block 3**: 
     - correlation of 0.05 for 0.1p < j ≤ 0.2p

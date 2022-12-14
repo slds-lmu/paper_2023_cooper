@@ -126,6 +126,36 @@ rfsrc_varselect_wrapper <- function(data, job, instance,
   data.table::rbindlist(c(res_c1, res_c2))
 }
 
+coxboost_varselect_wrapper <- function(data, job, instance,
+                                       cmprisk = "csh", stepno = 100, penalty = 2000
+                                       ) {
+  cbfit <- CoxBoost(
+    time = instance$data$time,
+    status = instance$data$status,
+    x = as.matrix(instance$data[, -c(1, 2)]),
+    cmprsk = as.character(cmprsk),
+    stepno = stepno,
+    # Default is 9 * sum(status[subset] == 1), should be approx 9 * 250
+    # since in our setting sum(instance$data$status != 0) is approx 233
+    penalty = penalty
+  )
+
+  # Extracts coefs at final boosting step, names list per cause (names 1, 2)
+  cb_coefs <- coef(cbfit)
+  truth <- instance$covar_true_effect
+  total <- instance$covar_blocks
+
+  res_c1 <- lapply(names(total), function(x) {
+    get_confusion(cb_coefs[["1"]], truth, total, x,  model = "coxboost", cause = 1L)
+  })
+
+  res_c2 <- lapply(names(total), function(x) {
+    get_confusion(cb_coefs[["2"]], truth, total, x,  model = "coxboost", cause = 2L)
+  })
+
+  data.table::rbindlist(c(res_c1, res_c2))
+}
+
 
 #' Get confusion matrix stats from vector of coefficients and true effect info
 #'
@@ -146,7 +176,7 @@ get_confusion <- function(beta, truth, total, block = "block1", model = "glmnet"
   checkmate::assert_list(truth, types = "integer")
   checkmate::assert_list(total, types = "integer")
   checkmate::assert_choice(block, choices = names(truth), null.ok = FALSE)
-  checkmate::assert_choice(model, choices = c("glmnet", "fwelnet", "rfsrc"), null.ok = FALSE)
+  checkmate::assert_choice(model, choices = c("glmnet", "fwelnet", "rfsrc", "coxboost"), null.ok = FALSE)
   checkmate::assert_choice(cause, choices = c(1L, 2L))
 
   # Get indices of nonzero/zero coefs, need to offset with index of block

@@ -25,11 +25,18 @@ addProblem(name = "sim_surv_binder", fun = sim_surv_binder, seed = config$sim_se
 # Algorithms -----------------------------------------------------------
 addAlgorithm(name = "fwel_mt", fun = fwel_mt_varselect_wrapper)
 addAlgorithm(name = "rfsrc", fun = rfsrc_varselect_wrapper)
+addAlgorithm(name = "coxboost", fun = coxboost_varselect_wrapper)
 
 
 # Experiments -----------------------------------------------------------
 prob_design <- list(
-  sim_surv_binder = expand.grid(n_train = 400, p = 5000, ce = 0.5, lambda = 0.1, lambda_c = 0.1)
+  sim_surv_binder = expand.grid(
+    n_train = 400,
+    p = 5000,
+    ce = 0.5,
+    lambda = 0.1,
+    lambda_c = 0.1
+  )
 )
 
 algo_design <- list(
@@ -45,6 +52,11 @@ algo_design <- list(
     mtry = c(2000, 3000),
     nodesize = 30,
     splitrule = "logrank"
+  ),
+  coxboost = expand.grid(
+    cmprsk = c("sh", "csh", "ccsh"),
+    stepno = c(100, 300),
+    penalty = c(1000, 2000, 3000)
   )
 )
 
@@ -57,19 +69,10 @@ unwrap(getJobPars(), c("algo.pars", "prob.pars"))
 if (interactive()) testJob(id = 200)
 
 # Submit -----------------------------------------------------------
-if (grepl("node\\d{2}|bipscluster", system("hostname", intern = TRUE))) {
-  ids <- findNotStarted()
-  ids[, chunk := chunk(job.id, chunk.size = 50)]
-  submitJobs(ids = ids, # walltime in seconds, 10 days max, memory in MB
-             resources = list(name = reg_name, chunks.as.arrayjobs = TRUE,
-                              ncpus = 1, memory = 6000, walltime = 10*24*3600,
-                              max.concurrent.jobs = 40))
-} else {
-  ids <- findNotStarted()
 
-  submitJobs(ids)
-}
-waitForJobs()
+ids <- findNotStarted()
+submitJobs(ids)
+
 
 
 # Monitor jobs ------------------------------------------------------------
