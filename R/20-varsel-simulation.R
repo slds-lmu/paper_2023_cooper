@@ -182,10 +182,10 @@ sim_surv_binder <- function(job, data, n_train = 50, n_test = 0, p = 1000, ce = 
 
 if (FALSE) {
   n <- 400
-  xdat <- sim_surv_binder(n = n, p = 5000)
+  xdat <- sim_surv_binder(n_train = n, p = 5000)
 
   xsum <- purrr::map_df(1:1000, ~{
-    status <- sim_surv_binder(n = n, p = 5000)$data$status
+    status <- sim_surv_binder(n_train = n, p = 5000)$data$status
 
     data.frame(rep = .x, table(status))
   })
@@ -199,12 +199,12 @@ if (FALSE) {
       freq_max = max(Freq),
       prop_min = min(Freq/n),
       prop_mean = mean(Freq/n),
-      prop_max = max(n), .groups = "keep"
+      prop_max = max(Freq/n), .groups = "keep"
     ) |>
     mutate(across(starts_with("prop"), round, 2)) |>
     transmute(
-      n = glue::glue("{freq_mean} ({freq_min} - {freq_max})}"),
-      prop = glue::glue("{prop_mean} ({prop_min} - {prop_max})}")
+      n = glue::glue("{freq_mean} ({freq_min} - {freq_max})"),
+      prop = glue::glue("{prop_mean} ({prop_min} - {prop_max})")
     )
 
   bench::press(
