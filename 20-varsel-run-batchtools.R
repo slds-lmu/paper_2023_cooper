@@ -53,7 +53,7 @@ algo_design <- list(
   rfsrc = expand.grid(
     importance = "random",
     cutoff_method = "vita",
-    mtry = c(2000, 3000),
+    mtry = c(500, 2000, 3000),
     nodesize = 30,
     splitrule = "logrank"
   ),
@@ -76,7 +76,7 @@ if (interactive()) testJob(id = 200)
 
 submitJobs(jobtbl[algorithm == "coxboost"])
 submitJobs(jobtbl[algorithm == "fwel_mt"])
-# submitJobs(jobtbl[algorithm == "rfsrc"])
+submitJobs(jobtbl[algorithm == "rfsrc"])
 
 # ids <- findNotStarted()
 # submitJobs(ids)
