@@ -61,19 +61,30 @@ block_corr_binder <- function(n = 400, p = 5000) {
 #' @param p Passed to block_corr_binder().
 #' @param ce Effect constant. Used as magnitude of effect. Binder et al 2009 use 0.5.
 #' @param lambda,lambda_c Baseline-hazard constants for Cox-exponential model for survival & censoring times.
+#' @param lambda1,lambda2 Baseline-hazard constant for cause 1 and 2 respectively. By default, both will be set to
+#'   the value of `lambda`, resulting in roughly equal event numbers for each cause. If set, these values supersede
+#'   `lambda`.
 #'
 #' Binder 2008 use ce in {0.05, 0.075, 0.1} for the censored survival setting.
 #' Target Binder 2009 paper uses ce = +/-0.5.
 #' @note Binder et. al. describe U = runif(n), but log(runif(n)) is used to ensure results as stated
 #' with mean baseline survival time of around 10, rather than negative survival times.
 #' This is also consistent with other descriptions of the Cox exponential model.
-sim_surv_binder <- function(job, data, n_train = 50, n_test = 0, p = 1000, ce = 0.5, lambda = 0.1, lambda_c = 0.1) {
+sim_surv_binder <- function(job, data,
+                            n_train = 50, n_test = 0,
+                            p = 1000,
+                            ce = 0.5,
+                            lambda = 0.1,
+                            lambda1 = lambda, lambda2 = lambda,
+                            lambda_c = 0.1) {
   checkmate::assert_integerish(n_train, lower = 10, len = 1)
   checkmate::assert_integerish(n_test, lower = 0, len = 1)
   checkmate::assert_true((n_train + n_test) %% 2 == 0)
   checkmate::assert_integerish(p, lower = 400, len = 1)
   checkmate::assert_numeric(ce, lower = 0.01, len = 1)
   checkmate::assert_numeric(lambda, lower = 0.01, len = 1)
+  checkmate::assert_numeric(lambda1, lower = 0.01, len = 1)
+  checkmate::assert_numeric(lambda2, lower = 0.01, len = 1)
   checkmate::assert_numeric(lambda_c, lower = 0.01, len = 1)
 
   n <- n_train + n_test
@@ -151,8 +162,8 @@ sim_surv_binder <- function(job, data, n_train = 50, n_test = 0, p = 1000, ce = 
   lp2 <- X %*% beta2
 
   # Survival and censoring times
-  Ti1 <- -log(runif(n)) / (lambda * exp(lp1))
-  Ti2 <- -log(runif(n)) / (lambda * exp(lp2))
+  Ti1 <- -log(runif(n)) / (lambda1 * exp(lp1))
+  Ti2 <- -log(runif(n)) / (lambda2 * exp(lp2))
   # Default lambda_c = 0.1 should yield roughly 36% censored events.
   Ci <- -log(runif(n)) / lambda_c
 
@@ -184,13 +195,13 @@ if (FALSE) {
   n <- 400
   xdat <- sim_surv_binder(n_train = n, p = 5000)
 
-  xsum <- purrr::map_df(1:1000, ~{
-    status <- sim_surv_binder(n_train = n, p = 5000)$data$status
+  library(dplyr)
 
+  xsum <- purrr::map_df(1:100, ~{
+    status <- sim_surv_binder(n_train = n, p = 5000, lambda1 = 0.1, lambda2 = 0.01)$data$status
     data.frame(rep = .x, table(status))
   })
 
-  library(dplyr)
   xsum |>
     group_by(status) |>
     summarize(
@@ -199,9 +210,10 @@ if (FALSE) {
       freq_max = max(Freq),
       prop_min = min(Freq/n),
       prop_mean = mean(Freq/n),
-      prop_max = max(Freq/n), .groups = "keep"
+      prop_max = max(Freq/n),
+      .groups = "keep"
     ) |>
-    mutate(across(starts_with("prop"), round, 2)) |>
+    mutate(across(starts_with("prop"), \(x) scales::label_percent(accuracy = .1)(x))) |>
     transmute(
       n = glue::glue("{freq_mean} ({freq_min} - {freq_max})"),
       prop = glue::glue("{prop_mean} ({prop_min} - {prop_max})")

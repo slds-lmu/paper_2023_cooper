@@ -34,7 +34,8 @@ prob_design <- list(
     n_train = 400,
     p = 5000,
     ce = 0.5,
-    lambda = 0.1,
+    lambda1 = 0.1,
+    lambda2 = c(0.1, 0.01),
     lambda_c = 0.1
   )
 )
