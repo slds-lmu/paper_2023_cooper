@@ -145,13 +145,24 @@ coxboost_varselect_wrapper <- function(data, job, instance,
   truth <- instance$covar_true_effect
   total <- instance$covar_blocks
 
-  res_c1 <- lapply(names(total), function(x) {
-    get_confusion(cb_coefs[["1"]], truth, total, x,  model = "coxboost", cause = 1L)
-  })
+  if (cmprsk == "sh") {
+    # No cause-specific coefficients with subdistribution approach, so duplicate results (kind of)
+    res_c1 <- lapply(names(total), function(x) {
+      get_confusion(cb_coefs, truth, total, x,  model = "coxboost", cause = 1L)
+    })
 
-  res_c2 <- lapply(names(total), function(x) {
-    get_confusion(cb_coefs[["2"]], truth, total, x,  model = "coxboost", cause = 2L)
-  })
+    res_c2 <- lapply(names(total), function(x) {
+      get_confusion(cb_coefs, truth, total, x,  model = "coxboost", cause = 2L)
+    })
+  } else {
+    res_c1 <- lapply(names(total), function(x) {
+      get_confusion(cb_coefs[["1"]], truth, total, x,  model = "coxboost", cause = 1L)
+    })
+
+    res_c2 <- lapply(names(total), function(x) {
+      get_confusion(cb_coefs[["2"]], truth, total, x,  model = "coxboost", cause = 2L)
+    })
+  }
 
   data.table::rbindlist(c(res_c1, res_c2))
 }
