@@ -13,6 +13,23 @@
     ]
   },
   "Packages": {
+    "CoxBoost": {
+      "Package": "CoxBoost",
+      "Version": "1.5",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteUsername": "binderh",
+      "RemoteRepo": "CoxBoost",
+      "RemoteRef": "master",
+      "RemoteSha": "1dc47d7051f660b28520670b34d031143f9eadfd",
+      "Hash": "246646093cea30e34891e988bd5c779e",
+      "Requirements": [
+        "Matrix",
+        "prodlim",
+        "survival"
+      ]
+    },
     "DiagrammeR": {
       "Package": "DiagrammeR",
       "Version": "1.0.9",
@@ -1555,6 +1572,14 @@
         "rlang",
         "vctrs"
       ]
+    },
+    "tictoc": {
+      "Package": "tictoc",
+      "Version": "1.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "e1a2cb41e4be769a941c90c11469db90",
+      "Requirements": []
     },
     "tidyr": {
       "Package": "tidyr",
