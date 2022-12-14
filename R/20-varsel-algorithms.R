@@ -127,7 +127,7 @@ rfsrc_varselect_wrapper <- function(data, job, instance,
 }
 
 coxboost_varselect_wrapper <- function(data, job, instance,
-                                       cmprisk = "csh", stepno = 100, penalty = 2000
+                                       cmprsk = "csh", stepno = 100, penalty = 2000
                                        ) {
   cbfit <- CoxBoost(
     time = instance$data$time,

@@ -1,5 +1,6 @@
 library(batchtools)
 library(randomForestSRC)
+library(CoxBoost)
 
 # Settings ----------------------------------------------------------------
 config <- list(
@@ -13,11 +14,13 @@ set.seed(config$global_seed)
 
 # Registry ----------------------------------------------------------------
 if (!file.exists(here::here("registries"))) dir.create(here::here("registries"))
-reg_name <- "fwel_sim_varsel_rf"
+reg_name <- "fwel_sim_varsel"
 reg_dir <- here::here("registries", reg_name)
-#unlink(reg_dir, recursive = TRUE)
-#makeExperimentRegistry(file.dir = reg_dir, packages = c("randomForestSRC"))
-loadRegistry(reg_dir, writeable = TRUE)
+
+unlink(reg_dir, recursive = TRUE)
+makeExperimentRegistry(file.dir = reg_dir, packages = c("randomForestSRC", "CoxBoost"))
+
+#loadRegistry(reg_dir, writeable = TRUE)
 
 # Problems -----------------------------------------------------------
 addProblem(name = "sim_surv_binder", fun = sim_surv_binder, seed = config$sim_seed, cache = config$sim_cache)
@@ -64,15 +67,19 @@ algo_design <- list(
 
 addExperiments(prob_design, algo_design, repls = config$repls)
 summarizeExperiments()
-unwrap(getJobPars(), c("algo.pars", "prob.pars"))
+jobtbl <- unwrap(getJobPars(), c("algo.pars", "prob.pars"))
 
 # Test jobs -----------------------------------------------------------
 if (interactive()) testJob(id = 200)
 
 # Submit -----------------------------------------------------------
 
-ids <- findNotStarted()
-submitJobs(ids)
+submitJobs(jobtbl[algorithm == "coxboost"])
+submitJobs(jobtbl[algorithm == "fwel_mt"])
+# submitJobs(jobtbl[algorithm == "rfsrc"])
+
+# ids <- findNotStarted()
+# submitJobs(ids)
 
 
 
