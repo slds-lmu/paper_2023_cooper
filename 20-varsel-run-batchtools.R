@@ -7,20 +7,25 @@ config <- list(
   global_seed = 563,
   sim_seed = 569,
   sim_cache = FALSE,
-  repls = 20
+  repls = 100
 )
 
 set.seed(config$global_seed)
+# Set to FALSE to remove + recreate registry
+continue_bt <- TRUE
 
 # Registry ----------------------------------------------------------------
 if (!file.exists(here::here("registries"))) dir.create(here::here("registries"))
 reg_name <- "fwel_sim_varsel"
 reg_dir <- here::here("registries", reg_name)
 
-unlink(reg_dir, recursive = TRUE)
-makeExperimentRegistry(file.dir = reg_dir, packages = c("randomForestSRC", "CoxBoost"))
+if (continue_bt) {
+  loadRegistry(reg_dir, writeable = TRUE)
+} else {
+  unlink(reg_dir, recursive = TRUE)
+  makeExperimentRegistry(file.dir = reg_dir, packages = c("randomForestSRC", "CoxBoost"))
 
-#loadRegistry(reg_dir, writeable = TRUE)
+}
 
 # Problems -----------------------------------------------------------
 addProblem(name = "sim_surv_binder", fun = sim_surv_binder, seed = config$sim_seed, cache = config$sim_cache)
