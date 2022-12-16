@@ -23,7 +23,7 @@ library(dplyr)
 library(kableExtra)
 library(data.table)
 
-reg_name <- "fwel_sim_varsel_rf"
+reg_name <- "fwel_sim_varsel"
 reg_dir <- here::here("registries", reg_name)
 loadRegistry(reg_dir)
 
@@ -55,7 +55,7 @@ getJobTable() |>
   unwrap() |>
   #select(time.running, problem) |>
   mutate(time.running = as.double(time.running, units = "mins")) |>
-  group_by(algorithm, problem, thresh) |>
+  group_by(algorithm, problem) |>
   summarize(
     min = min(time.running),
     mean = mean(time.running),
@@ -137,7 +137,8 @@ res_long |>
     block = stringr::str_replace_all(block, "31", "3.1"),
     block = stringr::str_replace_all(block, "32", "3.2"),
     cause = paste0("Cause ", cause),
-    model = ifelse(model == "rfsrc", glue::glue("{model} (mtry={mtry})"), model)
+    model = ifelse(model == "rfsrc", glue::glue("{model} (mtry={mtry})"), model),
+    model = ifelse(model == "coxboost", glue::glue("{model} ({cmprsk})"), model)
   ) |>
   tidyr::pivot_longer(cols = tpr:acc, names_to = "measure", values_to = "value", names_transform = toupper) |>
   ggplot(aes(x = block, y = value, color = model, fill = model)) +
@@ -252,6 +253,58 @@ res_long |>
   )
 ```
 
+Subset to only PPV with more model differentiation
+
+```{r blockwise-ppv-boxplot}
+res_long |>
+  filter(lambda2 == lambda1) |>
+  mutate(
+    block = stringr::str_replace_all(block, "31", "3.1"),
+    block = stringr::str_replace_all(block, "32", "3.2"),
+    cause = paste0("Cause ", cause),
+    model = ifelse(model == "rfsrc", glue::glue("{model} (mtry={mtry})"), model),
+    model = ifelse(model == "coxboost", glue::glue("{model} ({cmprsk})"), model)
+  ) |>
+  tidyr::pivot_longer(cols = tpr:acc, names_to = "measure", values_to = "value", names_transform = toupper) |>
+  filter(measure %in% c("PPV")) |>
+  filter(!is.na(value)) |>
+  ggplot(aes(x = reorder(model, value), y = value, color = model, fill = model)) +
+  facet_grid(rows = vars(cause), cols = vars(block), scales = "free") +
+  coord_flip() +
+  geom_boxplot(alpha = 0.5) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill")) +
+  labs(
+    title = "Classification metrics by model and covariate block",
+    subtitle = "Simulation setting with approx. equal proportions of cause 1 and 2",
+    x = "Model", y = "PPV [%]", color = NULL, fill = NULL
+  )
+
+res_long |>
+  filter(lambda2 < lambda1) |>
+  mutate(
+    block = stringr::str_replace_all(block, "31", "3.1"),
+    block = stringr::str_replace_all(block, "32", "3.2"),
+    cause = paste0("Cause ", cause),
+    model = ifelse(model == "rfsrc", glue::glue("{model} (mtry={mtry})"), model),
+    model = ifelse(model == "coxboost", glue::glue("{model} ({cmprsk})"), model)
+  ) |>
+  tidyr::pivot_longer(cols = tpr:acc, names_to = "measure", values_to = "value", names_transform = toupper) |>
+  filter(measure %in% c("PPV")) |>
+  filter(!is.na(value)) |>
+  ggplot(aes(x = reorder(model, value), y = value, color = model, fill = model)) +
+  facet_grid(rows = vars(cause), cols = vars(block), scales = "free") +
+  coord_flip() +
+  geom_boxplot(alpha = 0.5) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill")) +
+  labs(
+    title = "Classification metrics by model and covariate block",
+    subtitle = "Simulation setting with cause 2 having smaller event counts",
+    x = "Model", y = "PPV [%]", color = NULL, fill = NULL
+  )
+```
+
 
 ### Negative: Removal of noise variables
 
@@ -260,14 +313,17 @@ Especially relevant: Block4 without any true effects, and blocks 3.1 for cause 2
 
 ```{r blockwise-fpr-boxplot}
 res_long |>
+  filter(lambda1 == lambda2) |>
   mutate(
     block = stringr::str_replace_all(block, "31", "3.1"),
     block = stringr::str_replace_all(block, "32", "3.2"),
-    cause = paste0("Cause ", cause)
+    cause = paste0("Cause ", cause),
+    model = ifelse(model == "rfsrc", glue::glue("{model} (mtry={mtry})"), model),
+    model = ifelse(model == "coxboost", glue::glue("{model} ({cmprsk})"), model)
   ) |>
   ggplot(aes(x = model, y = fpr, color = model, fill = model)) +
   facet_grid(rows = vars(cause), cols = vars(block), scales = "free") +
-  #coord_flip() +
+  coord_flip() +
   geom_boxplot(alpha = 0.5) +
   scale_y_continuous(labels = scales::percent_format(), limits = c(0, .12)) +
   scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill")) +
@@ -278,15 +334,17 @@ res_long |>
   )
 
 res_long |>
-  filter(block != "block1", block != "block2") |>
+  filter(block != "block1", block != "block2", lambda1 == lambda2) |>
   mutate(
     block = stringr::str_replace_all(block, "31", "3.1"),
     block = stringr::str_replace_all(block, "32", "3.2"),
-    cause = paste0("Cause ", cause)
+    cause = paste0("Cause ", cause),
+    model = ifelse(model == "rfsrc", glue::glue("{model} (mtry={mtry})"), model),
+    model = ifelse(model == "coxboost", glue::glue("{model} ({cmprsk})"), model)
   ) |>
-  ggplot(aes(x = model, y = fpr, color = model, fill = model)) +
+  ggplot(aes(x = reorder(model, -fpr), y = fpr, color = model, fill = model)) +
   facet_grid(rows = vars(cause), cols = vars(block), scales = "free") +
-  #coord_flip() +
+  coord_flip() +
   geom_boxplot(alpha = 0.5) +
   scale_y_continuous(labels = scales::percent_format()) +
   scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill")) +
@@ -315,7 +373,7 @@ res_long |>
   geom_point(position = position_jitter(width = 0.01, height = 0.01), alpha = .5, size = 3) +
   geom_hline(yintercept = 1:4 * 0.25, lty = "dashed", color = "darkgray") +
   geom_abline(slope = 1, intercept = 0, lty = "dashed", color = "black") +
-  scale_x_continuous(labels = scales::percent_format(), limits = c(0, 0.1)) +
+  scale_x_continuous(labels = scales::percent_format(), limits = c(0, 1)) +
   scale_y_continuous(labels = scales::percent_format(), breaks = 0:4 * 0.25) +
   scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill")) +
   labs(
