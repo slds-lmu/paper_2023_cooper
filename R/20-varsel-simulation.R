@@ -89,8 +89,8 @@ sim_surv_binder <- function(job, data,
 
   n <- n_train + n_test
 
-  X <- block_corr_binder(n = n_train + n_test, p = p)
-  beta1 <- rep(0, p)
+  X <- block_corr_binder(n = n, p = p)
+  beta1 <- numeric(p)
   beta2 <- beta1
 
   # Original Binder 2008 setup differs from target setup in Binder 2009
@@ -130,6 +130,9 @@ sim_surv_binder <- function(job, data,
   # Unused for true effects but tracked to see if false positives pop up here
   j_block4 <- which((0.2 * p < j_seq) & (j_seq <= 0.3 * p))
 
+  # Noise variables, uncorrelated, also no true effects
+  j_noise <- which(j_seq > 0.3 * p)
+
   # Save indices of effect variables grouped by their covar blocks for later
   # since effects/direction on causes depends on blocks, and they have different correlations
   covar_true_effect <- list(
@@ -137,7 +140,8 @@ sim_surv_binder <- function(job, data,
     block2 = j_block2[1:4],
     block31 = j_block3[1:4],
     block32 = j_block3[5:8],
-    block4 = integer(0) # no true effects, so empty set (of integers for later assertions)
+    block4 = integer(0), # no true effects, so empty set (of integers for later assertions)
+    noise = integer(0)
   )
 
   # Blocks have unequal length so don't use a data.frame to avoid recycling
@@ -146,7 +150,8 @@ sim_surv_binder <- function(job, data,
     block2 = j_block2,
     block31 = j_block3,
     block32 = j_block3,
-    block4 = j_block4
+    block4 = j_block4,
+    noise = j_noise
   )
 
   # Keep track of number of nonzero effects, total count is identical for both causes in setup above
@@ -155,7 +160,15 @@ sim_surv_binder <- function(job, data,
   checkmate::assert_count(nonzero1, positive = TRUE, null.ok = FALSE)
   checkmate::assert_count(nonzero2, positive = TRUE, null.ok = FALSE)
   # Triple sanity check we have 16 unique informative covariates
-  checkmate::assert_true(length(c(1:4, j_block2[1:4], j_block3[1:4], j_block3[5:8])) == 16)
+  # checkmate::assert_true(length(c(1:4, j_block2[1:4], j_block3[1:4], j_block3[5:8])) == 16)
+  checkmate::assert_true(
+    length(c(
+      covar_true_effect$block1,
+      covar_true_effect$block2,
+      covar_true_effect$block31,
+      covar_true_effect$block32)) == 16
+  )
+
 
   # Linear predictors
   lp1 <- X %*% beta1

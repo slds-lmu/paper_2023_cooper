@@ -232,6 +232,10 @@ get_confusion <- function(beta, truth, total, block = "block1", model = "glmnet"
   if ((cause == 1L & block == "block32") | (cause == 2L & block == "block31")) {
     checkmate::assert_true(tp == 0 & fn == 0)
   }
+  # For block 4 and remaining noise vars there should also be no true effects
+  if (block %in% c("block4", "noise")) {
+    checkmate::assert_true(tp == 0 & fn == 0)
+  }
 
   data.frame(
     model = model,
@@ -242,7 +246,6 @@ get_confusion <- function(beta, truth, total, block = "block1", model = "glmnet"
     total_neg = total_neg,
     total = length(total[[block]])
   )
-
 }
 
 
