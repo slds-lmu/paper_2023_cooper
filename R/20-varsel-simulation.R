@@ -205,13 +205,14 @@ sim_surv_binder <- function(job, data,
 # Debugging and sanity checking -----------------------------------------------------------------------------------
 
 if (FALSE) {
+  # Check event times match expectations
+  library(dplyr)
   n <- 400
+
   xdat <- sim_surv_binder(n_train = n, p = 5000)
 
-  library(dplyr)
-
   xsum <- purrr::map_df(1:100, ~{
-    status <- sim_surv_binder(n_train = n, p = 5000, lambda1 = 0.1, lambda2 = 0.01)$data$status
+    status <- sim_surv_binder(n_train = n, p = 5000, lambda1 = 0.1, lambda2 = 0.1)$data$status
     data.frame(rep = .x, table(status))
   })
 
@@ -232,13 +233,13 @@ if (FALSE) {
       prop = glue::glue("{prop_mean} ({prop_min} - {prop_max})")
     )
 
-  bench::press(
-    n = c(100, 1000),
-    p = 5000,
-    bench::mark(
-      sim_surv_binder(n = n, p = p)
-    )
-  )
+  # bench::press(
+  #   n = c(100, 1000),
+  #   p = 5000,
+  #   bench::mark(
+  #     sim_surv_binder(n = n, p = p)
+  #   )
+  # )
 
 }
 
@@ -268,7 +269,29 @@ if (FALSE) {
 }
 
 if (FALSE) {
-  survdat <- sim_surv_binder(n = 200, p = 200)
+  # Check correlation structure matches expectation
+  library(ggplot2)
+  library(dplyr)
+  instance <- sim_surv_binder(n_train = 4000, n_test = 200, p = 5000, ce = 0.5, lambda = 0.1, lambda_c = 0.1)
+
+  xdf <- lapply(names(instance$covar_blocks), function(ni) {
+    x <- instance$data[, instance$covar_blocks[[ni]]]
+    xc <- cor(x)
+    data.frame(val = xc[xc < 1], block = ni)
+  })
+
+  xdf <- do.call(rbind, xdf)
+
+
+  ggplot(xdf, aes(x = val, fill = block)) +
+    facet_wrap(vars(block), scales = "free") +
+    geom_histogram() +
+    scale_fill_brewer(palette = "Dark2") +
+    theme_minimal()
+
+  xdf |>
+    group_by(block) |>
+    summarize(mean = mean(val))
 }
 
 # Original/naive/"safe" implementation for reference

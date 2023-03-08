@@ -57,10 +57,12 @@ getJobTable() |>
   mutate(time.running = as.double(time.running, units = "mins")) |>
   group_by(algorithm, problem) |>
   summarize(
-    min = min(time.running),
-    mean = mean(time.running),
-    median = median(time.running),
-    max = max(time.running),
+    min = min(time.running, na.rm = TRUE),
+    mean = mean(time.running, na.rm = TRUE),
+    median = median(time.running, na.rm = TRUE),
+    max = max(time.running, na.rm = TRUE),
+    n = n(),
+    n_complete = sum(!is.na(time.running)),
     .groups = "drop"
   ) |>
   mutate(across(where(is.numeric), round, 1)) |>
@@ -75,6 +77,37 @@ res_long <- tidyr::unnest(res, "result") |>
 
 # Make threshold scientific notation for consistency, it's a character then though.
 res_long[, thresh := format(thresh, scientific = TRUE)]
+res_long[, block := gsub("3", "3.", block)]
+res_long[, block := factor(block, levels = sort(unique(block)))]
+
+# Params for methods
+params_fwelnet <- c("t", "thresh", "mt_max_iter", "alpha")
+params_rfsrc <- c("importance", "cutoff_method", "mtry", "nodesize", "splitrule")
+params_coxboost <- c("cmprsk", "stepno", "penalty")
+
+params_sim <- c("n_train", "p", "ce", "lambda1", "lambda2", "lambda_c")
+# tbl_sim_params <- res_long |>
+#   select(job.id, params_sim) |>
+#   tidyr::pivot_longer(cols = -job.id, names_to = "sim_param", values_to = "sim_param_value")
+# 
+# tbl_fwelnet_params <- res_long |>
+#   filter(algorithm == "fwel_mt") |>
+#   select(-params_sim, -params_rfsrc, -params_coxboost) |>
+#   tidyr::pivot_longer(cols = params_fwelnet, names_to = "algorithm_param", values_to = "algorithm_param_value", values_transform = as.character)
+# 
+# tbl_rfsrc_params <- res_long |>
+#   filter(algorithm == "rfsrc") |>
+#   select(-params_sim, -params_fwelnet, -params_coxboost) |>
+#   tidyr::pivot_longer(cols = params_rfsrc, names_to = "algorithm_param", values_to = "algorithm_param_value", values_transform = as.character)
+# 
+# 
+# 
+# 
+
+# res_long |>
+#   tidyr::unite(col = model_params, params_fwelnet, sep = ";", na.rm = TRUE) |>
+#   select(model_params)
+
 ```
 
 For blocks without true effects, some measures should be NA rather than 0 to not confuse them:  
@@ -96,6 +129,64 @@ res_long[, npv := tn/(tn + fn)]
 res_long[, fdr := 1 - ppv]
 res_long[, f1 := (2 * ppv * tpr) / (ppv + tpr)]
 res_long[, acc := (tp+tn)/total]
+```
+
+### WIP Attempt at subsetting/subplotting
+
+```{r prep-subset}
+plot_varselect_boxplot <- function(
+    res_long, ..., measure, blocks = c("block1", "block2", "block3.1", "block3.2", "block4", "noise"),
+    sim_setting = "equal",
+    append_hpc = FALSE
+  ) {
+  #browser()
+  
+  tmp <- res_long |> filter(...)
+  
+  if (sim_setting == "equal") {
+    tmp <- tmp |> filter(lambda1 == lambda2)
+    label_sub <- "Setting with roughly equal proportions of causes 1 & 2" 
+  } else if (sim_setting == "less_2") {
+    tmp <- tmp |> filter(lambda1 > lambda2)
+    label_sub <- "Setting with cause 2 appearing less frequently than cause 1"
+  }
+  
+  tmp |>
+    filter(.data$block %in% .env$blocks) |>
+    mutate(
+      # model = ifelse(model == "rfsrc", glue::glue("{model} (mtry={mtry})"), model),
+      # model = ifelse(model == "coxboost", glue::glue("{model} ({cmprsk})"), model)
+    ) |>
+    tidyr::pivot_longer(cols = tpr:acc, names_to = "measure", values_to = "value", names_transform = toupper) |>
+    filter(.data$measure == .env$measure) |>
+    # Pre=plot cosmetics
+    mutate(
+      cause = paste0("Cause ", cause),
+      block = stringr::str_replace_all(block, "block", "Block ")
+    ) |>
+    ggplot(aes(y = reorder(model, value), x = value, color = model, fill = model)) +
+    facet_grid(rows = vars(cause), cols = vars(block), scales = "free") +
+    #coord_flip() +
+    geom_boxplot(alpha = 0.5, show.legend = FALSE) +
+    scale_x_continuous(labels = scales::label_percent()) +
+    scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill")) +
+    labs(
+      title = glue::glue("Variable Selection Performance: {measure}"),
+      subtitle = label_sub,
+      y = NULL, x = glue::glue("{measure} [%]")
+    )
+}
+
+plot_varselect_boxplot(
+  res_long, measure = "PPV", 
+  #model %in% c("fwelnet", "glmnet"),
+  blocks = c("block1", "block2", "block3.1", "block3.2")
+)
+
+plot_varselect_boxplot(
+  res_long, measure = "FPR", 
+  blocks = c("block1", "block2", "block3.1", "block3.2", "noise")
+)
 ```
 
 
@@ -134,8 +225,6 @@ Simulated data dimensions: n = 400, p = 5000
 ```{r confmat-measures-boxplot, fig.height=12}
 res_long |>
   mutate(
-    block = stringr::str_replace_all(block, "31", "3.1"),
-    block = stringr::str_replace_all(block, "32", "3.2"),
     cause = paste0("Cause ", cause),
     model = ifelse(model == "rfsrc", glue::glue("{model} (mtry={mtry})"), model),
     model = ifelse(model == "coxboost", glue::glue("{model} ({cmprsk})"), model)
@@ -169,7 +258,9 @@ res_long |>
       glue::glue("{m} <br\\> [{qu[[1]]}, {qu[[2]]}]"),
       "-"
     )
-  }), .groups = "drop") |>
+  }), 
+  .groups = "drop"
+  ) |>
   kable(
     escape = FALSE,
     caption = "Median [p25, p75], measures multiplied by 100"
@@ -305,10 +396,63 @@ res_long |>
   )
 ```
 
+#### CoxBoost only
+
+```{r blockwise-ppv-coxboost}
+res_long |>
+  filter(lambda2 == lambda1, model == "coxboost") |>
+  mutate(
+    block = stringr::str_replace_all(block, "31", "3.1"),
+    block = stringr::str_replace_all(block, "32", "3.2"),
+    cause = paste0("Cause ", cause),
+    model = ifelse(model == "coxboost", glue::glue("{model} ({cmprsk}, penalty={penalty}, stepno={stepno})"), model)
+  ) |>
+  tidyr::pivot_longer(cols = tpr:acc, names_to = "measure", values_to = "value", names_transform = toupper) |>
+  filter(measure %in% c("PPV")) |>
+  filter(!is.na(value)) |>
+  ggplot(aes(x = reorder(model, value), y = value)) +
+  facet_grid(rows = vars(cause), cols = vars(block), scales = "free") +
+  coord_flip() +
+  geom_boxplot(alpha = 0.5) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  #scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill")) +
+  labs(
+    title = "CoxBoost: Classification metrics by model and covariate block",
+    subtitle = "Simulation setting with approx. equal proportions of cause 1 and 2",
+    x = "Model", y = "PPV [%]", color = NULL, fill = NULL
+  )
+```
+
+#### RFSRC only
+
+```{r blockwise-ppv-rfsrc}
+res_long |>
+  filter(lambda2 == lambda1, model == "rfsrc") |>
+  mutate(
+    block = stringr::str_replace_all(block, "31", "3.1"),
+    block = stringr::str_replace_all(block, "32", "3.2"),
+    cause = paste0("Cause ", cause),
+    model = ifelse(model == "rfsrc", glue::glue("{model} (mtry={mtry}, {nodesize})"), model)
+  ) |>
+  tidyr::pivot_longer(cols = tpr:acc, names_to = "measure", values_to = "value", names_transform = toupper) |>
+  filter(measure %in% c("PPV")) |>
+  filter(!is.na(value)) |>
+  ggplot(aes(x = reorder(model, value), y = value)) +
+  facet_grid(rows = vars(cause), cols = vars(block), scales = "free") +
+  coord_flip() +
+  geom_boxplot(alpha = 0.5) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  #scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill")) +
+  labs(
+    title = "RFSRC: Classification metrics by model and covariate block",
+    subtitle = "Simulation setting with approx. equal proportions of cause 1 and 2",
+    x = "Model", y = "PPV [%]", color = NULL, fill = NULL
+  )
+```
 
 ### Negative: Removal of noise variables
 
-Focusing on FDR.  
+Focusing on FPR.  
 Especially relevant: Block4 without any true effects, and blocks 3.1 for cause 2 / block 3.2 for cause 1.
 
 ```{r blockwise-fpr-boxplot}
@@ -360,7 +504,7 @@ res_long |>
 
 Hard to make out anything useful except that fwelnet seems to work fine and block3.2/cause 2 is harder than 3.1/cause 1 :/
 
-```{r roc}
+```{r roc, eval = FALSE}
 res_long |>
   mutate(
     block = stringr::str_replace_all(block, "31", "3.1"),
@@ -378,9 +522,90 @@ res_long |>
   scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill")) +
   labs(
     title = "Classification metrics by model and covariate block",
-    subtitle = " Jitter +/- 0.01 applied on both axes for visibility",
+    subtitle = "Jitter +/- 0.01 applied on both axes for visibility",
     x = "False Positive Rate", y = "True Positive Rate", color = NULL, fill = NULL
   )
 ```
 
 
+## Selected Plots for Paper
+
+
+```{r, include=FALSE, eval=FALSE}
+# Finding generally best coxboost first
+cb_jobs <- res_long |>
+  filter(lambda2 == lambda1, model == "coxboost") |>
+  select(cause, block, cmprsk, stepno, penalty, tpr:acc)
+
+cb_jobs |>
+  rowwise() |>
+  mutate(hpc = paste0(c(as.character(cmprsk), penalty, stepno), collapse = "-")) |>
+  group_by(hpc) |>
+  summarize(median_ppv = median(ppv, na.rm = TRUE)) |>
+  arrange(desc(median_ppv))
+
+cb_jobs |>
+  rowwise() |>
+  mutate(hpc = paste0(c(as.character(cmprsk), penalty, stepno), collapse = "-")) |>
+  group_by(hpc) |>
+  summarize(median_fpr = median(fpr, na.rm = TRUE)) |>
+  arrange(median_fpr)
+```
+
+
+```{r selected-ppv-equallambda}
+p_ppv <- res_long |>
+  filter(lambda2 == lambda1) |>
+  filter(model != "coxboost" | (penalty == 3000 & stepno == 100 & cmprsk == "csh")) |>
+  filter(model != "rfsrc" | (mtry == 500)) |>
+  mutate(
+    block = stringr::str_replace_all(block, "31", "3.1"),
+    block = stringr::str_replace_all(block, "32", "3.2"),
+    cause = paste0("Cause ", cause)
+  ) |>
+  tidyr::pivot_longer(cols = tpr:acc, names_to = "measure", values_to = "value", names_transform = toupper) |>
+  filter(measure %in% c("PPV")) |>
+  filter(!is.na(value)) |>
+  ggplot(aes(x = reorder(model, value), y = value, color = model, fill = model)) +
+  facet_grid(rows = vars(cause), cols = vars(block), scales = "free") +
+  coord_flip() +
+  geom_boxplot(alpha = 0.5) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill"), guide = "none") +
+  labs(
+    title = "Detection of true effects: PPV",
+    subtitle = "Simulation setting with approx. equal proportions of cause 1 and 2",
+    x = NULL, y = "PPV [%]", color = NULL, fill = NULL
+  )
+
+ggsave(plot = p_ppv, filename = "selected-ppv-equallambda.pdf", path = "selected-plots", width = 16, height = 7)
+```
+
+```{r selected-fpr-equallambda}
+p_fpr <- res_long |>
+  filter(lambda2 == lambda1) |>
+  filter(model != "coxboost" | (penalty == 3000 & stepno == 100 & cmprsk == "csh")) |>
+  filter(model != "rfsrc" | (mtry == 500)) |>
+  mutate(
+    block = stringr::str_replace_all(block, "31", "3.1"),
+    block = stringr::str_replace_all(block, "32", "3.2"),
+    cause = paste0("Cause ", cause)
+  ) |>
+  tidyr::pivot_longer(cols = tpr:acc, names_to = "measure", values_to = "value", names_transform = toupper) |>
+  filter(measure %in% c("FPR")) |>
+  filter(!is.na(value)) |>
+  ggplot(aes(x = reorder(model, value), y = value, color = model, fill = model)) +
+  facet_grid(rows = vars(cause), cols = vars(block), scales = "free") +
+  coord_flip() +
+  geom_boxplot(alpha = 0.5) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill"), guide = "none") +
+  labs(
+    title = "Susceptibility to noise: FPR",
+    subtitle = "Simulation setting with approx. equal proportions of cause 1 and 2",
+    x = NULL, y = "FPR [%]", color = NULL, fill = NULL
+  )
+
+ggsave(plot = p_fpr, filename = "selected-fpr-equallambda.pdf", path = "selected-plots", width = 16, height = 7)
+
+```

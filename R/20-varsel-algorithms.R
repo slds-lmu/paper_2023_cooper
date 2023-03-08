@@ -108,6 +108,7 @@ rfsrc_varselect_wrapper <- function(data, job, instance,
     # Apply vita/janitza shortcut
     # Take absolute value of minimal importance value as cut-off for 0-classification
     # Effectively equivalent with vita method in Degenhardt et al. (2019)
+    # Selecting
     vimps[, vita_c1 := ifelse(vi_c1 <= abs(min(vi_c1)), 0, vi_c1)]
     vimps[, vita_c2 := ifelse(vi_c2 <= abs(min(vi_c2)), 0, vi_c2)]
   }
