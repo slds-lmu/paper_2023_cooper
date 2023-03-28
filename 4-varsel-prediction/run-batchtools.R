@@ -60,12 +60,12 @@ algo_design <- list(
   rfsrc = expand.grid(
     importance = "random",
     cutoff_method = "vita",
-    mtry = c(500, 2000, 3000),
+    mtry = c(100, 500, 1000),
     nodesize = 30,
     splitrule = "logrank"
   ),
   coxboost = expand.grid(
-    cmprsk = c("sh", "csh"),
+    cmprsk = "csh",
     stepno = c(100, 300),
     penalty = c(1000, 3000)
   )
@@ -99,6 +99,6 @@ if (interactive()) {
 }
 
 # Get results -------------------------------------------------------------
-# res <-  ijoin(reduceResultsDataTable(), flatten(getJobPars()))
-# res
+res <-  ijoin(reduceResultsDataTable(), unwrap(getJobPars(), c("prob.pars", "algo.pars")))
+
 
