@@ -4,6 +4,8 @@ source(here::here("4-varsel-prediction/algorithms.R"))
 library(batchtools)
 library(randomForestSRC)
 library(CoxBoost)
+library(riskRegression)
+library(rlang)
 
 # Settings ----------------------------------------------------------------
 config <- list(
@@ -26,7 +28,7 @@ if (continue_bt) {
   loadRegistry(reg_dir, writeable = TRUE)
 } else {
   unlink(reg_dir, recursive = TRUE)
-  makeExperimentRegistry(file.dir = reg_dir, packages = c("randomForestSRC", "CoxBoost", "rlang", "data.table"), seed = config$global.seed)
+  makeExperimentRegistry(file.dir = reg_dir, packages = c("randomForestSRC", "CoxBoost", "rlang", "data.table", "riskRegression"), seed = config$global.seed)
 }
 
 # Problems -----------------------------------------------------------
