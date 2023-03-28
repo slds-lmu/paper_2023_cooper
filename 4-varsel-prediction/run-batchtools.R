@@ -28,7 +28,10 @@ if (continue_bt) {
   loadRegistry(reg_dir, writeable = TRUE)
 } else {
   unlink(reg_dir, recursive = TRUE)
-  makeExperimentRegistry(file.dir = reg_dir, packages = c("randomForestSRC", "CoxBoost", "rlang", "data.table", "riskRegression"), seed = config$global.seed)
+  makeExperimentRegistry(file.dir = reg_dir, packages = c("randomForestSRC", "CoxBoost", "rlang", "data.table", "riskRegression"),
+                         seed = config$global.seed,
+                         source = here::here("4-varsel-prediction/algorithms.R")
+  )
 }
 
 # Problems -----------------------------------------------------------
@@ -74,7 +77,7 @@ summarizeExperiments()
 jobtbl <- unwrap(getJobPars(), c("algo.pars", "prob.pars"))
 
 # Test jobs -----------------------------------------------------------
-if (interactive()) testJob(id = 200)
+# if (interactive()) testJob(id = 200)
 
 # Submit -----------------------------------------------------------
 
@@ -82,8 +85,8 @@ submitJobs(jobtbl[algorithm == "coxboost"])
 submitJobs(jobtbl[algorithm == "fwel_mt"])
 submitJobs(jobtbl[algorithm == "rfsrc"])
 
-submitJobs(c(1, 456, 23, 156))
-
+submitJobs(c(4, 157, 223, 16))
+submitJobs(c(56, 1527, 23, 160))
 
 # Monitor jobs ------------------------------------------------------------
 if (interactive()) {
