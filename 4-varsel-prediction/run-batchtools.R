@@ -1,3 +1,6 @@
+source(here::here("4-varsel-prediction/get-bladder-data.R"))
+source(here::here("4-varsel-prediction/algorithms.R"))
+
 library(batchtools)
 library(randomForestSRC)
 library(CoxBoost)
@@ -7,7 +10,7 @@ config <- list(
   global_seed = 563,
   sim_seed = 569,
   sim_cache = FALSE,
-  repls = 100
+  repls = 200
 )
 
 set.seed(config$global_seed)
