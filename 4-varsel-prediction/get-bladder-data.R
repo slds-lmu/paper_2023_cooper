@@ -1,5 +1,10 @@
 get_bladder_data <- function(split = 2/3, standardize = TRUE) {
-  bladder_surv_geno <- readRDS(here::here("data/bladder_surv_geno.rds"))
+  bladder_file <- here::here("data/bladder_surv_geno.rds")
+  if (!file.exists(bladder_file)) {
+    message("Recreating bladder dataset/bladder-data-prep.R")
+    source(here::here("4-varsel-prediction"))
+  }
+  bladder_surv_geno <- readRDS(bladder_file)
 
   #prop.table(table(bladder_surv_geno$status))
   bladder_surv_geno <- data.table::as.data.table(bladder_surv_geno)

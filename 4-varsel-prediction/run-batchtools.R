@@ -12,7 +12,7 @@ config <- list(
 
 set.seed(config$global_seed)
 # Set to FALSE to remove + recreate registry
-continue_bt <- TRUE
+continue_bt <- FALSE
 
 # Registry ----------------------------------------------------------------
 if (!file.exists(here::here("registries"))) dir.create(here::here("registries"))
@@ -45,9 +45,9 @@ prob_design <- list(
 algo_design <- list(
   fwel_mt = expand.grid(
     mt_max_iter = 3,
-    alpha = c(1),
-    t = c(100),
-    thresh = c(1e-7)
+    alpha = 1,
+    t = 100,
+    thresh = 1e-7
   ),
   rfsrc = expand.grid(
     importance = "random",
@@ -57,9 +57,9 @@ algo_design <- list(
     splitrule = "logrank"
   ),
   coxboost = expand.grid(
-    cmprsk = c("sh", "csh", "ccsh"),
+    cmprsk = c("sh", "csh"),
     stepno = c(100, 300),
-    penalty = c(1000, 2000, 3000)
+    penalty = c(1000, 3000)
   )
 )
 

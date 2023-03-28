@@ -50,8 +50,8 @@ fwel_mt_varselect_pred <- function(
   scores <- data.table::rbindlist(list(
     fit_csc(instance$train, instance$test, model = "fwelnet", coefs = fw_coefs$fwelnet$cause1, cause = 1),
     fit_csc(instance$train, instance$test, model = "fwelnet", coefs = fw_coefs$fwelnet$cause2, cause = 2),
-    fit_csc(instance$train, instance$test, model = "fwelnet", coefs = fw_coefs$glmnet$cause1, cause = 1),
-    fit_csc(instance$train, instance$test, model = "fwelnet", coefs = fw_coefs$glmnet$cause2, cause = 2)
+    fit_csc(instance$train, instance$test, model = "glmnet", coefs = fw_coefs$glmnet$cause1, cause = 1),
+    fit_csc(instance$train, instance$test, model = "glmnet", coefs = fw_coefs$glmnet$cause2, cause = 2)
   ))
 
   list(scores = scores, coefs = fw_coefs)
