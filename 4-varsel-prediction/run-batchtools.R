@@ -33,9 +33,9 @@ if (continue_bt) {
 addProblem(name = "bladder_geno", fun = get_bladder_data, seed = config$sim_seed, cache = config$sim_cache)
 
 # Algorithms -----------------------------------------------------------
-addAlgorithm(name = "fwel_mt", fun = fwel_mt_varselect_wrapper)
-addAlgorithm(name = "rfsrc", fun = rfsrc_varselect_wrapper)
-addAlgorithm(name = "coxboost", fun = coxboost_varselect_wrapper)
+addAlgorithm(name = "fwel_mt", fun = fwel_mt_varselect_pred)
+addAlgorithm(name = "rfsrc", fun = rfsrc_varselect_pred)
+addAlgorithm(name = "coxboost", fun = coxboost_varselect_pred)
 
 
 # Experiments -----------------------------------------------------------
@@ -80,9 +80,7 @@ submitJobs(jobtbl[algorithm == "coxboost"])
 submitJobs(jobtbl[algorithm == "fwel_mt"])
 submitJobs(jobtbl[algorithm == "rfsrc"])
 
-# ids <- findNotStarted()
-# submitJobs(ids)
-
+submitJobs(c(1, 456, 23, 156))
 
 
 # Monitor jobs ------------------------------------------------------------

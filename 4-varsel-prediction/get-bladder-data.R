@@ -1,9 +1,9 @@
 get_bladder_data <- function(job = NULL, data = NULL, split = 2/3, standardize = TRUE) {
-
+# browser()
   bladder_file <- here::here("data/bladder_surv_geno.rds")
   if (!file.exists(bladder_file)) {
     message("Recreating bladder dataset/bladder-data-prep.R")
-    source(here::here("4-varsel-prediction"))
+    source(here::here("4-varsel-prediction/bladder-data-prep.R"))
   }
   bladder_surv_geno <- readRDS(bladder_file)
 
