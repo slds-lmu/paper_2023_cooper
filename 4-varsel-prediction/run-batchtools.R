@@ -12,12 +12,12 @@ config <- list(
   global_seed = 563,
   sim_seed = 569,
   sim_cache = FALSE,
-  repls = 200
+  repls = 500
 )
 
 set.seed(config$global_seed)
 # Set to FALSE to remove + recreate registry
-continue_bt <- FALSE
+continue_bt <- TRUE
 
 # Registry ----------------------------------------------------------------
 if (!file.exists(here::here("registries"))) dir.create(here::here("registries"))
@@ -27,7 +27,7 @@ reg_dir <- here::here("registries", reg_name)
 if (continue_bt) {
   loadRegistry(reg_dir, writeable = TRUE)
 } else {
-  unlink(reg_dir, recursive = TRUE)
+  #unlink(reg_dir, recursive = TRUE)
   makeExperimentRegistry(file.dir = reg_dir, packages = c("randomForestSRC", "CoxBoost", "rlang", "data.table", "riskRegression"),
                          seed = config$global.seed,
                          source = here::here("4-varsel-prediction/algorithms.R")
@@ -81,12 +81,17 @@ jobtbl <- unwrap(getJobPars(), c("algo.pars", "prob.pars"))
 
 # Submit -----------------------------------------------------------
 
-submitJobs(jobtbl[algorithm == "coxboost"])
-submitJobs(jobtbl[algorithm == "fwel_mt"])
-submitJobs(jobtbl[algorithm == "rfsrc"])
+jobtbl[,.SD[sample(.N, 20)], by = algorithm] |>
+  submitJobs()
 
-submitJobs(c(4, 157, 223, 16))
-submitJobs(c(56, 1527, 23, 160))
+submitJobs(findNotSubmitted())
+
+
+# submitJobs(jobtbl[algorithm == "coxboost"])
+# submitJobs(jobtbl[algorithm == "fwel_mt"])
+# submitJobs(jobtbl[algorithm == "rfsrc"])
+
+
 
 # Monitor jobs ------------------------------------------------------------
 if (interactive()) {
@@ -99,6 +104,6 @@ if (interactive()) {
 }
 
 # Get results -------------------------------------------------------------
-res <-  ijoin(reduceResultsDataTable(), unwrap(getJobPars(), c("prob.pars", "algo.pars")))
+# res <-  ijoin(reduceResultsDataTable(), unwrap(getJobPars(), c("prob.pars", "algo.pars")))
 
 
