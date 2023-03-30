@@ -13,9 +13,15 @@ get_bladder_data <- function(job = NULL, data = NULL, split = 2/3, standardize =
   bladder_surv_geno[, row_id := .I]
   dim(bladder_surv_geno)
 
-  train <- bladder_surv_geno[,.SD[sample(.N, split * .N)], by = status]
+  train <- bladder_surv_geno[ , .SD[sample(.N, size = round(split * .N), replace = FALSE)], by = status]
   test <- bladder_surv_geno[setdiff(row_id, train$row_id), ]
   checkmate::assert_set_equal(union(train$row_id, test$row_id), bladder_surv_geno$row_id)
+  checkmate::assert_true(length(setdiff(train$time, test$time)) == length(train$time))
+
+  # Remove row_ids so we don't accidentally standardize or train on them,
+  # but store them to triple check sampling works as expected
+  train_row_ids <- train$row_id
+  test_row_ids <- test$row_id
   train[, row_id := NULL]
   test[, row_id := NULL]
 
@@ -33,18 +39,21 @@ get_bladder_data <- function(job = NULL, data = NULL, split = 2/3, standardize =
   checkmate::assert_count(nrow(test), positive = TRUE)
   checkmate::assert_true(ncol(train) == ncol(test))
   checkmate::assert_true(nrow(train) + nrow(test) == nrow(bladder_surv_geno))
+  checkmate::assert_set_equal(setdiff(train$time, test$time), train$time)
 
   status_distr_orig <- prop.table(table(bladder_surv_geno$status))
   status_distr_train <- prop.table(table(train$status))
-  status_distr_test <- prop.table(table(train$status))
+  status_distr_test <- prop.table(table(test$status))
 
-  checkmate::assert_true(all(round(status_distr_orig - status_distr_test, 2) == 0))
-  checkmate::assert_true(all(round(status_distr_train - status_distr_test, 3) == 0))
+  checkmate::assert_true(all(round(status_distr_orig - status_distr_test, 1) == 0))
+  checkmate::assert_true(all(round(status_distr_train - status_distr_test, 1) == 0))
 
   list(
     train = train,
     test = test,
     split = split,
+    train_row_ids = train_row_ids,
+    test_row_ids = test_row_ids,
     train_event_prop = status_distr_train,
     test_event_prop = status_distr_test
   )

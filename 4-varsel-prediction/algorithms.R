@@ -189,7 +189,7 @@ fit_csc <- function(train, test, model, coefs, cause = 1) {
   csc_model <- CSC(formula = Hist(time, status) ~ ., data = train_cause, cause = cause)
 
   # Get quantiles of time points from full dataset to allow later aggregation per timepoint
-  eval_times <- quantile(c(instance$train$time, instance$test$time), probs = seq(0.1, 0.9, .1), names = FALSE)
+  eval_times <- quantile(c(train$time, test$time), probs = seq(0.1, 0.9, .1), names = FALSE)
 
   # Yikes
   # Estimated risk outside the range [0,1].
