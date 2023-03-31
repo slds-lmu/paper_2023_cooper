@@ -1,0 +1,70 @@
+---
+title: "Bladder Cancer: Variable Selection / Prediction"
+author: "Lukas"
+date: "`r Sys.time()`"
+output: 
+  html_document: 
+    fig_width: 11
+    fig_height: 9
+    self_contained: no
+    code_folding: hide
+    toc: true
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(batchtools)
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+library(kableExtra)
+library(data.table)
+
+reg_name <- "fwel_sim_varsel_predict"
+reg_dir <- here::here("registries", reg_name)
+loadRegistry(reg_dir)
+
+theme_set(
+  theme_minimal(base_size = 16) +
+  theme(
+    legend.position = "bottom", 
+    panel.spacing = unit(10, "mm"), 
+    plot.title.position = "plot"
+  )
+)
+```
+
+```{r get-results, cache = TRUE}
+res <-  ijoin(reduceResultsDataTable(), unwrap(getJobPars(), c("prob.pars", "algo.pars")))
+
+jobs_total <- nrow(getJobTable())
+jobs_completed <- 100 * nrow(res)/jobs_total
+jobs_errored <- 100 * nrow(findErrors())/jobs_total
+
+res |>
+  count(algorithm, problem) |>
+  kable(caption = glue::glue("Finished jobs ({jobs_total} total, {jobs_completed}% completed, {jobs_errored}% errored)")) |>
+  kable_styling()
+```
+
+```{r}
+scores_long <- tidyr::hoist(res, "result", "scores") |>
+  tidyr::unnest("scores")
+
+scores_long |>
+  filter(metric == "AUC") |>
+  filter(!is.na(score)) |>
+  filter(score <= 1, score >= 0) |>
+  filter(job.id < 100) |> 
+  filter(cause == 1) |>
+  #View()
+  ggplot(aes(x = times, y = score, color = model)) +
+  facet_grid(rows = vars(cause), cols = vars(metric)) +
+  geom_point(alpha = .2) +
+  #geom_line(alpha = .5) +
+  geom_smooth(se = FALSE)
+```
+

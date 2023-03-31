@@ -17,7 +17,7 @@ config <- list(
 
 set.seed(config$global_seed)
 # Set to FALSE to remove + recreate registry
-continue_bt <- TRUE
+continue_bt <- FALSE
 
 # Registry ----------------------------------------------------------------
 if (!file.exists(here::here("registries"))) dir.create(here::here("registries"))
@@ -27,7 +27,7 @@ reg_dir <- here::here("registries", reg_name)
 if (continue_bt) {
   loadRegistry(reg_dir, writeable = TRUE)
 } else {
-  #unlink(reg_dir, recursive = TRUE)
+  unlink(reg_dir, recursive = TRUE)
   makeExperimentRegistry(file.dir = reg_dir, packages = c("randomForestSRC", "CoxBoost", "rlang", "data.table", "riskRegression"),
                          seed = config$global.seed,
                          source = here::here("4-varsel-prediction/algorithms.R")
