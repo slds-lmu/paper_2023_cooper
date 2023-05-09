@@ -579,6 +579,8 @@ p_ppv <- res_long |>
   )
 
 ggsave(plot = p_ppv, filename = "selected-ppv-equallambda.pdf", path = "selected-plots", width = 16, height = 7)
+ggsave(plot = p_ppv, filename = "selected-ppv-equallambda.png", path = "selected-plots", width = 16, height = 7)
+
 ```
 
 ```{r selected-fpr-equallambda}
@@ -607,5 +609,36 @@ p_fpr <- res_long |>
   )
 
 ggsave(plot = p_fpr, filename = "selected-fpr-equallambda.pdf", path = "selected-plots", width = 16, height = 7)
+ggsave(plot = p_fpr, filename = "selected-fpr-equallambda.png", path = "selected-plots", width = 16, height = 7)
+
+```
+
+```{r selected-npv-equallambda}
+p_npv <- res_long |>
+  filter(lambda2 == lambda1) |>
+  filter(model != "coxboost" | (penalty == 3000 & stepno == 100 & cmprsk == "csh")) |>
+  filter(model != "rfsrc" | (mtry == 500)) |>
+  mutate(
+    block = stringr::str_replace_all(block, "31", "3.1"),
+    block = stringr::str_replace_all(block, "32", "3.2"),
+    cause = paste0("Cause ", cause)
+  ) |>
+  tidyr::pivot_longer(cols = tpr:acc, names_to = "measure", values_to = "value", names_transform = toupper) |>
+  filter(measure %in% c("NPV")) |>
+  filter(!is.na(value)) |>
+  ggplot(aes(x = reorder(model, value), y = value, color = model, fill = model)) +
+  facet_grid(rows = vars(cause), cols = vars(block), scales = "free") +
+  coord_flip() +
+  geom_boxplot(alpha = 0.5) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill"), guide = "none") +
+  labs(
+    title = "Susceptibility to noise: NPV",
+    subtitle = "Simulation setting with approx. equal proportions of cause 1 and 2",
+    x = NULL, y = "NPV [%]", color = NULL, fill = NULL
+  )
+
+ggsave(plot = p_fpr, filename = "selected-npv-equallambda.pdf", path = "selected-plots", width = 16, height = 7)
+ggsave(plot = p_fpr, filename = "selected-npv-equallambda.png", path = "selected-plots", width = 16, height = 7)
 
 ```

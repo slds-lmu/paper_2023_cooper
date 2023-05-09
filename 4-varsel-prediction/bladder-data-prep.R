@@ -59,10 +59,39 @@ range(clin$time)
 
 stopifnot(all(rownames(geno1) == tumor$Sample.ID))
 dim(geno1)
+
 geno1 <- geno1[-rmsp,]
+
+stopifnot(all(rownames(geno1) == clin$Sample.ID))
 
 dim(geno1)
 surv_geno <- data.frame(time = clin$time, status = clin$cens, geno1)
 
 if (!file.exists(here::here("data"))) dir.create(here::here("data"))
 saveRDS(surv_geno, here::here("data/bladder_surv_geno.rds"))
+
+# Version with genetic + clinical data
+#
+surv_clin_geno <- data.frame(
+  time = clin$time, status = clin$cens,
+  sex = factor(clin$SEX), age = clin$AGE,
+  grade = factor(clin$grade), factor(clin$stage),
+  geno1
+)
+
+# Some sanity checking just in case
+if (FALSE) {
+  names(clin)
+
+  table(clin$AGE)
+  table(clin$SEX)
+  table(clin$grade)
+  table(clin$stage)
+  table(clin$cens)
+
+  clin |>
+    dplyr::select(AGE, SEX, grade, stage) |>
+    sapply(anyNA)
+
+}
+

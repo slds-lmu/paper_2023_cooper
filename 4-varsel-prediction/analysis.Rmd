@@ -38,7 +38,7 @@ theme_set(
 ```
 
 ```{r get-results, cache = TRUE}
-res <-  ijoin(reduceResultsDataTable(), unwrap(getJobPars(), c("prob.pars", "algo.pars")))
+res <- ijoin(reduceResultsDataTable(), unwrap(getJobPars(), c("prob.pars", "algo.pars")))
 
 jobs_total <- nrow(getJobTable())
 jobs_completed <- 100 * nrow(res)/jobs_total
@@ -48,23 +48,163 @@ res |>
   count(algorithm, problem) |>
   kable(caption = glue::glue("Finished jobs ({jobs_total} total, {jobs_completed}% completed, {jobs_errored}% errored)")) |>
   kable_styling()
+
+scores_long <- tidyr::hoist(res, "result", "scores") |>
+  tidyr::unnest("scores")
 ```
 
 ```{r}
-scores_long <- tidyr::hoist(res, "result", "scores") |>
-  tidyr::unnest("scores")
+scores_long |>
+  count(model, metric, nas = is.na(score)) |>
+  filter(model != "Null model", nas)
 
 scores_long |>
+  #filter(metric == "Brier") |>
+  count(model, metric, badscore = (score < 0 | score > 1)) |>
+  filter(model != "Null model", badscore)
+```
+
+```{r}
+scores_long |>
+  #filter(metric %in% c("AUC", "Brier")) |>
+  filter(metric == "IPA") |>
+  filter(!is.na(score)) |>
+  filter(score <= 1, score >= 0) |>
+  #filter(job.id < 100) |> 
+  filter(model != "rfsrc" | mtry == 3000) |>
+  filter(model != "coxboost" | (stepno == 100 & penalty == 3000)) |>
+  filter(cause == 1) |>
+  group_by(model, times, metric, cause) |>
+  summarize(
+    mean_score = mean(score),
+    upper = mean_score + sd(score),
+    lower = mean_score - sd(score)
+  ) |>
+  ggplot(aes(x = times, y = mean_score, color = model, fill = model)) +
+  facet_grid(rows = vars(cause), cols = vars(metric), labeller = labeller(cause = label_both, metric = label_value)) +
+  #geom_boxplot()
+  #geom_point(alpha = .2) +
+  #geom_ribbon(aes(ymin = lower, ymax = upper), alpha = .05, linetype = "dashed") +
+  geom_line(alpha = .5, size = 2)
+  #geom_smooth(se = FALSE)
+```
+
+RFSRC only: `mtry = 1000` works best.
+
+```{r rfsrc-only}
+scores_long |>
+  filter(metric %in% c("AUC", "Brier")) |>
+  filter(!is.na(score)) |>
+  filter(score <= 1, score >= 0) |>
+  filter(model == "rfsrc") |>
+  filter(cause == 1) |>
+  group_by(model, times, metric, cause, mtry) |>
+  summarize(
+    mean_score = mean(score),
+    upper = mean_score + sd(score),
+    lower = mean_score - sd(score)
+  ) |>
+  ggplot(aes(x = times, y = mean_score, color = factor(mtry), fill = factor(mtry))) +
+  facet_grid(rows = vars(cause), cols = vars(metric), labeller = labeller(cause = label_both, metric = label_value)) +
+  #geom_boxplot()
+  #geom_point(alpha = .2) +
+  #geom_ribbon(aes(ymin = lower, ymax = upper), alpha = .05, linetype = "dashed") +
+  geom_line(alpha = .5, size = 2)
+```
+
+CoxBoost only:
+`penalty = 3000`, `stepno = 100`
+
+```{r cbonly}
+scores_long |>
+  filter(metric %in% c("AUC", "Brier")) |>
+  filter(!is.na(score)) |>
+  filter(score <= 1, score >= 0) |>
+  filter(model == "coxboost") |>
+  filter(penalty == 3000, stepno == 100) |>
+  filter(cause == 2) |>
+  group_by(model, times, metric, cause, stepno, penalty) |>
+  summarize(
+    mean_score = mean(score),
+    upper = mean_score + sd(score),
+    lower = mean_score - sd(score)
+  ) |>
+  ggplot(aes(x = times, y = mean_score, color = factor(stepno), fill = factor(stepno))) +
+  facet_grid(rows = vars(cause), cols = vars(metric), labeller = labeller(cause = label_both, metric = label_value)) +
+  #geom_boxplot()
+  #geom_point(alpha = .2) +
+  #geom_ribbon(aes(ymin = lower, ymax = upper), alpha = .05, linetype = "dashed") +
+  geom_line(alpha = .5, size = 2)
+```
+
+
+
+
+## Selected
+
+```{r}
+p_brier <- scores_long |>
+  filter(metric == "Brier") |>
+  filter(!is.na(score)) |>
+  filter(score <= 1, score >= 0) |>
+  #filter(job.id < 100) |> 
+  filter(model != "rfsrc" | mtry == 3000) |>
+  filter(model != "coxboost" | (stepno == 100 & penalty == 3000)) |>
+  filter(cause == 1) |>
+  group_by(model, times, metric, cause) |>
+  summarize(
+    mean_score = mean(score),
+    upper = mean_score + sd(score),
+    lower = mean_score - sd(score),
+    .groups = "drop"
+  ) |>
+  ggplot(aes(x = times, y = mean_score, color = model, fill = model)) +
+  #facet_grid(rows = vars(cause), labeller = labeller(cause = label_both, metric = label_value)) +
+  #geom_boxplot()
+  #geom_point(alpha = .2) +
+  #geom_ribbon(aes(ymin = lower, ymax = upper), alpha = .05, linetype = "dashed") +
+  scale_y_continuous(labels = scales::percent) +
+  geom_line(alpha = .5, size = 2) +
+  labs(
+    title = "Cause 1 prediction performance",
+    x = "Event time (t)", y = "Brier Score", color = NULL, fill = NULL
+  )
+
+ggsave(plot = p_brier, filename = "bladder-brier.pdf", path = "selected-plots", width = 9, height = 7)
+ggsave(plot = p_brier, filename = "bladder-brier.png", path = "selected-plots", width = 9, height = 7)
+
+```
+
+```{r}
+p_auc <- scores_long |>
   filter(metric == "AUC") |>
   filter(!is.na(score)) |>
   filter(score <= 1, score >= 0) |>
-  filter(job.id < 100) |> 
+  #filter(job.id < 100) |> 
+  filter(model != "rfsrc" | mtry == 3000) |>
+  filter(model != "coxboost" | (stepno == 100 & penalty == 3000)) |>
   filter(cause == 1) |>
-  #View()
-  ggplot(aes(x = times, y = score, color = model)) +
-  facet_grid(rows = vars(cause), cols = vars(metric)) +
-  geom_point(alpha = .2) +
-  #geom_line(alpha = .5) +
-  geom_smooth(se = FALSE)
+  group_by(model, times, metric, cause) |>
+  summarize(
+    mean_score = mean(score),
+    upper = mean_score + sd(score),
+    lower = mean_score - sd(score),
+    .groups = "drop"
+  ) |>
+  ggplot(aes(x = times, y = mean_score, color = model, fill = model)) +
+  #facet_grid(rows = vars(cause), labeller = labeller(cause = label_both, metric = label_value)) +
+  #geom_boxplot()
+  #geom_point(alpha = .2) +
+  #geom_ribbon(aes(ymin = lower, ymax = upper), alpha = .05, linetype = "dashed") +
+  scale_y_continuous(labels = scales::percent) +
+  geom_line(alpha = .5, size = 2) +
+  labs(
+    title = "Cause 1 prediction performance",
+    x = "Event time (t)", y = "AUC", color = NULL, fill = NULL
+  )
+
+ggsave(plot = p_auc, filename = "bladder-auc.pdf", path = "selected-plots", width = 9, height = 7)
+ggsave(plot = p_auc, filename = "bladder-auc.png", path = "selected-plots", width = 9, height = 7)
+
 ```
 
