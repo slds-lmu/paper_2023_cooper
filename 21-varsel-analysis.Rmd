@@ -530,6 +530,35 @@ res_long |>
 
 ## Selected Plots for Paper
 
+Some tweaks for presentability purposes
+
+```{r}
+res_long_selected <- res_long |>
+  filter(model != "coxboost" | (penalty == 3000 & stepno == 100 & cmprsk == "csh")) |>
+  filter(model != "rfsrc" | (mtry == 500)) |>
+  mutate(
+    block = stringr::str_replace_all(block, "31", "3.1"),
+    block = stringr::str_replace_all(block, "32", "3.2"),
+    cause = paste0("Cause ", cause),
+    block = case_when(
+      block == "block1" ~ "B1 (Mutual)",
+      block == "block2" ~ "B2 (Reversed)",
+      block == "block3.1" ~ "B3 (Disjoint 1)",
+      block == "block3.2" ~ "B3 (Disjoint 2)",
+      block == "block4" ~ "B4 (Cor. Noise)",
+      TRUE ~ "Noise"
+    ),
+    model = case_when(
+      model == "fwelnet" ~ "CooPeR",
+      model == "coxboost" ~ "CoxBoost",
+      model == "glmnet" ~ "Pen. Cox",
+      model == "rfsrc" ~ "RSF"
+    ),
+    model = factor(model, levels = rev(c("CooPeR", "Pen. Cox", "RSF", "CoxBoost")))
+  )
+```
+
+
 
 ```{r, include=FALSE, eval=FALSE}
 # Finding generally best coxboost first
@@ -554,19 +583,12 @@ cb_jobs |>
 
 
 ```{r selected-ppv-equallambda}
-p_ppv <- res_long |>
+p_ppv1 <- res_long_selected |>
   filter(lambda2 == lambda1) |>
-  filter(model != "coxboost" | (penalty == 3000 & stepno == 100 & cmprsk == "csh")) |>
-  filter(model != "rfsrc" | (mtry == 500)) |>
-  mutate(
-    block = stringr::str_replace_all(block, "31", "3.1"),
-    block = stringr::str_replace_all(block, "32", "3.2"),
-    cause = paste0("Cause ", cause)
-  ) |>
   tidyr::pivot_longer(cols = tpr:acc, names_to = "measure", values_to = "value", names_transform = toupper) |>
   filter(measure %in% c("PPV")) |>
   filter(!is.na(value)) |>
-  ggplot(aes(x = reorder(model, value), y = value, color = model, fill = model)) +
+  ggplot(aes(x = model, y = value, color = model, fill = model)) +
   facet_grid(rows = vars(cause), cols = vars(block), scales = "free") +
   coord_flip() +
   geom_boxplot(alpha = 0.5) +
@@ -578,25 +600,39 @@ p_ppv <- res_long |>
     x = NULL, y = "PPV [%]", color = NULL, fill = NULL
   )
 
-ggsave(plot = p_ppv, filename = "selected-ppv-equallambda.pdf", path = "selected-plots", width = 16, height = 7)
-ggsave(plot = p_ppv, filename = "selected-ppv-equallambda.png", path = "selected-plots", width = 16, height = 7)
+ggsave(plot = p_ppv1, filename = "selected-ppv-equallambda.pdf", path = "selected-plots", width = 16, height = 7)
+ggsave(plot = p_ppv1, filename = "selected-ppv-equallambda.png", path = "selected-plots", width = 16, height = 7)
+```
 
+```{r selected-ppv-difflambda}
+p_ppv2 <- res_long_selected |>
+  filter(lambda2 == 0.01 & lambda1 == 0.1) |>
+  tidyr::pivot_longer(cols = tpr:acc, names_to = "measure", values_to = "value", names_transform = toupper) |>
+  filter(measure %in% c("PPV")) |>
+  filter(!is.na(value)) |>
+  ggplot(aes(x = model, y = value, color = model, fill = model)) +
+  facet_grid(rows = vars(cause), cols = vars(block), scales = "free") +
+  coord_flip() +
+  geom_boxplot(alpha = 0.5) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill"), guide = "none") +
+  labs(
+    title = "Detection of true effects: PPV",
+    subtitle = "Simulation setting with cause 2 less prevalent",
+    x = NULL, y = "PPV [%]", color = NULL, fill = NULL
+  )
+
+ggsave(plot = p_ppv2, filename = "selected-ppv-difflambda.pdf", path = "selected-plots", width = 16, height = 7)
+ggsave(plot = p_ppv2, filename = "selected-ppv-difflambda.png", path = "selected-plots", width = 16, height = 7)
 ```
 
 ```{r selected-fpr-equallambda}
-p_fpr <- res_long |>
+p_fpr1 <- res_long_selected |>
   filter(lambda2 == lambda1) |>
-  filter(model != "coxboost" | (penalty == 3000 & stepno == 100 & cmprsk == "csh")) |>
-  filter(model != "rfsrc" | (mtry == 500)) |>
-  mutate(
-    block = stringr::str_replace_all(block, "31", "3.1"),
-    block = stringr::str_replace_all(block, "32", "3.2"),
-    cause = paste0("Cause ", cause)
-  ) |>
   tidyr::pivot_longer(cols = tpr:acc, names_to = "measure", values_to = "value", names_transform = toupper) |>
   filter(measure %in% c("FPR")) |>
   filter(!is.na(value)) |>
-  ggplot(aes(x = reorder(model, value), y = value, color = model, fill = model)) +
+  ggplot(aes(x = model, y = value, color = model, fill = model)) +
   facet_grid(rows = vars(cause), cols = vars(block), scales = "free") +
   coord_flip() +
   geom_boxplot(alpha = 0.5) +
@@ -608,25 +644,39 @@ p_fpr <- res_long |>
     x = NULL, y = "FPR [%]", color = NULL, fill = NULL
   )
 
-ggsave(plot = p_fpr, filename = "selected-fpr-equallambda.pdf", path = "selected-plots", width = 16, height = 7)
-ggsave(plot = p_fpr, filename = "selected-fpr-equallambda.png", path = "selected-plots", width = 16, height = 7)
+ggsave(plot = p_fpr1, filename = "selected-fpr-equallambda.pdf", path = "selected-plots", width = 16, height = 7)
+ggsave(plot = p_fpr1, filename = "selected-fpr-equallambda.png", path = "selected-plots", width = 16, height = 7)
+```
 
+```{r selected-fpr-difflambda}
+p_fpr2 <- res_long_selected |>
+  filter(lambda2 == 0.01 & lambda1 == 0.1) |>
+  tidyr::pivot_longer(cols = tpr:acc, names_to = "measure", values_to = "value", names_transform = toupper) |>
+  filter(measure %in% c("FPR")) |>
+  filter(!is.na(value)) |>
+  ggplot(aes(x = model, y = value, color = model, fill = model)) +
+  facet_grid(rows = vars(cause), cols = vars(block), scales = "free") +
+  coord_flip() +
+  geom_boxplot(alpha = 0.5) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill"), guide = "none") +
+  labs(
+    title = "Susceptibility to noise: FPR",
+    subtitle = "Simulation setting with cause 2 less prevalent",
+    x = NULL, y = "FPR [%]", color = NULL, fill = NULL
+  )
+
+ggsave(plot = p_fpr2, filename = "selected-fpr-difflambda.pdf", path = "selected-plots", width = 16, height = 7)
+ggsave(plot = p_fpr2, filename = "selected-fpr-difflambda.png", path = "selected-plots", width = 16, height = 7)
 ```
 
 ```{r selected-npv-equallambda}
-p_npv <- res_long |>
+p_npv1 <- res_long_selected |>
   filter(lambda2 == lambda1) |>
-  filter(model != "coxboost" | (penalty == 3000 & stepno == 100 & cmprsk == "csh")) |>
-  filter(model != "rfsrc" | (mtry == 500)) |>
-  mutate(
-    block = stringr::str_replace_all(block, "31", "3.1"),
-    block = stringr::str_replace_all(block, "32", "3.2"),
-    cause = paste0("Cause ", cause)
-  ) |>
   tidyr::pivot_longer(cols = tpr:acc, names_to = "measure", values_to = "value", names_transform = toupper) |>
   filter(measure %in% c("NPV")) |>
   filter(!is.na(value)) |>
-  ggplot(aes(x = reorder(model, value), y = value, color = model, fill = model)) +
+  ggplot(aes(x = model, y = value, color = model, fill = model)) +
   facet_grid(rows = vars(cause), cols = vars(block), scales = "free") +
   coord_flip() +
   geom_boxplot(alpha = 0.5) +
@@ -638,7 +688,28 @@ p_npv <- res_long |>
     x = NULL, y = "NPV [%]", color = NULL, fill = NULL
   )
 
-ggsave(plot = p_fpr, filename = "selected-npv-equallambda.pdf", path = "selected-plots", width = 16, height = 7)
-ggsave(plot = p_fpr, filename = "selected-npv-equallambda.png", path = "selected-plots", width = 16, height = 7)
+ggsave(plot = p_npv1, filename = "selected-npv-equallambda.pdf", path = "selected-plots", width = 16, height = 7)
+ggsave(plot = p_npv1, filename = "selected-npv-equallambda.png", path = "selected-plots", width = 16, height = 7)
+```
 
+```{r selected-npv-difflambda}
+p_npv2 <- res_long_selected |>
+  filter(lambda2 == 0.01 & lambda1 == 0.1) |>
+  tidyr::pivot_longer(cols = tpr:acc, names_to = "measure", values_to = "value", names_transform = toupper) |>
+  filter(measure %in% c("NPV")) |>
+  filter(!is.na(value)) |>
+  ggplot(aes(x = model, y = value, color = model, fill = model)) +
+  facet_grid(rows = vars(cause), cols = vars(block), scales = "free") +
+  coord_flip() +
+  geom_boxplot(alpha = 0.5) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill"), guide = "none") +
+  labs(
+    title = "Susceptibility to noise: NPV",
+    subtitle = "Simulation setting with cause 2 less prevalent",
+    x = NULL, y = "NPV [%]", color = NULL, fill = NULL
+  )
+
+ggsave(plot = p_npv2, filename = "selected-npv-difflambda.pdf", path = "selected-plots", width = 16, height = 7)
+ggsave(plot = p_npv2, filename = "selected-npv-difflambda.png", path = "selected-plots", width = 16, height = 7)
 ```
