@@ -1,3 +1,5 @@
+#renv::install("bioc::TCGAbiolinks")
+#renv::install("bioc::SummarizedExperiment")
 
 library(TCGAbiolinks)
 library(SummarizedExperiment)
@@ -32,7 +34,8 @@ gdt[, id := substr(colnames(mat), 1, 12)]
 # Get survival data
 # Paper here: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6066282/
 #bb <- as.data.table(read_excel("https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6066282/bin/NIHMS978596-supplement-1.xlsx", sheet = 3))
-bb <- as.data.table(read_excel("~/sandbox/NIHMS978596-supplement-1.xlsx", sheet = 3))
+
+bb <- as.data.table(read_excel(here::here("data-raw", "NIHMS978596-supplement-1.xlsx"), sheet = 3))
 cc <- bb[, .(bcr_patient_barcode, type, DSS.time.cr, DSS_cr)]
 #cc[, table(DSS_cr, type)]
 dd <- cc[type == "BLCA", ]
@@ -46,14 +49,48 @@ dt[, id := NULL]
 dt <- dt[!is.na(time) & !is.na(status), ]
 dt <- dt[time > 0, ]
 
+dim(dt)
+
+# De-select vars with zero sd, i.e. constant
+dt <- dt[, which(sapply(dt, sd) > 0), with = FALSE]
+
 # Train/test split
 split <- 2/3
 dt[, row_id := .I]
+# FIXME only works with fixed seed b/c otherwise we get an error due
+# to too many censored obs in glmnet CV - not sure how to fix
+set.seed(25)
 train <- dt[ , .SD[sample(.N, size = round(split * .N), replace = FALSE)], by = status]
 test <- dt[setdiff(row_id, train$row_id), ]
 train[, row_id := NULL]
 test[, row_id := NULL]
 
+# get column-wise means and sd of genetic data only (1, 2 are time, status)
+gen_means <- apply(train[, -c(1,2)], 2, mean)
+gen_sds <- apply(train[, -c(1,2)], 2, sd)
+# apply to only genetic data, cbind with time, status. There's probably a more elegant solution, sorry.
+train <- cbind(train[, 1:2], scale(train[, -c(1,2)], center = gen_means, scale = gen_sds))
+test <- cbind(test[, 1:2], scale(test[, -c(1,2)], center = gen_means, scale = gen_sds))
+
+#no missings
+stopifnot(!anyNA(train))
+sds <- apply(train, 2, sd)
+stopifnot(!any(sds == 0))
+table(train$status)
+#train <- as.data.table(train)
+
+# lapply(train, \(x) {
+#   data.frame(
+#     n_distinct = length(unique(x)),
+#     min_freq = min(table(x)),
+#     max_freq = max(table(x))
+#   )
+# }) |> data.table::rbindlist(idcol = TRUE) |>
+#   dplyr::filter(n_distinct < 50) |>
+#   dplyr::arrange(n_distinct, min_freq) |>
+#   View()
+
+# debugonce(fwelnet)
 # Feature selection
 fit <- fwelnet::fwelnet_mt_cox(
   train,
@@ -62,8 +99,8 @@ fit <- fwelnet::fwelnet_mt_cox(
   alpha = 1,
   t = 100,
   a = 0.5,
-  thresh = 1e-7,
-  include_mt_beta_history = TRUE
+  thresh = 1e-7, standardize = FALSE,
+  include_mt_beta_history = TRUE, verbose = FALSE
 )
 
 p <- ncol(train)
@@ -87,12 +124,18 @@ fw_coefs <- list(
 )
 
 # Performance with CSC
+# sFIXME: beta2 is all zeros!
 scores <- data.table::rbindlist(list(
   fit_csc(train, test, model = "fwelnet", coefs = fw_coefs$fwelnet$cause1, cause = 1),
-  fit_csc(train, test, model = "fwelnet", coefs = fw_coefs$fwelnet$cause2, cause = 2),
-  fit_csc(train, test, model = "glmnet", coefs = fw_coefs$glmnet$cause1, cause = 1),
-  fit_csc(train, test, model = "glmnet", coefs = fw_coefs$glmnet$cause2, cause = 2)
+  #fit_csc(train, test, model = "fwelnet", coefs = fw_coefs$fwelnet$cause2, cause = 2),
+  fit_csc(train, test, model = "glmnet", coefs = fw_coefs$glmnet$cause1, cause = 1)
+  #fit_csc(train, test, model = "glmnet", coefs = fw_coefs$glmnet$cause2, cause = 2)
 ))
 
 list(scores = scores, coefs = fw_coefs)
 
+scores |>
+  filter(score > 0 & score < 1) |>
+  ggplot(aes(x = times, y = score, color = model)) +
+  facet_wrap(facets = vars(metric), scales = "free") +
+  geom_line()
