@@ -35,10 +35,26 @@ gdt[, id := substr(colnames(mat), 1, 12)]
 # Paper here: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6066282/
 #bb <- as.data.table(read_excel("https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6066282/bin/NIHMS978596-supplement-1.xlsx", sheet = 3))
 
+tcga_excel <- here::here("data-raw", "NIHMS978596-supplement-1.xlsx")
+if (!file.exists(tcga_excel)) {
+  download.file("https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6066282/bin/NIHMS978596-supplement-1.xlsx", tcga_excel)
+}
 bb <- as.data.table(read_excel(here::here("data-raw", "NIHMS978596-supplement-1.xlsx"), sheet = 3))
+
+# check different types/endpoints
+table(bb$type, bb$DSS_cr) |>
+  as.data.frame() |>
+  arrange(desc(`2`))
+  rowSums()
+
+bb |>
+  count(type, DSS_cr) |>
+  tidyr::pivot_wider(names_from = DSS_cr, values_from = n) |>
+  arrange(desc(`2`))
+
 cc <- bb[, .(bcr_patient_barcode, type, DSS.time.cr, DSS_cr)]
 #cc[, table(DSS_cr, type)]
-dd <- cc[type == "BLCA", ]
+dd <- cc[type == "BLCA", ] # check differen types
 colnames(dd) <- c("id", "type", "time", "status")
 
 # Merge RNAseq and survival data
