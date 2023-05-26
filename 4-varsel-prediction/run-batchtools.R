@@ -41,8 +41,8 @@ addProblem(name = "binder_bender", fun = sim_surv_binder, seed = config$sim_seed
 
 # Algorithms -----------------------------------------------------------
 addAlgorithm(name = "fwel_mt", fun = fwel_mt_varselect_pred)
-# addAlgorithm(name = "rfsrc", fun = rfsrc_varselect_pred)
-# addAlgorithm(name = "coxboost", fun = coxboost_varselect_pred)
+addAlgorithm(name = "rfsrc", fun = rfsrc_varselect_pred)
+addAlgorithm(name = "coxboost", fun = coxboost_varselect_pred)
 
 
 # Experiments -----------------------------------------------------------
@@ -52,7 +52,7 @@ prob_design <- list(
   #   type = c("clinical", "geno", "both")
   # ),
   binder_bender = expand.grid(
-    n_train = 400, n_test = 200, p = 5000, ce = 0.5, lambda = 0.1, lambda_c = 0.1
+    n_train = 400, n_test = 200, p = 5000, ce = c(0.1, 0.5), lambda = 0.1, lambda_c = 0.1
   )
 )
 
@@ -85,13 +85,13 @@ jobtbl <- unwrap(getJobPars(), c("algo.pars", "prob.pars"))
 # Test jobs -----------------------------------------------------------
 # if (interactive()) testJob(id = 200)
 
-jobtbl[algorithm == "fwel_mt" & type == "clinical"]
-
-testJob(3)
+# jobtbl[algorithm == "fwel_mt" & type == "clinical"]
+#
+# testJob(3)
 
 # Submit -----------------------------------------------------------
 
-jobtbl[,.SD[sample(.N, 20)], by = algorithm] |>
+jobtbl[,.SD[sample(.N, 10)], by = algorithm] |>
   submitJobs()
 
 submitJobs(findNotSubmitted())
