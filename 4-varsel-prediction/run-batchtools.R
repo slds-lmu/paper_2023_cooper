@@ -31,7 +31,7 @@ if (continue_bt) {
   unlink(reg_dir, recursive = TRUE)
   makeExperimentRegistry(file.dir = reg_dir, packages = c("randomForestSRC", "CoxBoost", "rlang", "data.table", "riskRegression"),
                          seed = config$global.seed,
-                         source = here::here("4-varsel-prediction/algorithms.R")
+                         source = c(here::here("4-varsel-prediction/algorithms.R"), here::here("R/20-varsel-simulation.R"))
   )
 }
 
