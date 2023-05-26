@@ -177,6 +177,9 @@ coxboost_varselect_pred <- function(data, job, instance,
 
 fit_csc <- function(train, test, model, coefs, cause = 1, eval_time_quantiles = seq(0.1, 0.75, .05)) {
 
+  train <- data.table::as.data.table(train)
+  test <- data.table::as.data.table(test)
+
   checkmate::assert_data_table(train, any.missing = FALSE, min.rows = 10, min.cols = 2)
   checkmate::assert_data_table(test, any.missing = FALSE, min.rows = 10, min.cols = 2)
   checkmate::assert_string(model, min.chars = 2)
