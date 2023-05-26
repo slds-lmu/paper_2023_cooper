@@ -1,21 +1,27 @@
-get_bladder_data <- function(job = NULL, data = NULL, split = 2/3, standardize = TRUE) {
+get_bladder_data <- function(job = NULL, data = NULL, split = 2/3, standardize = TRUE, type = c("clinical", "geno", "both")) {
 
-  bladder_file <- here::here("data/bladder_surv_geno.rds")
+  bladder_file <- switch(
+    as.character(type),
+    "clinical" = here::here("data/bladder_surv_clinical.rds"),
+    "geno" = here::here("data/bladder_surv_geno.rds"),
+    "both" = here::here("data/bladder_surv_clin_geno.rds")
+  )
+
   if (!file.exists(bladder_file)) {
-    message("Recreating bladder dataset/bladder-data-prep.R")
+    message("Recreating bladder dataset from bladder-data-prep.R")
     source(here::here("4-varsel-prediction/bladder-data-prep.R"))
   }
-  bladder_surv_geno <- readRDS(bladder_file)
+  bladder_surv <- readRDS(bladder_file)
 
   #prop.table(table(bladder_surv_geno$status))
-  bladder_surv_geno <- data.table::as.data.table(bladder_surv_geno)
+  bladder_surv <- data.table::as.data.table(bladder_surv)
 
-  bladder_surv_geno[, row_id := .I]
-  dim(bladder_surv_geno)
+  bladder_surv[, row_id := .I]
+  dim(bladder_surv)
 
-  train <- bladder_surv_geno[ , .SD[sample(.N, size = round(split * .N), replace = FALSE)], by = status]
-  test <- bladder_surv_geno[setdiff(row_id, train$row_id), ]
-  checkmate::assert_set_equal(union(train$row_id, test$row_id), bladder_surv_geno$row_id)
+  train <- bladder_surv[ , .SD[sample(.N, size = round(split * .N), replace = FALSE)], by = status]
+  test <- bladder_surv[setdiff(row_id, train$row_id), ]
+  checkmate::assert_set_equal(union(train$row_id, test$row_id), bladder_surv$row_id)
   checkmate::assert_true(length(setdiff(train$time, test$time)) == length(train$time))
 
   # Remove row_ids so we don't accidentally standardize or train on them,
@@ -27,21 +33,27 @@ get_bladder_data <- function(job = NULL, data = NULL, split = 2/3, standardize =
 
 
   if (standardize) {
-    # get column-wise means and sd of genetic data only (1, 2 are time, status)
-    gen_means <- apply(train[, -c(1,2)], 2, mean)
-    gen_sds <- apply(train[, -c(1,2)], 2, sd)
-    # apply to only genetic data, cbind with time, status. There's probably a more elegant solution, sorry.
-    train <- cbind(train[, 1:2], scale(train[, -c(1,2)], center = gen_means, scale = gen_sds))
-    test <- cbind(test[, 1:2], scale(test[, -c(1,2)], center = gen_means, scale = gen_sds))
+    # get column-wise means and sd of genetic data only (1, 2 are time, status), exclude possible factor vars
+    x_numerics <- sapply(train, \(x) is.numeric(x) & !setequal(unique(x), 0:1))
+    targets <- names(train) %in% c("time", "status")
+
+    x_to_standardize <- x_numerics & !targets
+    vars_remaining <- !(x_to_standardize)
+
+    gen_means <- apply(train[, x_to_standardize, with = FALSE], 2, mean)
+    gen_sds <- apply(train[, x_to_standardize, with = FALSE], 2, sd)
+    # apply to only genetic data, cbind with time, status, etc. There's probably a more elegant solution, sorry.
+    train <- cbind(train[, vars_remaining, with = FALSE], scale(train[, x_to_standardize, with = FALSE], center = gen_means, scale = gen_sds))
+    test <- cbind(test[, vars_remaining, with = FALSE], scale(test[, x_to_standardize, with = FALSE], center = gen_means, scale = gen_sds))
   }
 
   checkmate::assert_count(nrow(train), positive = TRUE)
   checkmate::assert_count(nrow(test), positive = TRUE)
   checkmate::assert_true(ncol(train) == ncol(test))
-  checkmate::assert_true(nrow(train) + nrow(test) == nrow(bladder_surv_geno))
+  checkmate::assert_true(nrow(train) + nrow(test) == nrow(bladder_surv))
   checkmate::assert_set_equal(setdiff(train$time, test$time), train$time)
 
-  status_distr_orig <- prop.table(table(bladder_surv_geno$status))
+  status_distr_orig <- prop.table(table(bladder_surv$status))
   status_distr_train <- prop.table(table(train$status))
   status_distr_test <- prop.table(table(test$status))
 
@@ -57,4 +69,9 @@ get_bladder_data <- function(job = NULL, data = NULL, split = 2/3, standardize =
     train_event_prop = status_distr_train,
     test_event_prop = status_distr_test
   )
+}
+
+if (FALSE) {
+  get_bladder_data(standardize = FALSE, type = "clinical")
+  get_bladder_data(standardize = TRUE, type = "clinical")
 }

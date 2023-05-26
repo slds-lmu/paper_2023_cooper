@@ -71,7 +71,7 @@ scores_long |>
   filter(!is.na(score)) |>
   filter(score <= 1, score >= 0) |>
   #filter(job.id < 100) |> 
-  filter(model != "rfsrc" | mtry == 3000) |>
+  filter(model != "rfsrc" | mtry == 1000) |>
   filter(model != "coxboost" | (stepno == 100 & penalty == 3000)) |>
   filter(cause == 1) |>
   group_by(model, times, metric, cause) |>

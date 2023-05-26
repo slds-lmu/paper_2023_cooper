@@ -175,7 +175,7 @@ coxboost_varselect_pred <- function(data, job, instance,
   list(scores = scores, coefs = cb_coefs)
 }
 
-fit_csc <- function(train, test, model, coefs, cause = 1) {
+fit_csc <- function(train, test, model, coefs, cause = 1, eval_time_quantiles = seq(0.1, 0.75, .05)) {
 
   checkmate::assert_data_table(train, any.missing = FALSE, min.rows = 10, min.cols = 2)
   checkmate::assert_data_table(test, any.missing = FALSE, min.rows = 10, min.cols = 2)
@@ -189,14 +189,14 @@ fit_csc <- function(train, test, model, coefs, cause = 1) {
   csc_model <- CSC(formula = Hist(time, status) ~ ., data = train_cause, cause = cause)
 
   # Get quantiles of time points from full dataset to allow later aggregation per timepoint
-  eval_times <- quantile(c(train$time, test$time), probs = seq(0.1, 0.9, .1), names = FALSE)
+  eval_times <- quantile(c(train$time, test$time), probs = eval_time_quantiles, names = FALSE)
 
   # Yikes
   # Estimated risk outside the range [0,1].
   # Possible cause: incorrect extrapolation, i.e., time and/or covariates used for the prediction differ from those used to fit the Cox models.
   mod_scores_auc <- Score(
     list2(!!model := csc_model), # uses rlang splicing to get list(fwelnet = csc_1)
-    predictRisk.args = list(CauseSpecificCox = list(product.limit = FALSE)),
+    # predictRisk.args = list(CauseSpecificCox = list(product.limit = FALSE)),
     formula = Hist(time, status) ~ 1,
     data = test_cause,
     metrics = "AUC",
@@ -208,7 +208,7 @@ fit_csc <- function(train, test, model, coefs, cause = 1) {
 
   mod_scores_brier <- Score(
     list2(!!model := csc_model),
-    predictRisk.args = list(CauseSpecificCox = list(product.limit = FALSE)),
+    # predictRisk.args = list(CauseSpecificCox = list(product.limit = FALSE)),
     formula = Hist(time, status) ~ 1,
     data = test_cause,
     metrics = c("Brier"),

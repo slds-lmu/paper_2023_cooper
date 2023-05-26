@@ -51,9 +51,9 @@ clin$time <- clin$time + stats::runif(nrow(clin), min = 0.001, max = .01)
 length(unique(clin$time))
 range(clin$time)
 
-# clin$Cystectomy[clin$Cystectomy=='']<-'No'
-# clin$Cystectomy[clin$Cystectomy=='No']<-'_No'
-# cdata<-clin[,c('time','cens','AGE','SEX','stage','grade','service','tumor','CIS','Country')]
+clin$Cystectomy[clin$Cystectomy=='']<-'No'
+#clin$Cystectomy[clin$Cystectomy=='No']<-'_No'
+cdata<-clin[,c('AGE','SEX','stage','grade','service','tumor','CIS','Country')]
 
 #sum(tumor$Reevaluated.WHO.grade...no.reevaluation %in% c('','-')|is.na(tumor$Reevaluated.WHO.grade...no.reevaluation))
 
@@ -70,14 +70,45 @@ surv_geno <- data.frame(time = clin$time, status = clin$cens, geno1)
 if (!file.exists(here::here("data"))) dir.create(here::here("data"))
 saveRDS(surv_geno, here::here("data/bladder_surv_geno.rds"))
 
-# Version with genetic + clinical data
-#
+# Version with genetic + clinical data ----
+
 surv_clin_geno <- data.frame(
   time = clin$time, status = clin$cens,
-  sex = factor(clin$SEX), age = clin$AGE,
-  grade = factor(clin$grade), factor(clin$stage),
+  cdata,
   geno1
 )
+
+stopifnot(nrow(surv_clin_geno) == nrow(surv_geno))
+stopifnot(ncol(surv_clin_geno) > ncol(surv_geno))
+
+saveRDS(surv_clin_geno, here::here("data/bladder_surv_clin_geno.rds"))
+
+# Might as well save a clinical-only subset for sanity checks
+surv_clin <- data.frame(
+  time = clin$time, status = clin$cens,
+  cdata
+)
+#str(surv_clin)
+
+# make binary manually since model.matrix somehow made it weird
+surv_clin$SEX <- as.integer(as.factor(surv_clin$SEX)) - 1L
+checkmate::assert_integer(surv_clin$SEX, lower = 0, upper = 1)
+
+# pre-dummy-code categoricals to preserve sanity later
+surv_clin <- as.data.frame(model.matrix(~ -1 + ., data = surv_clin))
+# strip spaces from varnames just in case
+names(surv_clin) <- gsub(" ", "", names(surv_clin))
+
+# factors just in case characters cause problems
+# surv_clin$stage <- factor(surv_clin$stage)
+# surv_clin$grade <- factor(surv_clin$grade)
+# surv_clin$service <- factor(surv_clin$service)
+# surv_clin$tumor <- factor(surv_clin$tumor)
+# surv_clin$CIS <- factor(surv_clin$CIS)
+# surv_clin$Country <- factor(surv_clin$Country)
+
+saveRDS(surv_clin, here::here("data/bladder_surv_clinical.rds"))
+
 
 # Some sanity checking just in case
 if (FALSE) {
@@ -93,5 +124,10 @@ if (FALSE) {
     dplyr::select(AGE, SEX, grade, stage) |>
     sapply(anyNA)
 
+  surv_clin_geno |>
+    sapply(anyNA) |>
+    any()
+
+  tfit <- fwelnet::fwelnet_mt_cox(surv_clin_geno, mt_max_iter = 2, t = 100)
 }
 

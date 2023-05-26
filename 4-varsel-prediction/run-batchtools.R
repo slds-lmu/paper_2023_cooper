@@ -1,5 +1,6 @@
 source(here::here("4-varsel-prediction/get-bladder-data.R"))
 source(here::here("4-varsel-prediction/algorithms.R"))
+source(here::here("R/20-varsel-simulation.R"))
 
 library(batchtools)
 library(randomForestSRC)
@@ -35,18 +36,23 @@ if (continue_bt) {
 }
 
 # Problems -----------------------------------------------------------
-addProblem(name = "bladder_geno", fun = get_bladder_data, seed = config$sim_seed, cache = config$sim_cache)
+#addProblem(name = "bladder_geno", fun = get_bladder_data, seed = config$sim_seed, cache = config$sim_cache)
+addProblem(name = "binder_bender", fun = sim_surv_binder, seed = config$sim_seed, cache = config$sim_cache)
 
 # Algorithms -----------------------------------------------------------
 addAlgorithm(name = "fwel_mt", fun = fwel_mt_varselect_pred)
-addAlgorithm(name = "rfsrc", fun = rfsrc_varselect_pred)
-addAlgorithm(name = "coxboost", fun = coxboost_varselect_pred)
+# addAlgorithm(name = "rfsrc", fun = rfsrc_varselect_pred)
+# addAlgorithm(name = "coxboost", fun = coxboost_varselect_pred)
 
 
 # Experiments -----------------------------------------------------------
 prob_design <- list(
-  bladder_geno = expand.grid(
-    split = 2/3, standardize = TRUE
+  # bladder_geno = expand.grid(
+  #   split = 2/3, standardize = TRUE,
+  #   type = c("clinical", "geno", "both")
+  # ),
+  binder_bender = expand.grid(
+    n_train = 400, n_test = 200, p = 5000, ce = 0.5, lambda = 0.1, lambda_c = 0.1
   )
 )
 
@@ -60,14 +66,14 @@ algo_design <- list(
   rfsrc = expand.grid(
     importance = "random",
     cutoff_method = "vita",
-    mtry = c(100, 500, 1000),
+    mtry = 3000, #c(100, 500, 1000),
     nodesize = 30,
     splitrule = "logrank"
   ),
   coxboost = expand.grid(
     cmprsk = "csh",
-    stepno = c(100, 300),
-    penalty = c(1000, 3000)
+    stepno = 100, # c(100, 300),
+    penalty = 3000 # c(1000, 3000)
   )
 )
 
@@ -78,6 +84,10 @@ jobtbl <- unwrap(getJobPars(), c("algo.pars", "prob.pars"))
 
 # Test jobs -----------------------------------------------------------
 # if (interactive()) testJob(id = 200)
+
+jobtbl[algorithm == "fwel_mt" & type == "clinical"]
+
+testJob(3)
 
 # Submit -----------------------------------------------------------
 

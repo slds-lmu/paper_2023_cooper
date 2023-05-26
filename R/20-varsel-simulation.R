@@ -56,8 +56,8 @@ block_corr_binder <- function(n = 400, p = 5000) {
 
 #' Take a covariate matrix and simulate a survival outcome, based on the same paper.
 #' @param job,data For batchtools use only.
-#' @param n_train,n_test Number of observations in train- and test sets. Training data will be in element `$data`,
-#'   and test data in element `$test_data` for legacy reasons.
+#' @param n_train,n_test Number of observations in train- and test sets. Training data will be in element `$train`,
+#'   and test data in element `$test`.
 #' @param p Passed to block_corr_binder().
 #' @param ce Effect constant. Used as magnitude of effect. Binder et al 2009 use 0.5.
 #' @param lambda,lambda_c Baseline-hazard constants for Cox-exponential model for survival & censoring times.
@@ -194,10 +194,14 @@ sim_surv_binder <- function(job, data,
   res <- data.frame(time = ti, status = di, X)
 
   list(
-    data = res[seq_len(n_train), ],
-    test_data = res[-seq_len(n_train), ],
+    train = res[seq_len(n_train), ],
+    test = res[-seq_len(n_train), ],
     covar_blocks = covar_blocks,
-    covar_true_effect = covar_true_effect
+    covar_true_effect = covar_true_effect,
+    true_model = list(
+      beta1 = beta1, beta2 = beta2,
+      lp1 = lp1, lp2 = lp2
+    )
   )
 }
 
@@ -212,7 +216,7 @@ if (FALSE) {
   xdat <- sim_surv_binder(n_train = n, p = 5000)
 
   xsum <- purrr::map_df(1:100, ~{
-    status <- sim_surv_binder(n_train = n, p = 5000, lambda1 = 0.1, lambda2 = 0.1)$data$status
+    status <- sim_surv_binder(n_train = n, p = 5000, lambda1 = 0.1, lambda2 = 0.1)$train$status
     data.frame(rep = .x, table(status))
   })
 
@@ -275,7 +279,7 @@ if (FALSE) {
   instance <- sim_surv_binder(n_train = 4000, n_test = 200, p = 5000, ce = 0.5, lambda = 0.1, lambda_c = 0.1)
 
   xdf <- lapply(names(instance$covar_blocks), function(ni) {
-    x <- instance$data[, instance$covar_blocks[[ni]]]
+    x <- instance$train[, instance$covar_blocks[[ni]]]
     xc <- cor(x)
     data.frame(val = xc[xc < 1], block = ni)
   })
