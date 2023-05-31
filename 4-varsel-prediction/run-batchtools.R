@@ -70,7 +70,7 @@ algo_design <- list(
   rfsrc = expand.grid(
     importance = "random",
     cutoff_method = "vita",
-    mtry = c(500, 1000),
+    mtry = 1000,
     nodesize = 30,
     splitrule = "logrank"
   ),
