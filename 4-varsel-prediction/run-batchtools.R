@@ -54,7 +54,7 @@ prob_design <- list(
   binder_bender = expand.grid(
     n_train = 400, n_test = 200, p = 5000,
     ce = c(0.1, 0.5),
-    lambda = 0.1, lambda_c = 0.1
+    lambda1 = 0.1, lambda2 = 0.1, lambda_c = 0.1
   )
 )
 
