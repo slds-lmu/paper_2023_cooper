@@ -36,7 +36,7 @@ if (continue_bt) {
 }
 
 # Problems -----------------------------------------------------------
-#addProblem(name = "bladder_geno", fun = get_bladder_data, seed = config$sim_seed, cache = config$sim_cache)
+addProblem(name = "bladder_geno", fun = get_bladder_data, seed = config$sim_seed, cache = config$sim_cache)
 addProblem(name = "binder_bender", fun = sim_surv_binder, seed = config$sim_seed, cache = config$sim_cache)
 
 # Algorithms -----------------------------------------------------------
@@ -47,12 +47,14 @@ addAlgorithm(name = "coxboost", fun = coxboost_varselect_pred)
 
 # Experiments -----------------------------------------------------------
 prob_design <- list(
-  # bladder_geno = expand.grid(
-  #   split = 2/3, standardize = TRUE,
-  #   type = c("clinical", "geno", "both")
-  # ),
+  bladder_geno = expand.grid(
+    split = 2/3, standardize = TRUE,
+    type = "both" # c("clinical", "geno", "both")
+  ),
   binder_bender = expand.grid(
-    n_train = 400, n_test = 200, p = 5000, ce = c(0.1, 0.5), lambda = 0.1, lambda_c = 0.1
+    n_train = 400, n_test = 200, p = 5000,
+    ce = c(0.1, 0.5),
+    lambda = 0.1, lambda_c = 0.1
   )
 )
 
@@ -61,12 +63,14 @@ algo_design <- list(
     mt_max_iter = 3,
     alpha = 1,
     t = 100,
-    thresh = 1e-7
+    thresh = 1e-7,
+    stratify_by_status = TRUE,
+    nfolds = 5
   ),
   rfsrc = expand.grid(
     importance = "random",
     cutoff_method = "vita",
-    mtry = 3000, #c(100, 500, 1000),
+    mtry = c(500, 1000),
     nodesize = 30,
     splitrule = "logrank"
   ),
@@ -91,10 +95,10 @@ jobtbl <- unwrap(getJobPars(), c("algo.pars", "prob.pars"))
 
 # Submit -----------------------------------------------------------
 
-jobtbl[,.SD[sample(.N, 10)], by = algorithm] |>
+jobtbl[algorithm == "fwel_mt", .SD[sample(.N, 5)], by = c("problem")] |>
   submitJobs()
 
-submitJobs(findNotSubmitted())
+getStsubmitJobs(findNotSubmitted())
 
 
 # submitJobs(jobtbl[algorithm == "coxboost"])

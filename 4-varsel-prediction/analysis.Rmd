@@ -51,6 +51,14 @@ res |>
 
 scores_long <- tidyr::hoist(res, "result", "scores") |>
   tidyr::unnest("scores")
+
+
+scores_simdata <- scores_long |> 
+  filter(problem == "binder_bender")
+
+scores_bladder <- scores_long |> 
+  filter(problem == "bladder_geno")
+
 ```
 
 ```{r}
@@ -65,9 +73,10 @@ scores_long |>
 ```
 
 ```{r}
-scores_long |>
+#scores_simdata |>
+scores_bladder |>
   #filter(metric %in% c("AUC", "Brier")) |>
-  filter(metric == "IPA") |>
+  #filter(metric == "IPA") |>
   filter(!is.na(score)) |>
   filter(score <= 1, score >= 0) |>
   #filter(job.id < 100) |> 
@@ -143,7 +152,8 @@ scores_long |>
 ## Selected
 
 ```{r}
-p_brier <- scores_long |>
+p_brier <- scores_bladder |>
+  filter(type == "both") |>
   filter(metric == "Brier") |>
   filter(!is.na(score)) |>
   filter(score <= 1, score >= 0) |>
@@ -176,7 +186,8 @@ ggsave(plot = p_brier, filename = "bladder-brier.png", path = "selected-plots", 
 ```
 
 ```{r}
-p_auc <- scores_long |>
+p_auc <- scores_bladder |>
+  filter(type == "both") |>
   filter(metric == "AUC") |>
   filter(!is.na(score)) |>
   filter(score <= 1, score >= 0) |>
