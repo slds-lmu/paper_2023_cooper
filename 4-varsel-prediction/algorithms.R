@@ -7,7 +7,8 @@ fwel_mt_varselect_pred <- function(
     mt_max_iter = 2,
     t = 100,
     a = 0.5,
-    thresh = 1e-7
+    thresh = 1e-7,
+    stratify_by_status = TRUE, nfolds = 10
 ) {
 
   checkmate::assert_numeric(alpha)
@@ -17,7 +18,7 @@ fwel_mt_varselect_pred <- function(
   checkmate::assert_numeric(thresh)
 
   fit <- fwelnet::fwelnet_mt_cox(
-    instance$train,
+    as.data.frame(instance$train),
     mt_max_iter = mt_max_iter,
     z_method = as.character(z_method),
     alpha = alpha,
