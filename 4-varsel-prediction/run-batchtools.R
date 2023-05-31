@@ -95,10 +95,10 @@ jobtbl <- unwrap(getJobPars(), c("algo.pars", "prob.pars"))
 
 # Submit -----------------------------------------------------------
 
-jobtbl[algorithm == "fwel_mt", .SD[sample(.N, 5)], by = c("problem")] |>
+jobtbl[algorithm == "fwel_mt", .SD[sample(.N, 20)], by = c("problem")] |>
   submitJobs()
 
-getStsubmitJobs(findNotSubmitted())
+submitJobs(findNotSubmitted())
 
 
 # submitJobs(jobtbl[algorithm == "coxboost"])
