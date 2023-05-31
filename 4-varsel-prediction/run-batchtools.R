@@ -26,8 +26,10 @@ reg_name <- "fwel_sim_varsel_predict"
 reg_dir <- here::here("registries", reg_name)
 
 if (continue_bt) {
+  message("Continuing with existing registry\n")
   loadRegistry(reg_dir, writeable = TRUE)
 } else {
+  message("Creating new registry!\n")
   unlink(reg_dir, recursive = TRUE)
   makeExperimentRegistry(file.dir = reg_dir, packages = c("randomForestSRC", "CoxBoost", "rlang", "data.table", "riskRegression"),
                          seed = config$global.seed,
@@ -95,14 +97,18 @@ jobtbl <- unwrap(getJobPars(), c("algo.pars", "prob.pars"))
 
 # Submit -----------------------------------------------------------
 
-jobtbl[algorithm == "fwel_mt", .SD[sample(.N, 20)], by = c("problem")] |>
+#jobtbl[algorithm == "fwel_mt", .SD[sample(.N, 20)], by = c("problem")] |>
+#  submitJobs()
+
+jobtbl[, .SD[sample(.N, 3)], by = c("problem", "algorithm")] |>
   submitJobs()
 
+jobtbl[findDone(), .(count = .N), by = algorithm]
+
+submitJobs(findNotSubmitted(jobtbl[algorithm == "fwel_mt"]))
 submitJobs(findNotSubmitted())
 
-
 # submitJobs(jobtbl[algorithm == "coxboost"])
-# submitJobs(jobtbl[algorithm == "fwel_mt"])
 # submitJobs(jobtbl[algorithm == "rfsrc"])
 
 
