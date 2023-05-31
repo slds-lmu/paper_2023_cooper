@@ -1,5 +1,10 @@
 #renv::install("bioc::TCGAbiolinks")
 #renv::install("bioc::SummarizedExperiment")
+#
+## see also maybe
+# renv::install("RTCGA.clinical")
+# RTCGA.clinical::STES.clinical |> names() |> head()
+
 
 library(TCGAbiolinks)
 library(SummarizedExperiment)
@@ -17,6 +22,17 @@ query <- GDCquery(project = "TCGA-BLCA",
                   platform = "Illumina HiSeq",
                   file.type = "results",
                   legacy = TRUE)
+
+# Another attempt
+
+query <- GDCquery(
+  project = "TARGET-AML",
+  data.category = "Transcriptome Profiling",
+  data.type = "Gene Expression Quantification",
+  workflow.type = "STAR - Counts",
+  barcode = c("TARGET-20-PADZCG-04A-01R","TARGET-20-PARJCR-09A-01R")
+)
+
 GDCdownload(query)
 rnaseq <- GDCprepare(query)
 
