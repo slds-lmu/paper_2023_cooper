@@ -1300,7 +1300,7 @@
       "RemoteUsername": "jemus42",
       "RemoteRepo": "fwelnet",
       "RemoteRef": "master",
-      "RemoteSha": "15d41e736c930d616b4d29e5d0e8a3d245eb0fc7",
+      "RemoteSha": "9467fb786a18893f5abb17f8295ee7c820645298",
       "Requirements": [
         "Matrix",
         "checkmate",
@@ -1308,7 +1308,7 @@
         "glmnet",
         "survival"
       ],
-      "Hash": "ed168f6a0fcc02ae36af00748839f709"
+      "Hash": "5dc6e2c6f6277350fbb0407b48455d8a"
     },
     "generics": {
       "Package": "generics",
