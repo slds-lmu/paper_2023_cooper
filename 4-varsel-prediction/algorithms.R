@@ -48,12 +48,42 @@ fwel_mt_varselect_pred <- function(
     )
   )
 
-  scores <- data.table::rbindlist(list(
+  scores_fwc1 <- tryCatch(
     fit_csc(instance$train, instance$test, model = "fwelnet", coefs = fw_coefs$fwelnet$cause1, cause = 1),
+    error = function(cond) {
+      message(paste("Error with fwelnet and cause 1:", cond))
+      return(list())
+    }
+  )
+  scores_fwc2 <- tryCatch(
     fit_csc(instance$train, instance$test, model = "fwelnet", coefs = fw_coefs$fwelnet$cause2, cause = 2),
+    error = function(cond) {
+      message(paste("Error with fwelnet and cause 2:", cond))
+      return(list())
+    }
+  )
+  scores_glc1 <- tryCatch(
     fit_csc(instance$train, instance$test, model = "glmnet", coefs = fw_coefs$glmnet$cause1, cause = 1),
-    fit_csc(instance$train, instance$test, model = "glmnet", coefs = fw_coefs$glmnet$cause2, cause = 2)
-  ))
+    error = function(cond) {
+      message(paste("Error with glmnet and cause 1:", cond))
+      return(list())
+    }
+  )
+  scores_glc2 <- tryCatch(
+    fit_csc(instance$train, instance$test, model = "glmnet", coefs = fw_coefs$glmnet$cause2, cause = 2),
+    error = function(cond) {
+      message(paste("Error with glmnet and cause 2:", cond))
+      return(list())
+    }
+  )
+
+  # scores <- data.table::rbindlist(list(
+  #   fit_csc(instance$train, instance$test, model = "fwelnet", coefs = fw_coefs$fwelnet$cause1, cause = 1),
+  #   fit_csc(instance$train, instance$test, model = "fwelnet", coefs = fw_coefs$fwelnet$cause2, cause = 2),
+  #   fit_csc(instance$train, instance$test, model = "glmnet", coefs = fw_coefs$glmnet$cause1, cause = 1),
+  #   fit_csc(instance$train, instance$test, model = "glmnet", coefs = fw_coefs$glmnet$cause2, cause = 2)
+  # ))
+  scores <- data.table::rbindlist(list(scores_fwc1, scores_fwc2, scores_glc1, scores_glc2))
 
   list(scores = scores, coefs = fw_coefs)
 
@@ -176,7 +206,7 @@ coxboost_varselect_pred <- function(data, job, instance,
   list(scores = scores, coefs = cb_coefs)
 }
 
-fit_csc <- function(train, test, model, coefs, cause = 1, eval_time_quantiles = seq(0.1, 0.75, .05)) {
+fit_csc <- function(train, test, model, coefs, cause = 1, eval_time_quantiles = seq(0.1, 0.7, .1)) {
 
   train <- data.table::as.data.table(train)
   test <- data.table::as.data.table(test)
@@ -227,7 +257,8 @@ fit_csc <- function(train, test, model, coefs, cause = 1, eval_time_quantiles = 
   result <- data.table::melt(result, id.vars = c("model", "times"),
                              value.name = "score", variable.name = "metric",
                              meausure.vars = c("AUC", "Brier", "IBS", "IPA"))
-
+  result <- result[!(is.na(score) & model == "Null model"), ]
+  result <- result[!(score == "IPA" & model == "Null model"), ]
   result$cause <- cause
   result
 }

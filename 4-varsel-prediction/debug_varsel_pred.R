@@ -22,7 +22,7 @@ min(table(instance$train$status)) / 20
 
 # from fwel_mt_varselect_pred ----
 tictoc::tic()
-mt_max_iter <- 3
+mt_max_iter <- 1
 fit <- fwelnet::fwelnet_mt_cox(
   as.data.frame(instance$train),
   mt_max_iter = mt_max_iter,
@@ -30,12 +30,15 @@ fit <- fwelnet::fwelnet_mt_cox(
   t = 100,
   a = 0.5,
   stratify_by_status = TRUE,
-  nfolds = 5,
+  nfolds = 12,
   thresh = 1e-3,
   include_mt_beta_history = TRUE
 )
 
 tictoc::toc()
+
+tfolds <- fwelnet::stratified_cv_folds(instance$train, 19)
+table(tfolds$fold, tfolds$status)
 
 #saveRDS(object = fit, file = here::here("fwel-testfit.rds"))
 saveRDS(object = fit, file = here::here("fwel-testfit-bladder.rds"))
@@ -69,6 +72,8 @@ if (setequal(names(fw_coefs$fwelnet$cause1), names(fw_coefs$glmnet$cause1))) {
   stop("fwelnet and glmnet have selected identical variables")
 }
 
+fit_csc(instance$train, instance$test, model = "fwelnet", coefs = fw_coefs$fwelnet$cause1, cause = 1)
+
 
 # from fit_csc
 library(data.table)
@@ -88,7 +93,7 @@ csc_model <- CSC(formula = Hist(time, status) ~ ., data = train_cause, cause = c
 
 
 cbind(cox = csc_model$models$`Cause 1`$coefficients, fwelnet = coefs) |>
-  round(3 )
+  round(3)
 
 # lp
 lp <- as.numeric(as.matrix(train_cause[, -c(1, 2)]) %*% coefs)
@@ -106,6 +111,7 @@ plot(bfit$time, bfit$hazard)
 exp(-0.087395 * exp(lp)) |> summary()
 
 # Get quantiles of time points from full dataset to allow later aggregation per timepoint
+round(range(c(train$time, test$time)), 2)
 eval_times <- quantile(c(train$time, test$time), probs = seq(0.1, 0.75, .05), names = FALSE)
 #eval_times <- quantile(test$time, probs = seq(0.1, 0.75, .1), names = FALSE)
 
@@ -157,7 +163,7 @@ csc_model <- CSC(formula = Hist(time, status) ~ ., data = train_cause, cause = c
 
 
 cbind(cox = csc_model$models$`Cause 1`$coefficients, glmnet = coefs) |>
-  round(3 )
+  round(3)
 
 # lp
 lp <- as.numeric(as.matrix(train_cause[, -c(1, 2)]) %*% coefs)
@@ -174,9 +180,8 @@ plot(bfit$time, bfit$hazard)
 #exp(-0.1075885 * exp(lp)) |> summary()
 exp(-0.087395 * exp(lp)) |> summary()
 
-model = "glmnet"
 mod_scores_auc <- Score(
-  list2(!!model := csc_model), # uses rlang splicing to get list(fwelnet = csc_1)
+  list(glmnet = csc_model),
   #predictRisk.args = list(CauseSpecificCox = list(product.limit = FALSE)),
   formula = Hist(time, status) ~ 1,
   data = test_cause,
@@ -188,7 +193,7 @@ mod_scores_auc <- Score(
 
 
 mod_scores_brier <- Score(
-  list2(!!model := csc_model),
+  list(glmnet = csc_model),
   #predictRisk.args = list(CauseSpecificCox = list(product.limit = FALSE)),
   formula = Hist(time, status) ~ 1,
   data = test_cause,
