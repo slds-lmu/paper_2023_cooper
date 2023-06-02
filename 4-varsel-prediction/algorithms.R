@@ -258,7 +258,7 @@ fit_csc <- function(train, test, model, coefs, cause = 1, eval_time_quantiles = 
                              value.name = "score", variable.name = "metric",
                              meausure.vars = c("AUC", "Brier", "IBS", "IPA"))
   result <- result[!(is.na(score) & model == "Null model"), ]
-  result <- result[!(score == "IPA" & model == "Null model"), ]
+  result <- result[!(metric == "IPA" & model == "Null model"), ]
   result$cause <- cause
   result
 }
