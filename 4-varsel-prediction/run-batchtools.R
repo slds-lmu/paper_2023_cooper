@@ -92,10 +92,10 @@ jobtbl <- unwrap(getJobPars(), c("algo.pars", "prob.pars"))
 
 # jobtbl[algorithm == "fwel_mt"]
 
-if (interactive()) {
-  testJob(228)
-  testJob(1885)
-}
+# if (interactive()) {
+#   testJob(228)
+#   testJob(1885)
+# }
 
 
 # Submit -----------------------------------------------------------
@@ -105,6 +105,7 @@ jobtbl[algorithm == "fwel_mt", .SD[sample(.N, 2)], by = c("problem")] |>
   submitJobs()
 
 jobtbl[, .SD[sample(.N, 10)], by = c("problem", "algorithm")] |>
+  findNotSubmitted() |>
   submitJobs()
 
 jobtbl[findDone(), .(count = .N), by = algorithm]
