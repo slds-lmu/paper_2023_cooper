@@ -2,6 +2,11 @@
 *.html
 *.rds
 
+# Temp data
+GDCdata
+MANIFEST.txt
+data-raw/NIHM*.xlsx
+
 # Created by https://www.toptal.com/developers/gitignore/api/r
 # Edit at https://www.toptal.com/developers/gitignore?templates=r
 ### R ###
@@ -49,3 +54,7 @@ fiddle.R
 fwelnet_cr_sim.Rcheck/
 fwelnet_cr_sim*.tar.gz
 fwelnet_cr_sim*.tgz
+
+# Until everything is finalized
+selected-plots/*png
+selected-plots/*pdf
