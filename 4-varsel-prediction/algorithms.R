@@ -49,28 +49,28 @@ fwel_mt_varselect_pred <- function(
   )
 
   scores_fwc1 <- tryCatch(
-    fit_csc(instance$train, instance$test, model = "fwelnet", coefs = fw_coefs$fwelnet$cause1, cause = 1),
+    fit_csc_coxph(instance$train, instance$test, model = "fwelnet", coefs = fw_coefs$fwelnet$cause1, cause = 1),
     error = function(cond) {
       message(paste("Error with fwelnet and cause 1:", cond))
       return(list())
     }
   )
   scores_fwc2 <- tryCatch(
-    fit_csc(instance$train, instance$test, model = "fwelnet", coefs = fw_coefs$fwelnet$cause2, cause = 2),
+    fit_csc_coxph(instance$train, instance$test, model = "fwelnet", coefs = fw_coefs$fwelnet$cause2, cause = 2),
     error = function(cond) {
       message(paste("Error with fwelnet and cause 2:", cond))
       return(list())
     }
   )
   scores_glc1 <- tryCatch(
-    fit_csc(instance$train, instance$test, model = "glmnet", coefs = fw_coefs$glmnet$cause1, cause = 1),
+    fit_csc_coxph(instance$train, instance$test, model = "glmnet", coefs = fw_coefs$glmnet$cause1, cause = 1),
     error = function(cond) {
       message(paste("Error with glmnet and cause 1:", cond))
       return(list())
     }
   )
   scores_glc2 <- tryCatch(
-    fit_csc(instance$train, instance$test, model = "glmnet", coefs = fw_coefs$glmnet$cause2, cause = 2),
+    fit_csc_coxph(instance$train, instance$test, model = "glmnet", coefs = fw_coefs$glmnet$cause2, cause = 2),
     error = function(cond) {
       message(paste("Error with glmnet and cause 2:", cond))
       return(list())
@@ -86,7 +86,6 @@ fwel_mt_varselect_pred <- function(
   scores <- data.table::rbindlist(list(scores_fwc1, scores_fwc2, scores_glc1, scores_glc2))
 
   list(scores = scores, coefs = fw_coefs)
-
 }
 
 
@@ -157,8 +156,8 @@ rfsrc_varselect_pred <- function(data, job, instance,
   )
 
   scores <- data.table::rbindlist(list(
-    fit_csc(instance$train, instance$test, model = "rfsrc", coefs = rf_coefs$cause1, cause = 1),
-    fit_csc(instance$train, instance$test, model = "rfsrc", coefs = rf_coefs$cause2, cause = 2)
+    fit_csc_coxph(instance$train, instance$test, model = "rfsrc", coefs = rf_coefs$cause1, cause = 1),
+    fit_csc_coxph(instance$train, instance$test, model = "rfsrc", coefs = rf_coefs$cause2, cause = 2)
   ))
 
   list(scores = scores, coefs = rf_coefs)
@@ -199,8 +198,8 @@ coxboost_varselect_pred <- function(data, job, instance,
   )
 
   scores <- data.table::rbindlist(list(
-    fit_csc(instance$train, instance$test, model = "coxboost", coefs = cb_coefs$cause1, cause = 1),
-    fit_csc(instance$train, instance$test, model = "coxboost", coefs = cb_coefs$cause2, cause = 2)
+    fit_csc_coxph(instance$train, instance$test, model = "coxboost", coefs = cb_coefs$cause1, cause = 1),
+    fit_csc_coxph(instance$train, instance$test, model = "coxboost", coefs = cb_coefs$cause2, cause = 2)
   ))
 
   list(scores = scores, coefs = cb_coefs)
@@ -259,6 +258,87 @@ fit_csc <- function(train, test, model, coefs, cause = 1, eval_time_quantiles = 
                              meausure.vars = c("AUC", "Brier", "IBS", "IPA"))
   result <- result[!(is.na(score) & model == "Null model"), ]
   result <- result[!(metric == "IPA" & model == "Null model"), ]
+  result$cause <- cause
+  result
+}
+
+# Same as fit_csc but use survival::coxph instead of riskRegression::CSC bc weirdly it matters
+fit_csc_coxph <- function(train, test, model, coefs, cause = 1, eval_time_quantiles = seq(0.1, 0.7, .1)) {
+
+  train <- data.table::as.data.table(train)
+  test <- data.table::as.data.table(test)
+
+  checkmate::assert_data_table(train, any.missing = FALSE, min.rows = 10, min.cols = 2)
+  checkmate::assert_data_table(test, any.missing = FALSE, min.rows = 10, min.cols = 2)
+  checkmate::assert_string(model, min.chars = 2)
+  checkmate::assert_numeric(coefs, finite = TRUE, any.missing = FALSE, min.len = 1)
+  checkmate::assert_int(cause, lower = 1L, upper = 2L)
+  # sub-select data
+  train_cause <- train[, c("time", "status", names(coefs)), with = FALSE]
+  test_cause <- test[, c("time", "status", names(coefs)), with = FALSE]
+
+  if (cause == 1L) {
+    train_cause$status[train_cause$status == 2] <- 0
+    test_cause$status[test_cause$status == 2] <- 0
+
+  } else if (cause == 2L) {
+    train_cause$status[train_cause$status == 1] <- 0
+    test_cause$status[test_cause$status == 1] <- 0
+
+    train_cause$status[train_cause$status == 2] <- 1
+    test_cause$status[test_cause$status == 2] <- 1
+  }
+
+  # Fit coxph via survival rather than riskRegression::CSC b/c it weirdly makes a difference in Score()
+  # x = TRUE includes design matrix in output, needed for Score()
+  csc_model <- survival::coxph(formula = survival::Surv(time, status) ~ ., data = train_cause, x = TRUE)
+
+  # Get quantiles of time points from full dataset to allow later aggregation per timepoint
+  eval_times <- quantile(c(train$time, test$time), probs = eval_time_quantiles, names = FALSE)
+
+  # mod_scores_auc <- Score(
+  #   list2(!!model := csc_model), # uses rlang splicing to get list(fwelnet = csc_1)
+  #   formula = Surv(time, status) ~ 1,
+  #   data = test_cause,
+  #   metrics = "AUC",
+  #   # cause = cause,
+  #   # se.fit = FALSE,
+  #   times = eval_times
+  # )
+  #
+  #
+  # mod_scores_brier <- Score(
+  #   list2(!!model := csc_model),
+  #   formula = Surv(time, status) ~ 1,
+  #   data = test_cause,
+  #   metrics = c("Brier"),
+  #   summary = c("ibs", "ipa"),
+  #   # cause = cause,
+  #   # se.fit = FALSE,
+  #   times = eval_times
+  # )
+
+
+  mod_scores <- Score(
+    list2(!!model := csc_model),
+    formula = Surv(time, status) ~ 1,
+    data = test_cause,
+    metrics = c("Brier", "AUC"),
+    summary = c("ibs", "ipa"),
+    # cause = cause,
+    se.fit = FALSE,
+    times = eval_times
+  )
+
+  # result <- mod_scores_auc$AUC$score[mod_scores_brier$Brier$score, on = c("model", "times")]
+  result <- mod_scores$AUC$score[mod_scores$Brier$score, on = c("model", "times")]
+  result <- data.table::melt(result , id.vars = c("model", "times"),
+                             value.name = "score", variable.name = "metric",
+                             meausure.vars = c("AUC", "Brier", "IBS", "IPA"))
+  # Exclude some superfluous output
+  result <- result[!(is.na(score) & model == "Null model"), ]
+  result <- result[!(metric == "IPA" & model == "Null model"), ]
+
   result$cause <- cause
   result
 }
