@@ -39,7 +39,7 @@ if (continue_bt) {
 
 # Problems -----------------------------------------------------------
 addProblem(name = "bladder_geno", fun = get_bladder_data, seed = config$sim_seed, cache = config$sim_cache)
-addProblem(name = "binder_bender", fun = sim_surv_binder, seed = config$sim_seed, cache = config$sim_cache)
+addProblem(name = "binder_bender", fun = sim_surv_binder_resample, seed = config$sim_seed, cache = config$sim_cache)
 
 # Algorithms -----------------------------------------------------------
 addAlgorithm(name = "fwel_mt", fun = fwel_mt_varselect_pred)
@@ -55,7 +55,7 @@ prob_design <- list(
   ),
   binder_bender = expand.grid(
     n_train = 400, n_test = 200, p = 5000,
-    ce = c(0.1, 0.5),
+    ce = c(0.5),
     lambda1 = 0.1, lambda2 = 0.1, lambda_c = 0.1
   )
 )
@@ -89,23 +89,27 @@ summarizeExperiments()
 jobtbl <- unwrap(getJobPars(), c("algo.pars", "prob.pars"))
 
 # Test jobs -----------------------------------------------------------
-# if (interactive()) testJob(id = 200)
 
-# jobtbl[algorithm == "fwel_mt" & type == "clinical"]
-#
-# testJob(3)
+# jobtbl[algorithm == "fwel_mt"]
+
+if (interactive()) {
+  testJob(228)
+  testJob(1885)
+}
+
 
 # Submit -----------------------------------------------------------
 
-#jobtbl[algorithm == "fwel_mt", .SD[sample(.N, 20)], by = c("problem")] |>
-#  submitJobs()
+jobtbl[algorithm == "fwel_mt", .SD[sample(.N, 2)], by = c("problem")] |>
+  findNotSubmitted() |>
+  submitJobs()
 
-jobtbl[, .SD[sample(.N, 3)], by = c("problem", "algorithm")] |>
+jobtbl[, .SD[sample(.N, 10)], by = c("problem", "algorithm")] |>
   submitJobs()
 
 jobtbl[findDone(), .(count = .N), by = algorithm]
 
-submitJobs(findNotSubmitted(jobtbl[algorithm == "fwel_mt"]))
+submitJobs(findNotSubmitted(jobtbl[algorithm == "fwel_mt" & problem == "binder_bender"]))
 submitJobs(findNotSubmitted())
 
 # submitJobs(jobtbl[algorithm == "coxboost"])

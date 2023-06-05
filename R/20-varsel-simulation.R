@@ -181,7 +181,8 @@ sim_surv_binder <- function(job, data,
   Ci <- -log(runif(n)) / lambda_c
 
   ti <- pmin(Ti1, Ti2, Ci)
-  # Censored where either event occurs before censoring time
+  # Censored where neither event occurs before censoring time
+  # if event before censoring time -> TRUE -> integer 1
   di <- as.integer(Ti1 <= Ci | Ti2 <= Ci)
   # Set status == 2 if Ti2 is observed
   di[which(Ti2 <= Ti1 & Ti2 <= Ci)] <- 2
@@ -192,10 +193,11 @@ sim_surv_binder <- function(job, data,
   X <- as.data.frame(X)
   names(X) <- paste0("x", seq_len(p))
   res <- data.frame(time = ti, status = di, X)
+  id_train <- sample.int(n, size = n_train)
 
   list(
-    train = res[seq_len(n_train), ],
-    test = res[-seq_len(n_train), ],
+    train = res[id_train, ],
+    test = res[-c(id_train), ],
     covar_blocks = covar_blocks,
     covar_true_effect = covar_true_effect,
     true_model = list(
@@ -205,6 +207,28 @@ sim_surv_binder <- function(job, data,
   )
 }
 
+sim_surv_binder_resample <- function(job, data, n_train = 400, n_test = 200, ...) {
+  # instance <- sim_surv_binder(job = NULL, data = NULL, n_train = 600, p = 5000, ce = 0.5, lambda1 = 0.1, lambda2 = 0.1, lambda_c = 0.1)
+  # saveRDS(instance, here::here("data/sim_binder.rds"))
+
+  checkmate::assert(n_train + n_test == 600)
+
+  instance <- readRDS(here::here("data/sim_binder.rds"))
+
+  row_ids <- seq_len(nrow(instance$train))
+  train_idx <- sample(row_ids, size = n_train, replace = FALSE)
+  test_idx <- setdiff(row_ids, train_idx)
+
+  # instance$train is the full dataset (n=600), we split it here to train and test
+  instance$train <- instance$train[train_idx, ]
+  instance$test <- instance$train[test_idx, ]
+
+  checkmate::assert(all(dim(instance$train) == c(n_train, 5002)))
+  checkmate::assert(all(dim(instance$test) == c(n_test, 5002)))
+
+  instance
+}
+# sim_surv_binder_resample(job = NULL, data = NULL)
 
 # Debugging and sanity checking -----------------------------------------------------------------------------------
 
