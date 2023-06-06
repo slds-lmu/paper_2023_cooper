@@ -207,13 +207,20 @@ sim_surv_binder <- function(job, data,
   )
 }
 
-sim_surv_binder_resample <- function(job, data, n_train = 400, n_test = 200, ...) {
-  # instance <- sim_surv_binder(job = NULL, data = NULL, n_train = 600, p = 5000, ce = 0.5, lambda1 = 0.1, lambda2 = 0.1, lambda_c = 0.1)
-  # saveRDS(instance, here::here("data/sim_binder.rds"))
+sim_surv_binder_resample <- function(job = NULL, data = NULL, n_train = 400, n_test = 200, ...) {
+  dfile <- here::here("data/sim_binder.rds")
+
+  if (!file.exists(dfile)) {
+    warning("Need to create pre-saved file first!")
+    set.seed(213)
+    instance <- sim_surv_binder(job = NULL, data = NULL, n_train = 600, p = 5000, ce = 0.5, lambda1 = 0.1, lambda2 = 0.1, lambda_c = 0.1)
+    saveRDS(instance, dfile)
+    stop("Done, aborting.")
+  }
 
   checkmate::assert(n_train + n_test == 600)
 
-  instance <- readRDS(here::here("data/sim_binder.rds"))
+  instance <- readRDS(dfile)
 
   row_ids <- seq_len(nrow(instance$train))
   train_idx <- sample(row_ids, size = n_train, replace = FALSE)
