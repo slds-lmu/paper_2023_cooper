@@ -221,17 +221,25 @@ sim_surv_binder_resample <- function(job = NULL, data = NULL, n_train = 400, n_t
   checkmate::assert(n_train + n_test == 600)
 
   instance <- readRDS(dfile)
+  xdat <- instance$train
 
-  row_ids <- seq_len(nrow(instance$train))
+  instance$train <- NULL
+  instance$test <- NULL
+
+  row_ids <- seq_len(nrow(xdat))
   train_idx <- sample(row_ids, size = n_train, replace = FALSE)
   test_idx <- setdiff(row_ids, train_idx)
 
   # instance$train is the full dataset (n=600), we split it here to train and test
-  instance$train <- instance$train[train_idx, ]
-  instance$test <- instance$train[test_idx, ]
+  instance$train <- xdat[train_idx, ]
+  instance$test <- xdat[test_idx, ]
 
   checkmate::assert(all(dim(instance$train) == c(n_train, 5002)))
   checkmate::assert(all(dim(instance$test) == c(n_test, 5002)))
+  checkmate::assert_data_frame(instance$train, any.missing = FALSE)
+  checkmate::assert_data_frame(instance$test, any.missing = FALSE)
+  checkmate::assert_integerish(instance$train$status, lower = 0, upper = 2, any.missing = FALSE)
+  checkmate::assert_integerish(instance$test$status, lower = 0, upper = 2, any.missing = FALSE)
 
   instance
 }
