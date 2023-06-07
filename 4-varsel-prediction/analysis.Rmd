@@ -78,23 +78,26 @@ scores_long |>
 
 ```{r}
 #scores_simdata |>
-scores_bladder |>
+scores_long |>
   #filter(metric %in% c("AUC", "Brier")) |>
   #filter(metric == "IPA") |>
   filter(!is.na(score)) |>
   filter(score <= 1, score >= 0) |>
   #filter(job.id < 100) |> 
-  filter(model != "rfsrc" | mtry == 1000) |>
   filter(model != "coxboost" | (stepno == 100 & penalty == 3000)) |>
   filter(cause == 1) |>
-  group_by(model, times, metric, cause) |>
+  group_by(problem, model, times, metric, cause) |>
+  filter(model != "rfsrc" | mtry == max(mtry)) |>
   summarize(
     mean_score = mean(score),
     upper = mean_score + sd(score),
     lower = mean_score - sd(score)
   ) |>
   ggplot(aes(x = times, y = mean_score, color = model, fill = model)) +
-  facet_grid(rows = vars(cause), cols = vars(metric), labeller = labeller(cause = label_both, metric = label_value)) +
+  facet_grid(
+    rows = vars(metric), cols = vars(problem), labeller = labeller(cause = label_both, metric = label_value),
+    scales = "free"
+  ) +
   #geom_boxplot()
   #geom_point(alpha = .2) +
   #geom_ribbon(aes(ymin = lower, ymax = upper), alpha = .05, linetype = "dashed") +
@@ -175,13 +178,13 @@ scores_long |>
   ) |>
   ggplot(aes(x = times, y = mean_score, color = model, fill = model)) +
   #facet_grid(rows = vars(cause), labeller = labeller(cause = label_both, metric = label_value)) +
-  #geom_boxplot()
-  #geom_point(alpha = .2) +
-  #geom_ribbon(aes(ymin = lower, ymax = upper), alpha = .05, linetype = "dashed") +
+  #geom_point(alpha = .8) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = .05, linetype = "dashed") +
   scale_y_continuous(labels = scales::percent) +
   geom_line(alpha = .5, size = 2) +
   labs(
     title = "Cause 1 prediction performance",
+    subtitle = "Bladder cancer data",
     x = "Event time (t)", y = "Brier Score", color = NULL, fill = NULL
   ))
 
@@ -217,6 +220,7 @@ ggsave(plot = p_brier, filename = "bladder-brier.png", path = "selected-plots", 
   geom_line(alpha = .5, size = 2) +
   labs(
     title = "Cause 1 prediction performance",
+    subtitle = "Bladder cancer data",
     x = "Event time (t)", y = "AUC", color = NULL, fill = NULL
   ))
 
@@ -311,6 +315,7 @@ scores_bladder |>
   geom_line(alpha = .5, size = 2) +
   labs(
     title = "Cause 1 prediction performance",
+    subtitle = "Simulated Setting",
     x = "Event time (t)", y = "Brier Score", color = NULL, fill = NULL
   ))
 
@@ -345,6 +350,7 @@ ggsave(plot = p_brier, filename = "simbinder-brier.png", path = "selected-plots"
   geom_line(alpha = .5, size = 2) +
   labs(
     title = "Cause 1 prediction performance",
+    subtitle = "Simulated Setting",
     x = "Event time (t)", y = "AUC", color = NULL, fill = NULL
   ))
 
