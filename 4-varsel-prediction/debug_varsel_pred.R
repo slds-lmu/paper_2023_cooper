@@ -1,7 +1,7 @@
 # dry run varsel prediction with simulated data
 source(here::here("4-varsel-prediction/get-bladder-data.R"))
 source(here::here("4-varsel-prediction/algorithms.R"))
-source(here::here("R/20-varsel-simulation.R"))
+source(here::here("2-variable-selection-sim/20-varsel-algorithms.R"))
 
 library(fwelnet)
 library(randomForestSRC)

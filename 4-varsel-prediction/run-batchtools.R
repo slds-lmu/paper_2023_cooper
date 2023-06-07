@@ -1,6 +1,6 @@
 source(here::here("4-varsel-prediction/get-bladder-data.R"))
 source(here::here("4-varsel-prediction/algorithms.R"))
-source(here::here("R/20-varsel-simulation.R"))
+source(here::here("2-variable-selection-sim/20-varsel-simulation.R"))
 
 library(batchtools)
 library(randomForestSRC)
@@ -33,7 +33,8 @@ if (continue_bt) {
   unlink(reg_dir, recursive = TRUE)
   makeExperimentRegistry(file.dir = reg_dir, packages = c("randomForestSRC", "CoxBoost", "rlang", "data.table", "riskRegression"),
                          seed = config$global.seed,
-                         source = c(here::here("4-varsel-prediction/algorithms.R"), here::here("R/20-varsel-simulation.R"))
+                         source = c(here::here("4-varsel-prediction/algorithms.R"),
+                                    here::here("2-variable-selection-sim/20-varsel-simulation.R"))
   )
 }
 
@@ -72,7 +73,7 @@ algo_design <- list(
   rfsrc = expand.grid(
     importance = "random",
     cutoff_method = "vita",
-    mtry = 1000,
+    mtry = c(1000, 3000),
     nodesize = 30,
     splitrule = "logrank"
   ),

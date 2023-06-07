@@ -264,7 +264,7 @@ fit_csc <- function(train, test, model, coefs, cause = 1, eval_time_quantiles = 
 
 # Same as fit_csc but use survival::coxph instead of riskRegression::CSC bc weirdly it matters
 fit_csc_coxph <- function(train, test, model, coefs, cause = 1, eval_time_quantiles = seq(0.1, 0.7, .1)) {
-
+  require(rlang)
   train <- data.table::as.data.table(train)
   test <- data.table::as.data.table(test)
 
