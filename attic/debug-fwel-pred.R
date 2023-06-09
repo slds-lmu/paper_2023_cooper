@@ -85,11 +85,22 @@ dtest[, `:=`(X1 = as.integer(X1) - 1, X2 = as.integer(X2) - 1, X3 = as.integer(X
              X4 = as.integer(X4) - 1, X5 = as.integer(X5) - 1)]
 
 # Fit regular CSC as sacrificial model, fit on only 3 predictors
-m_csc = CSC(formula = Hist(time, status) ~ X1 + X2 + X9, data = dtrain, singular.ok = TRUE)
+#m_csc = CSC(formula = Hist(time, status) ~ X1 + X2 + X9, data = dtrain, singular.ok = TRUE)
+
+# Normal c1 copxph instead
+dtrain_c1 <- data.table::copy(dtrain)
+dtrain_c1$status[dtrain_c1$status == 2] <- 0
+
+dtest_c1 <- data.table::copy(dtest)
+dtest_c1$status[dtest_c1$status == 2] <- 0
+m_csc = survival::coxph(formula = Surv(time, status) ~ X1 + X2 + X9, data = dtrain_c1, x = TRUE)
+
+
 
 m_glmet <- m_csc
 
-dummy_model_matrix <- model.matrix(prodlim::Hist(time, status) ~ . -1, data = dtrain)
+#dummy_model_matrix <- model.matrix(prodlim::Hist(time, status) ~ . -1, data = dtrain)
+dummy_model_matrix <- model.matrix(Surv(time, status) ~ . -1, data = dtrain_c1)
 
 # assign object is created from formula, relevant especially if factors are dummy-coded
 # survival::coxph uses attrassign internally to construct that same object
@@ -131,6 +142,12 @@ m_fwelmt <- fwelnet::fwelnet_mt_cox(
   alpha = 1, t = 100, thresh = 1e-7, include_mt_beta_history = TRUE
 )
 
+m_fwelmt$beta1[, 1]
+m_fwelmt$beta1[, 6]
+
+m_fwelmt$beta2[, 1]
+m_fwelmt$beta2[, 6]
+
 # fwelnet_mt model fit includes "final" coefficients per model for fwelnet and underlying original cs-glmnet solution
 m_glmet$models[[1]]$coefficients <- m_fwelmt$beta1[, 1]
 m_glmet$models[[2]]$coefficients <- m_fwelmt$beta2[, 1]
@@ -144,7 +161,7 @@ mod_scores <- Score(
     cs_fwelnet = m_fwelnet
   ),
 
-  formula = Hist(time, status) ~ 1, data = dtest,
+  formula = Surv(time, status) ~ 1, data = dtest_c1,
   times = quantile(dtest$time, probs = seq(.1, .9, .1))
 )
 

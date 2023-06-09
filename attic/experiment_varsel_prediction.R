@@ -10,7 +10,7 @@ library(data.table)
 library(riskRegression)
 
 # Standardize predictors
-standardize <- TRUE
+standardize <- FALSE
 # holdout split ratio
 split <- 2/3
 
@@ -19,6 +19,26 @@ xdat <- prodlim::SimCompRisk(500)
 xdat <- xdat[c("time", "event", "X1", "X2")]
 names(xdat) <- c("time", "status", "X1", "X2")
 xdat <- as.data.table(xdat)
+
+# PBC? too few obs in event 1 apparently
+# xdat <- survival::pbc[, -1]
+# xdat <- as.data.table(xdat)
+# xdat[, sex := as.integer(sex == "m")]
+
+# Follic? https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3375021/ ----
+# data(follic, package = "randomForestSRC")
+# follic <- as.data.table(follic)
+# follic[, ch := as.integer(ch) - 1]
+# follic[, rt := as.integer(rt) - 1]
+# follic[, rt := NULL] # constant, wtf
+#
+# table(follic$status)
+# table(follic$ch)
+# table(follic$rt)
+#
+# xdat <- follic
+
+# Commence the common data prep stuff ----
 
 # Filter missings if necessary, cry if it breaks everything
 xdat <- na.omit(xdat)
@@ -33,7 +53,7 @@ names(xdat) <- gsub(" ", "", names(xdat))
 check_status <- function(xs) {
   tab <- as.integer(table(xs))
   mtab <- rbind(events = tab, prop = 100 * round(tab/sum(tab), 2))
-  colnames(mtab) <- unique(xs)
+  colnames(mtab) <- names(table(xs))
   mtab <- cbind(mtab, sum = rowSums(mtab))
   print(mtab)
 }
@@ -54,9 +74,12 @@ dim(xdat)
 train <- xdat[ , .SD[sample(.N, size = round(split * .N), replace = FALSE)], by = status]
 test <- xdat[setdiff(row_id, train$row_id), ]
 checkmate::assert_set_equal(union(train$row_id, test$row_id), xdat$row_id)
+checkmate::assert(identical(intersect(train$row_id, test$row_id), integer(0)))
 checkmate::assert_true(length(setdiff(train$time, test$time)) == length(train$time))
 check_status(train$status)
 check_status(test$status)
+range(train$time)
+range(test$time)
 
 # Remove row_ids so we don't accidentally standardize or train on them,
 # but store them to triple check sampling works as expected
@@ -86,7 +109,7 @@ checkmate::assert_count(nrow(train), positive = TRUE)
 checkmate::assert_count(nrow(test), positive = TRUE)
 checkmate::assert_true(ncol(train) == ncol(test))
 checkmate::assert_true(nrow(train) + nrow(test) == nrow(xdat))
-checkmate::assert_set_equal(setdiff(train$time, test$time), train$time)
+#checkmate::assert_set_equal(setdiff(train$time, test$time), train$time)
 
 # create instance object for batchtools pipeline
 test_instance <- list(
@@ -94,8 +117,8 @@ test_instance <- list(
 )
 
 # Fit fwelnet (incl glmnet)  ----
-# coxph prediction on selected vars is part of the pipeline alread
 
+# coxph prediction on selected vars is part of the pipeline here
 fwfit <- fwel_mt_varselect_pred(
   data = NULL, job = NULL,
   instance = test_instance,
@@ -103,7 +126,9 @@ fwfit <- fwel_mt_varselect_pred(
   mt_max_iter = 2,
   a = 0.5,
   t = 100,
-  thresh = 1e-7
+  thresh = 1e-7,
+  stratify_by_status = TRUE,
+  nfolds = 3
 )
 
 # Estimated coefs from cause-specific models based on either algorithm
@@ -135,3 +160,26 @@ fwfit$scores |>
   ) +
   theme_minimal(base_size = 14) +
   theme(legend.position = "bottom", plot.title.position = "plot")
+
+# direct prediciton somehow? ----
+
+# fit multi-task fwelnet / cooper thingy
+fit <- fwelnet::fwelnet_mt_cox(
+  test_instance$train,
+  alpha = 1,
+  mt_max_iter = 3,
+  a = 0.5,
+  t = 100,
+  thresh = 1e-7,
+  stratify_by_status = TRUE,
+  nfolds = 5,
+  include_mt_beta_history = TRUE
+)
+
+# Extract coefficients, first col is initial cause-specific glmnet fit
+glmnet_beta1 <- fit$beta1[, 1]
+glmnet_beta2 <- fit$beta2[, 1]
+# Same for fwelnet estimates, last col are final coefs
+fwel_beta1 <- fit$beta1[, ncol(fit$beta1)]
+fwel_beta2 <- fit$beta2[, ncol(fit$beta2)]
+
