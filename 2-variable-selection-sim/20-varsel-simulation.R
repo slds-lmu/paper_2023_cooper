@@ -193,7 +193,12 @@ sim_surv_binder <- function(job, data,
   X <- as.data.frame(X)
   names(X) <- paste0("x", seq_len(p))
   res <- data.frame(time = ti, status = di, X)
-  id_train <- sample.int(n, size = n_train)
+
+  if (n_test > 0) {
+    id_train <- sample.int(n, size = n_train)
+  } else {
+    id_train = seq_len(n_train)
+  }
 
   list(
     train = res[id_train, ],
@@ -252,7 +257,7 @@ if (FALSE) {
   library(dplyr)
   n <- 400
 
-  xdat <- sim_surv_binder(n_train = n, p = 5000)
+  xdat <- sim_surv_binder(n_train = n, p = 5000, lambda1 = 0.1, lambda2 = 0.1, lambda_c = 0.1)
 
   xsum <- purrr::map_df(1:100, ~{
     status <- sim_surv_binder(n_train = n, p = 5000, lambda1 = 0.1, lambda2 = 0.1)$train$status
@@ -283,6 +288,56 @@ if (FALSE) {
   #     sim_surv_binder(n = n, p = p)
   #   )
   # )
+
+}
+
+
+if (FALSE) {
+
+  res <- expand.grid(
+    iter = 1:100,
+    p = 500, n = 400,
+    lambda1 = c(0.1, 0.05),
+    lambda2  = c(0.1, 0.05),
+    lambda_c = c(0.1, 0.05)
+  ) |>
+  purrr::pmap(function(iter, p, n, lambda1, lambda2, lambda_c) {
+    status <- sim_surv_binder(n_train = n, p = p, lambda1 = lambda1, lambda2 = lambda2, lambda_c = lambda_c)$train$status
+
+    data.frame(
+      rep = iter,
+      table(status),
+      n = n, p = p, lambda1 = lambda1, lambda2 = lambda2, lambda_c = lambda_c
+    )
+
+  }) |>
+    data.table::rbindlist()
+
+
+  res_summary <- res |>
+    group_by(status, n, p, lambda1, lambda2, lambda_c) |>
+    summarize(
+      freq_min = min(Freq),
+      freq_mean = mean(Freq),
+      freq_max = max(Freq),
+      prop_min = min(Freq/n),
+      prop_mean = mean(Freq/n),
+      prop_max = max(Freq/n),
+      .groups = "keep"
+    )
+
+  res_summary |>
+    group_by(status) |>
+    dplyr::filter(lambda1 < 0.1 & lambda2 == 0.1 & lambda_c == 0.1) |>
+    mutate(across(starts_with("prop"), \(x) scales::label_percent(accuracy = .1)(x))) |>
+    transmute(
+      n = glue::glue("{freq_mean} ({freq_min} - {freq_max})"),
+      prop = glue::glue("{prop_mean} ({prop_min} - {prop_max})")
+    ) |>
+    kableExtra::kable(format = "latex") |>
+    kableExtra::kable_styling() |> clipr::write_clip()
+
+
 
 }
 
