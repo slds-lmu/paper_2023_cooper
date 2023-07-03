@@ -1,3 +1,6 @@
+# Outdated version using bimj2384-sup-0001-suppmat/simulation/case_study.R
+# No longer in use but kept for reference just in case
+
 load(here::here("data-raw/tumor.Rdata"))
 load(here::here("data-raw/geno_data.Rdata"))
 
@@ -112,6 +115,8 @@ if (FALSE) {
   table(clin$grade)
   table(clin$stage)
   table(clin$cens)
+
+  table(surv_clin$status)
 
   clin |>
     dplyr::select(AGE, SEX, grade, stage) |>

@@ -2,14 +2,20 @@ get_bladder_data <- function(job = NULL, data = NULL, split = 2/3, standardize =
 
   bladder_file <- switch(
     as.character(type),
-    "clinical" = here::here("data/bladder_surv_clinical.rds"),
-    "geno" = here::here("data/bladder_surv_geno.rds"),
-    "both" = here::here("data/bladder_surv_clin_geno.rds")
+    "clinical" = here::here("data/bladder-binder-clinical.rds"),
+    "geno" = here::here("data/bladder-binder-geno.rds"),
+    "both" = here::here("data/bladder-binder-clinical_geno.rds")
+
+    # old versions
+    # "clinical" = here::here("data/bladder_surv_clinical.rds"),
+    # "geno" = here::here("data/bladder_surv_geno.rds"),
+    # "both" = here::here("data/bladder_surv_clin_geno.rds")
   )
 
   if (!file.exists(bladder_file)) {
     message("Recreating bladder dataset from bladder-data-prep.R")
-    source(here::here("4-varsel-prediction/bladder-data-prep.R"))
+    #source(here::here("4-varsel-prediction/bladder-data-prep.R"))
+    source(here::here("4-varsel-prediction/preprocess-orig-binder.R"))
   }
   bladder_surv <- readRDS(bladder_file)
 
@@ -22,7 +28,7 @@ get_bladder_data <- function(job = NULL, data = NULL, split = 2/3, standardize =
   train <- bladder_surv[ , .SD[sample(.N, size = round(split * .N), replace = FALSE)], by = status]
   test <- bladder_surv[setdiff(row_id, train$row_id), ]
   checkmate::assert_set_equal(union(train$row_id, test$row_id), bladder_surv$row_id)
-  checkmate::assert_true(length(setdiff(train$time, test$time)) == length(train$time))
+  #checkmate::assert_true(length(setdiff(train$time, test$time)) == length(train$time)) # non-unique time points
 
   # Remove row_ids so we don't accidentally standardize or train on them,
   # but store them to triple check sampling works as expected
@@ -51,7 +57,7 @@ get_bladder_data <- function(job = NULL, data = NULL, split = 2/3, standardize =
   checkmate::assert_count(nrow(test), positive = TRUE)
   checkmate::assert_true(ncol(train) == ncol(test))
   checkmate::assert_true(nrow(train) + nrow(test) == nrow(bladder_surv))
-  checkmate::assert_set_equal(setdiff(train$time, test$time), train$time)
+  # checkmate::assert_set_equal(setdiff(train$time, test$time), train$time)
 
   status_distr_orig <- prop.table(table(bladder_surv$status))
   status_distr_train <- prop.table(table(train$status))
@@ -74,4 +80,10 @@ get_bladder_data <- function(job = NULL, data = NULL, split = 2/3, standardize =
 if (FALSE) {
   get_bladder_data(standardize = FALSE, type = "clinical")
   get_bladder_data(standardize = TRUE, type = "clinical")
+
+  get_bladder_data(standardize = FALSE, type = "geno")
+  get_bladder_data(standardize = TRUE, type = "geno")
+
+  get_bladder_data(standardize = FALSE, type = "both")
+  get_bladder_data(standardize = TRUE, type = "both")
 }
