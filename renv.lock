@@ -772,14 +772,14 @@
     },
     "fwelnet": {
       "Package": "fwelnet",
-      "Version": "0.1.0.9004",
+      "Version": "0.1.0.9006",
       "Source": "GitHub",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
       "RemoteUsername": "jemus42",
       "RemoteRepo": "fwelnet",
       "RemoteRef": "master",
-      "RemoteSha": "1d712684d437d8a7e3fc29095b1c496609366530",
+      "RemoteSha": "c03da9776c53dbf0590539506fe419e5a3b28b2b",
       "Requirements": [
         "Matrix",
         "checkmate",
@@ -787,7 +787,7 @@
         "glmnet",
         "survival"
       ],
-      "Hash": "62873bbd84f593b05895a4063c9a1754"
+      "Hash": "4df3aeccb4e41888903d16b26e88d363"
     },
     "generics": {
       "Package": "generics",
