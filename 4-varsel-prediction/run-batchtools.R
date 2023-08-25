@@ -103,22 +103,23 @@ jobtbl <- unwrap(getJobPars(), c("algo.pars", "prob.pars"))
 
 # Submit -----------------------------------------------------------
 
-testJob(3)
-testJob(439)
-testJob(684)
+if (FALSE) {
+  testJob(3)
+  testJob(439)
+  testJob(684)
 
-jobtbl[algorithm == "fwel_mt", .SD[sample(.N, 5)], by = c("type")] |>
-  findNotSubmitted() |>
-  submitJobs()
+  jobtbl[algorithm == "fwel_mt", .SD[sample(.N, 5)], by = c("type")] |>
+    findNotSubmitted() |>
+    submitJobs()
 
+  jobtbl[, .SD[sample(.N, 10)], by = c("problem", "algorithm")] |>
+    findNotSubmitted() |>
+    submitJobs()
 
-jobtbl[, .SD[sample(.N, 10)], by = c("problem", "algorithm")] |>
-  findNotSubmitted() |>
-  submitJobs()
+  jobtbl[findDone(), .(count = .N), by = algorithm]
+}
 
-jobtbl[findDone(), .(count = .N), by = algorithm]
-
-submitJobs(findNotSubmitted(jobtbl[algorithm == "fwel_mt" & problem == "binder_bender"]))
+submitJobs(findNotSubmitted(jobtbl[algorithm == "fwel_mt"]))
 submitJobs(findNotSubmitted())
 
 # submitJobs(jobtbl[algorithm == "coxboost"])
@@ -127,7 +128,7 @@ submitJobs(findNotSubmitted())
 
 
 # Monitor jobs ------------------------------------------------------------
-if (interactive()) {
+if (FALSE) {
   getStatus()
 
   ijoin(
