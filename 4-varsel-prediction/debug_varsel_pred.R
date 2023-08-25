@@ -10,10 +10,10 @@ library(ggplot2)
 library(data.table)
 library(riskRegression)
 
-instance <- sim_surv_binder(n_train = 600, n_test = 400, p = 5000, ce = 0.5, lambda1 = 0.1, lambda2 = 0.1, lambda_c = 0.1)
+# instance <- sim_surv_binder(n_train = 600, n_test = 400, p = 5000, ce = 0.5, lambda1 = 0.1, lambda2 = 0.1, lambda_c = 0.1)
 # table(instance$train$status) |> (\(x) {print(x); cat("\n"); x})() |> as.numeric() |> summary()
-# set.seed(21537)
-# instance <- get_bladder_data(type = "both", split = 2/3)
+set.seed(21537)
+instance <- get_bladder_data(type = "both", split = 2/3)
 table(instance$train$status) |> (\(x) {print(x); cat("\n"); x})() |> as.numeric() |> summary()
 table(instance$test$status) |> (\(x) {print(x); cat("\n"); x})() |> as.numeric() |> summary()
 
@@ -35,7 +35,9 @@ check_status(instance$test$status)
 # survfit(Surv(time, status) ~ 1, data = xdf) |> plot()
 
 # from fwel_mt_varselect_pred ----
-set.seed(21537)
+set.seed(21537) # known good
+set.seed(2153)
+
 tictoc::tic()
 mt_max_iter <- 2
 fit <- fwelnet::fwelnet_mt_cox(
@@ -98,6 +100,7 @@ if (setequal(names(fw_coefs$fwelnet$cause1), names(fw_coefs$glmnet$cause1))) {
 
 fit_csc(instance$train, instance$test, model = "fwelnet", coefs = fw_coefs$fwelnet$cause1, cause = 1)
 
+fit_csc_coxph(instance$train, instance$test, model = "fwelnet", coefs = fw_coefs$fwelnet$cause1, cause = 1)
 
 # from fit_csc
 
