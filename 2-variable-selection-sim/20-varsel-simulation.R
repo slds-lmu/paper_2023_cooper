@@ -257,7 +257,8 @@ if (FALSE) {
   library(dplyr)
   n <- 400
 
-  xdat <- sim_surv_binder(n_train = n, p = 5000, lambda1 = 0.1, lambda2 = 0.1, lambda_c = 0.1)
+  xdat <- sim_surv_binder(n_train = n, p = 5000, lambda1 = 0.01, lambda2 = 0.1, lambda_c = 0.1)
+  table(xdat$train$status)
 
   xsum <- purrr::map_df(1:100, ~{
     status <- sim_surv_binder(n_train = n, p = 5000, lambda1 = 0.1, lambda2 = 0.1)$train$status

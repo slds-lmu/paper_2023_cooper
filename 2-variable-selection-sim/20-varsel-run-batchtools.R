@@ -16,7 +16,7 @@ continue_bt <- TRUE
 
 # Registry ----------------------------------------------------------------
 if (!file.exists(here::here("registries"))) dir.create(here::here("registries"))
-reg_name <- "fwel_sim_varsel"
+reg_name <- "fwel_sim_varsel_2309"
 reg_dir <- here::here("registries", reg_name)
 
 if (continue_bt) {
@@ -42,8 +42,8 @@ prob_design <- list(
     n_train = 400,
     p = 5000,
     ce = 0.5,
-    lambda1 = 0.1,
-    lambda2 = c(0.1, 0.01),
+    lambda1 = c(0.1, 0.01),
+    lambda2 = c(0.1),
     lambda_c = 0.1
   )
 )
