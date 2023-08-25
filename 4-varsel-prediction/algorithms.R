@@ -8,14 +8,17 @@ fwel_mt_varselect_pred <- function(
     t = 100,
     a = 0.5,
     thresh = 1e-7,
-    stratify_by_status = TRUE, nfolds = 10
+    stratify_by_status = TRUE,
+    nfolds = 10
 ) {
 
-  checkmate::assert_numeric(alpha)
+  checkmate::assert_number(alpha)
   checkmate::assert_int(mt_max_iter)
   checkmate::assert_int(t)
   checkmate::assert_numeric(a)
   checkmate::assert_numeric(thresh)
+
+  # instance <- get_bladder_data(job = NULL, data = NULL, split = 2/3, standardize = TRUE, type = "clinical")
 
   fit <- fwelnet::fwelnet_mt_cox(
     as.data.frame(instance$train),
@@ -25,6 +28,8 @@ fwel_mt_varselect_pred <- function(
     t = t,
     a = a,
     thresh = thresh,
+    stratify_by_status = TRUE,
+    nfolds = nfolds,
     include_mt_beta_history = TRUE
   )
 
