@@ -108,6 +108,9 @@ names(clinical) <- c("time", "status", "age", "female", "T1", "gradehigh")
 stopifnot("NAs left in clinical data" = !any(sapply(clinical, \(x) sum(is.na(x))) > 0))
 stopifnot("NAs left in genetic data" = !any(sapply(exprmat, \(x) sum(is.na(x))) > 0))
 
+# Adjust event time == 0 to be very small instead, affects 1 obs only
+clinical$time[which(clinical$time == 0)] <- 0.001
+
 # Clinical only
 saveRDS(clinical, file = here::here("data", "bladder-binder-clinical.rds"))
 # saveRDS(rawclinical, file = here::here("data", "bladder-binder-rawclinical.rds"))

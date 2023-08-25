@@ -13,7 +13,7 @@ config <- list(
   global_seed = 563,
   sim_seed = 569,
   sim_cache = FALSE,
-  repls = 500
+  repls = 100
 )
 
 set.seed(config$global_seed)
@@ -22,7 +22,7 @@ continue_bt <- FALSE
 
 # Registry ----------------------------------------------------------------
 if (!file.exists(here::here("registries"))) dir.create(here::here("registries"))
-reg_name <- "fwel_sim_varsel_predict"
+reg_name <- "fwel_sim_varsel_predict_2309"
 reg_dir <- here::here("registries", reg_name)
 
 if (continue_bt) {
@@ -34,13 +34,14 @@ if (continue_bt) {
   makeExperimentRegistry(file.dir = reg_dir, packages = c("randomForestSRC", "CoxBoost", "rlang", "data.table", "riskRegression"),
                          seed = config$global.seed,
                          source = c(here::here("4-varsel-prediction/algorithms.R"),
+                                    here::here("4-varsel-prediction/get-bladder-data.R"),
                                     here::here("2-variable-selection-sim/20-varsel-simulation.R"))
   )
 }
 
 # Problems -----------------------------------------------------------
 addProblem(name = "bladder_geno", fun = get_bladder_data, seed = config$sim_seed, cache = config$sim_cache)
-addProblem(name = "binder_bender", fun = sim_surv_binder_resample, seed = config$sim_seed, cache = config$sim_cache)
+#addProblem(name = "binder_bender", fun = sim_surv_binder_resample, seed = config$sim_seed, cache = config$sim_cache)
 
 # Algorithms -----------------------------------------------------------
 addAlgorithm(name = "fwel_mt", fun = fwel_mt_varselect_pred)
@@ -52,19 +53,20 @@ addAlgorithm(name = "coxboost", fun = coxboost_varselect_pred)
 prob_design <- list(
   bladder_geno = expand.grid(
     split = 2/3, standardize = TRUE,
-    type = "both" # c("clinical", "geno", "both")
-  ),
-  binder_bender = expand.grid(
-    n_train = 400, n_test = 200, p = 5000,
-    ce = c(0.5),
-    lambda1 = 0.1, lambda2 = 0.1, lambda_c = 0.1
+    type = c("clinical", "both") # c("clinical", "geno", "both")
   )
+  # ,
+  # binder_bender = expand.grid(
+  #   n_train = 400, n_test = 200, p = 5000,
+  #   ce = c(0.5),
+  #   lambda1 = 0.1, lambda2 = 0.1, lambda_c = 0.1
+  # )
 )
 
 algo_design <- list(
   fwel_mt = expand.grid(
     mt_max_iter = 3,
-    alpha = 1,
+    alpha = c(1, 0.75),
     t = 100,
     thresh = 1e-7,
     stratify_by_status = TRUE,
@@ -73,13 +75,13 @@ algo_design <- list(
   rfsrc = expand.grid(
     importance = "random",
     cutoff_method = "vita",
-    mtry = c(1000, 3000),
+    mtry = c(1000),
     nodesize = 30,
     splitrule = "logrank"
   ),
   coxboost = expand.grid(
     cmprsk = "csh",
-    stepno = 100, # c(100, 300),
+    stepno = 117, # c(100, 300), # 117 is what binder et al report for bladder data
     penalty = 3000 # c(1000, 3000)
   )
 )
@@ -101,9 +103,14 @@ jobtbl <- unwrap(getJobPars(), c("algo.pars", "prob.pars"))
 
 # Submit -----------------------------------------------------------
 
-jobtbl[algorithm == "fwel_mt", .SD[sample(.N, 2)], by = c("problem")] |>
+testJob(3)
+testJob(439)
+testJob(684)
+
+jobtbl[algorithm == "fwel_mt", .SD[sample(.N, 5)], by = c("type")] |>
   findNotSubmitted() |>
   submitJobs()
+
 
 jobtbl[, .SD[sample(.N, 10)], by = c("problem", "algorithm")] |>
   findNotSubmitted() |>
