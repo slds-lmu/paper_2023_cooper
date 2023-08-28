@@ -1,0 +1,105 @@
+---
+title: "Simulation Results: Prediction Performance"
+author: "Lukas"
+date: "`r Sys.time()`"
+output: 
+  html_document: 
+    fig_width: 11
+    fig_height: 9
+    self_contained: no
+    code_folding: hide
+    toc: true
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(batchtools)
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+library(kableExtra)
+library(data.table)
+
+reg_name <- "fwel_sim_prediction"
+reg_dir <- here::here("registries", reg_name)
+loadRegistry(reg_dir)
+
+theme_set(
+  theme_minimal(base_size = 16) +
+  theme(
+    legend.position = "bottom", 
+    panel.spacing = unit(10, "mm"), 
+    plot.title.position = "plot"
+  )
+)
+
+res <-  ijoin(reduceResultsDataTable(), flatten(getJobPars()))
+
+# batchtools::unwrap() doesn't work, so quick tidyr-detour circling back to data.table
+res_long <- tidyr::unnest(res, "result") |> 
+  as.data.table()
+
+# Make threshold scientific notation for consistency, it's a character then though.
+res_long[, thresh := format(thresh, scientific = TRUE)]
+```
+
+# Job Overview
+
+```{r get-results, cache = TRUE}
+jobs_total <- nrow(getJobTable())
+jobs_completed <- 100 * nrow(res)/jobs_total
+jobs_errored <- 100 * nrow(findErrors())/jobs_total
+
+res |>
+  count(algorithm, problem, t, thresh) |>
+  kable(caption = glue::glue("Finished jobs ({jobs_total} total, {jobs_completed}% completed, {jobs_errored}% errored)")) |>
+  kable_styling()
+```
+
+
+```{r runtime-plot, fig.height=5, fig.width=7}
+getJobTable() |>
+  unwrap() |>
+  #select(time.running, problem) |>
+  mutate(time.running = as.double(time.running, units = "mins")) |>
+  group_by(algorithm, problem, thresh = format(thresh, scientific = TRUE)) |>
+  summarize(
+    min = min(time.running, na.rm = TRUE),
+    mean = mean(time.running, na.rm = TRUE),
+    median = median(time.running, na.rm = TRUE),
+    max = max(time.running, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  mutate(across(where(is.numeric), round, 1)) |>
+  kable(caption = "Job runtime (mins)") |>
+  kable_styling()
+```
+
+# Evaluation
+
+## Brier Score
+
+```{r plot-brier-td}
+res_long |>
+  #filter(job.id == 1) |>
+  filter(Brier < .3, Brier > 0) |>
+  ggplot(aes(x = times, y = Brier, color = model, group = job.id)) +
+  facet_wrap(vars(thresh, model)) +
+  geom_path(alpha = .75)
+```
+
+## Auc
+
+```{r plot-auc-td}
+res_long |>
+  #filter(job.id == 1) |>
+  filter(model != "Null model") |>
+  ggplot(aes(x = times, y = AUC, color = model, fill = model, group = job.id)) +
+  facet_wrap(vars(thresh, model)) +
+  #geom_ribbon(aes(ymin = AUC_lower, ymax = AUC_upper), alpha = .1, size = .25)
+  geom_path(alpha = .75)
+```
+

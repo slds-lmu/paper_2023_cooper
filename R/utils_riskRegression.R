@@ -15,7 +15,7 @@ cleanup_score <- function(scores) {
 
 #' Refit a GLMnet with riskRegression using the same predictors and lambda as a cooper fit.
 #' @param cooperfit A model fit of class `"cooper"`
-refit_glmnet <- function(cooperfit, xnew, event = 1) {
+refit_glmnet <- function(cooperfit, xnew, event = 1, alpha = 1) {
   checkmate::assert_class(cooperfit, "cooper")
   checkmate::assert_int(event, lower = 1)
 
@@ -33,6 +33,6 @@ refit_glmnet <- function(cooperfit, xnew, event = 1) {
     data = xnew,
     lambda = cooperfit$initial_fits[[event]]$lambda.min,
     cv = FALSE,
-    standardize = TRUE, alpha = 1
+    standardize = TRUE, alpha = alpha
   )
 }
