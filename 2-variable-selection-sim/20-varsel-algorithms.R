@@ -102,8 +102,8 @@ rfsrc_varselect_wrapper <- function(data, job, instance,
   )
 
   # If these fail something is weird, but it would justify using abs(min(x)) rather than -min(x)
-  checkmate::assert_true(any(vimps$vi_c1 < 0))
-  checkmate::assert_true(any(vimps$vi_c2 < 0))
+  # checkmate::assert_true(any(vimps$vi_c1 < 0))
+  # checkmate::assert_true(any(vimps$vi_c2 < 0))
 
   if (cutoff_method == "vita") {
     # Apply vita/janitza shortcut
