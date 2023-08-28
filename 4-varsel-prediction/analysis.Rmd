@@ -23,9 +23,9 @@ library(dplyr)
 library(kableExtra)
 library(data.table)
 
-reg_name <- "fwel_sim_varsel_predict"
+reg_name <- "fwel_sim_varsel_predict_2309"
 reg_dir <- here::here("registries", reg_name)
-loadRegistry(reg_dir)
+loadRegistry(reg_dir, writeable = FALSE)
 
 theme_set(
   theme_minimal(base_size = 16) +
@@ -56,12 +56,17 @@ res |>
 scores_long <- tidyr::hoist(res, "result", "scores") |>
   tidyr::unnest("scores")
 
+#tbl_coefs <- tidyr::hoist(res, "result", "coefs") |>
+#  tidyr::unnest("scores")
 
-scores_simdata <- scores_long |> 
-  filter(problem == "binder_bender")
+#res$result[[1]]$coefs
+
+
+#scores_simdata <- scores_long |> 
+#  filter(problem == "binder_bender")
 
 scores_bladder <- scores_long |> 
-  filter(problem == "bladder_geno")
+  filter(problem == "bladder_geno", is.na(alpha) | alpha == 1)
 
 ```
 
@@ -78,31 +83,34 @@ scores_long |>
 
 ```{r}
 #scores_simdata |>
-scores_long |>
-  #filter(metric %in% c("AUC", "Brier")) |>
+scores_bladder |>
+  filter(metric %in% c("AUC", "Brier")) |>
   #filter(metric == "IPA") |>
   filter(!is.na(score)) |>
   filter(score <= 1, score >= 0) |>
-  #filter(job.id < 100) |> 
-  filter(model != "coxboost" | (stepno == 100 & penalty == 3000)) |>
   filter(cause == 1) |>
-  group_by(problem, model, times, metric, cause) |>
-  filter(model != "rfsrc" | mtry == max(mtry)) |>
+  #filter(model != "coxboost" | (stepno == 100 & penalty == 3000)) |>
+  #filter(model != "rfsrc" | mtry == max(mtry)) |>
+  #filter((model %in% c("fwelnet", "glmnet")) | alpha == 1) |>
+  group_by(problem, model, times, metric, cause, type) |>
   summarize(
     mean_score = mean(score),
     upper = mean_score + sd(score),
-    lower = mean_score - sd(score)
+    lower = mean_score - sd(score),
+    .groups = "drop"
+  ) |>
+  mutate(type = case_when(
+    type == "clinical" ~ "Clinical", 
+    type == "both" ~ "Clinical + Gene Expr.")
   ) |>
   ggplot(aes(x = times, y = mean_score, color = model, fill = model)) +
   facet_grid(
-    rows = vars(metric), cols = vars(problem), labeller = labeller(cause = label_both, metric = label_value),
+    rows = vars(metric), cols = vars(type), labeller = labeller(cause = label_both, metric = label_value),
     scales = "free"
   ) +
-  #geom_boxplot()
-  #geom_point(alpha = .2) +
-  #geom_ribbon(aes(ymin = lower, ymax = upper), alpha = .05, linetype = "dashed") +
-  geom_line(alpha = .5, size = 2)
-  #geom_smooth(se = FALSE)
+  geom_point(alpha = .2) +
+  geom_line(alpha = .5, size = 2) +
+  scale_y_continuous(labels = scales::percent)
 ```
 
 RFSRC only: `mtry = 1000` works best.
@@ -162,30 +170,37 @@ scores_long |>
 
 ```{r}
 (p_brier <- scores_bladder |>
-  filter(type == "both") |>
+  #filter(type == "both") |>
   filter(metric == "Brier") |>
   filter(!is.na(score)) |>
   filter(score <= 1, score >= 0) |>
-  filter(model != "rfsrc" | mtry == 3000) |>
-  filter(model != "coxboost" | (stepno == 100 & penalty == 3000)) |>
+  #filter(model == "fwelnet") |>
+  #filter(model != "rfsrc" | mtry == 3000) |>
+  #filter(model != "coxboost" | (stepno == 100 & penalty == 3000)) |>
   filter(cause == 1) |>
-  group_by(model, times, metric, cause) |>
+  group_by(model, times, metric, cause, type) |>
   summarize(
-    mean_score = mean(score),
+    mean_score = median(score),
     upper = mean_score + sd(score),
     lower = mean_score - sd(score),
     .groups = "drop"
   ) |>
+   mutate(type = case_when(
+     type == "clinical" ~ "Clinical", 
+     type == "both" ~ "Clinical + Gene Expr.")
+   ) |>
   ggplot(aes(x = times, y = mean_score, color = model, fill = model)) +
   #facet_grid(rows = vars(cause), labeller = labeller(cause = label_both, metric = label_value)) +
+  facet_wrap(vars(type)) +
   #geom_point(alpha = .8) +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = .05, linetype = "dashed") +
+  scale_color_brewer(palette = "Dark2") +
   scale_y_continuous(labels = scales::percent) +
   geom_line(alpha = .5, size = 2) +
   labs(
-    title = "Cause 1 prediction performance",
-    subtitle = "Bladder cancer data",
-    x = "Event time (t)", y = "Brier Score", color = NULL, fill = NULL
+    #title = "Cause 1 prediction performance",
+    #subtitle = "Bladder cancer data",
+    x = "Event time (t)", y = "Brier Score [%]", color = NULL, fill = NULL
   ))
 
 ggsave(plot = p_brier, filename = "bladder-brier.pdf", path = "selected-plots", width = 9, height = 7)

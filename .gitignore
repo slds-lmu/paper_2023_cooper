@@ -58,3 +58,4 @@ fwelnet_cr_sim*.tgz
 # Until everything is finalized
 selected-plots/*png
 selected-plots/*pdf
+batchtools.conf.R
