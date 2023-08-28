@@ -1,5 +1,3 @@
-source(here::here("R/utils_riskRegression.R"))
-
 # Prediction ------------------------------------------------------------------------------------------------------
 
 fwel_mt_prediction_wrapper <- function(

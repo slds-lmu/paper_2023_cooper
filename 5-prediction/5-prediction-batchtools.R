@@ -1,7 +1,7 @@
 source(here::here("4-varsel-prediction/get-bladder-data.R"))
 source(here::here("2-variable-selection-sim/20-varsel-simulation.R"))
 source(here::here("5-prediction/5-prediction-wrapper.R"))
-
+source(here::here("R/utils_riskRegression.R"))
 
 library(batchtools)
 library(survival)
@@ -21,12 +21,16 @@ config <- list(
 if (!file.exists(here::here("registries"))) dir.create(here::here("registries"))
 reg_name <- "5-prediction"
 reg_dir <- here::here("registries", reg_name)
+
+warning("Deleting registry!")
 unlink(reg_dir, recursive = TRUE)
+
 makeExperimentRegistry(file.dir = reg_dir, packages = c("randomForestSRC", "CoxBoost", "data.table", "riskRegression"),
                        seed = config$global.seed,
                        source = c(here::here("4-varsel-prediction/algorithms.R"),
                                   here::here("4-varsel-prediction/get-bladder-data.R"),
-                                  here::here("2-variable-selection-sim/20-varsel-simulation.R"))
+                                  here::here("2-variable-selection-sim/20-varsel-simulation.R"),
+                                  here::here("R/utils_riskRegression.R"))
 )
 # Problems -----------------------------------------------------------
 addProblem(name = "sim_surv_binder", fun = sim_surv_binder, seed = config$sim_seed, cache = config$sim_cache)
@@ -77,7 +81,7 @@ algo_design <- list(
 
 addExperiments(prob_design, algo_design, repls = config$repls)
 summarizeExperiments()
-unwrap(getJobPars(), c("algo.pars", "prob.pars"))#[algorithm == "fwel_mt" & problem == "bladder_geno",]
+jobtbl <- unwrap(getJobPars(), c("algo.pars", "prob.pars"))
 
 # Test jobs -----------------------------------------------------------
 if (FALSE) {
@@ -87,9 +91,10 @@ if (FALSE) {
 
 # Submit -----------------------------------------------------------
 
-ids <- findNotStarted()
-submitJobs(ids = ids)
-# waitForJobs()
+
+submitJobs(findNotSubmitted(jobtbl[algorithm == "fwel_mt"]))
+submitJobs(findNotSubmitted())
+
 
 
 # Monitor jobs ------------------------------------------------------------
