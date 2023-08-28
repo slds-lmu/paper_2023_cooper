@@ -58,7 +58,8 @@ for (current_reg in reg_name) {
     cli::cli_h2("Errors: {current_reg}")
     tbl_errors <- tbl_errors[, c("job.id", "time.running", "problem", "algorithm")]
     print(tbl_errors[, .(count = .N), by = algorithm])
-    print(getErrorMessages(findErrors(reg = reg), reg = reg))
+
+    print(getErrorMessages(findErrors(reg = reg), reg = reg)[, "message"])
   }
 
 }
