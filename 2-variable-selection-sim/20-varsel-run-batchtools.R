@@ -1,3 +1,6 @@
+source(here::here("2-variable-selection-sim/20-varsel-simulation.R"))
+source(here::here("2-variable-selection-sim/20-varsel-algorithms.R"))
+
 library(batchtools)
 library(randomForestSRC)
 library(CoxBoost)
@@ -12,7 +15,7 @@ config <- list(
 
 set.seed(config$global_seed)
 # Set to FALSE to remove + recreate registry
-continue_bt <- TRUE
+continue_bt <- FALSE
 
 # Registry ----------------------------------------------------------------
 if (!file.exists(here::here("registries"))) dir.create(here::here("registries"))
@@ -23,8 +26,13 @@ if (continue_bt) {
   loadRegistry(reg_dir, writeable = TRUE)
 } else {
   unlink(reg_dir, recursive = TRUE)
-  makeExperimentRegistry(file.dir = reg_dir, packages = c("randomForestSRC", "CoxBoost"))
-
+  makeExperimentRegistry(
+    file.dir = reg_dir,
+    packages = c("randomForestSRC", "CoxBoost"),
+    seed = config$global.seed,
+    source = c(here::here("2-variable-selection-sim/20-varsel-algorithms.R"),
+               here::here("2-variable-selection-sim/20-varsel-simulation.R"))
+  )
 }
 
 # Problems -----------------------------------------------------------
@@ -41,7 +49,8 @@ prob_design <- list(
   sim_surv_binder = expand.grid(
     n_train = 400,
     p = 5000,
-    ce = 0.5,
+    ce = c(0.25, 0.5),
+    # cause 1 either slightly higher prevalence or noticeably lower
     lambda1 = c(0.1, 0.01),
     lambda2 = c(0.1),
     lambda_c = 0.1
@@ -58,14 +67,14 @@ algo_design <- list(
   rfsrc = expand.grid(
     importance = "random",
     cutoff_method = "vita",
-    mtry = c(500, 2000, 3000),
+    mtry = 500, # c(500, 2000, 3000),
     nodesize = 30,
     splitrule = "logrank"
   ),
   coxboost = expand.grid(
-    cmprsk = c("sh", "csh", "ccsh"),
-    stepno = c(100, 300),
-    penalty = c(1000, 2000, 3000)
+    cmprsk = "csh", # c("sh", "csh", "ccsh"),
+    stepno = 100,   # c(100, 300),
+    penalty = 3000  # c(1000, 2000, 3000)
   )
 )
 
@@ -75,18 +84,16 @@ summarizeExperiments()
 jobtbl <- unwrap(getJobPars(), c("algo.pars", "prob.pars"))
 
 # Test jobs -----------------------------------------------------------
-if (interactive()) testJob(id = 200)
+if (FALSE) testJob(id = 1)
 
 # Submit -----------------------------------------------------------
 
-submitJobs(jobtbl[algorithm == "coxboost"])
 submitJobs(jobtbl[algorithm == "fwel_mt"])
-submitJobs(jobtbl[algorithm == "rfsrc"])
+submitJobs(jobtbl[algorithm == "coxboost"])
+# submitJobs(jobtbl[algorithm == "rfsrc"])
 
-# ids <- findNotStarted()
-# submitJobs(ids)
-
-
+ids <- findNotStarted()
+submitJobs(ids)
 
 # Monitor jobs ------------------------------------------------------------
 if (interactive()) {

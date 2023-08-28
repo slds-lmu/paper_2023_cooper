@@ -585,6 +585,7 @@ cb_jobs |>
 ```{r selected-ppv-equallambda}
 p_ppv1 <- res_long_selected |>
   filter(lambda2 == lambda1) |>
+  #filter(grepl("^B[12]", block)) |>
   tidyr::pivot_longer(cols = tpr:acc, names_to = "measure", values_to = "value", names_transform = toupper) |>
   filter(measure %in% c("PPV")) |>
   filter(!is.na(value)) |>
@@ -595,13 +596,13 @@ p_ppv1 <- res_long_selected |>
   scale_y_continuous(labels = scales::percent_format()) +
   scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill"), guide = "none") +
   labs(
-    title = "Detection of true effects: PPV",
-    subtitle = "Simulation setting with approx. equal proportions of cause 1 and 2",
+    #title = "Detection of true effects: PPV",
+   # subtitle = "Simulation setting with approx. equal proportions of cause 1 and 2",
     x = NULL, y = "PPV [%]", color = NULL, fill = NULL
   )
 
-ggsave(plot = p_ppv1, filename = "selected-ppv-equallambda.pdf", path = "selected-plots", width = 16, height = 7)
-ggsave(plot = p_ppv1, filename = "selected-ppv-equallambda.png", path = "selected-plots", width = 16, height = 7)
+ggsave(plot = p_ppv1, filename = "selected-ppv-equallambda.pdf", path = "selected-plots", width = 10, height = 4)
+ggsave(plot = p_ppv1, filename = "selected-ppv-equallambda.png", path = "selected-plots", width = 10, height = 4)
 ```
 
 ```{r selected-ppv-difflambda}
@@ -713,3 +714,73 @@ p_npv2 <- res_long_selected |>
 ggsave(plot = p_npv2, filename = "selected-npv-difflambda.pdf", path = "selected-plots", width = 16, height = 7)
 ggsave(plot = p_npv2, filename = "selected-npv-difflambda.png", path = "selected-plots", width = 16, height = 7)
 ```
+
+### Tweaked versions up versions
+
+```{r}
+plot_boxplot_subset <- function(data, measure, ...) {
+  xdat <- data |>
+    filter(...) |>
+    tidyr::pivot_longer(cols = tpr:acc, names_to = "measure", values_to = "value", names_transform = toupper) |>
+    filter(measure %in% .env$measure) |>
+    filter(!is.na(value))
+  
+  if (measure == "PPV") {
+    xdat <- xdat |>
+      mutate(block = ifelse(grepl("^B3", block),
+                            "Block 3 (Disjoint)", block))
+  }
+  
+  if (measure == "FPR") {
+    xdat <- xdat |>
+     # filter(!(block %in% c("B4 (Cor. Noise)", "Noise")))
+      filter(!(block %in% c("Noise")))
+  }
+  
+  xdat |>
+    ggplot(aes(x = model, y = value, color = model, fill = model)) +
+    facet_grid(rows = vars(cause), cols = vars(block), scales = "free") +
+    coord_flip() +
+    geom_boxplot(alpha = 0.5) +
+    scale_y_continuous(labels = \(x) x * 100) +
+    scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill"), guide = "none") +
+    labs(
+      #title = "Detection of true effects: PPV",
+      #subtitle = "Simulation setting with approx. equal proportions of cause 1 and 2",
+      x = NULL, y = glue::glue("{measure} [%]"), color = NULL, fill = NULL
+    )
+}
+
+# p_ppv1 <- plot_boxplot_subset(
+#   res_long_selected, measure = "PPV", lambda1 > lambda2 & grepl("^B[12]", block))
+# 
+# ggsave(plot = p_ppv1, filename = "cen-selected-ppv-equallambda-1.pdf", path = "selected-plots", width = 9, height = 5)
+# 
+# p_ppv2 <- plot_boxplot_subset(
+#   res_long_selected, measure = "PPV", lambda1 > lambda2 & grepl("^B[34]", block))
+# 
+# ggsave(plot = p_ppv2, filename = "cen-selected-ppv-equallambda-2.pdf", path = "selected-plots", width = 9, height = 5)
+# 
+# p_fpr1 <- plot_boxplot_subset(
+#   res_long_selected, measure = "FPR", lambda1 > lambda2)
+# 
+# p_fpr2 <- plot_boxplot_subset(
+#   res_long_selected, measure = "FPR", lambda1 > lambda2)
+# 
+
+
+
+for (measure in c("PPV", "FPR")) {
+  #for (blocks in c("^B[12]", "^B[34]")) {
+    p <- plot_boxplot_subset(res_long_selected, measure = measure, lambda1 == lambda2)
+    
+
+    filename <- glue::glue("selected-plots/cen-selected-{tolower(measure)}-equallambda.pdf")
+    ggsave(filename = filename, plot = p, width = 8.5, height = 5)
+  #}
+}
+
+
+
+```
+

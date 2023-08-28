@@ -16,20 +16,21 @@ fwel_mt_varselect_wrapper <- function(
   checkmate::assert_numeric(a)
   checkmate::assert_numeric(thresh)
 
-  # instance <- sim_surv_binder(n = 400, p = 5000)
+  # instance <- sim_surv_binder(n_train = 400, p = 5000)
 
   fit <- fwelnet::fwelnet_mt_cox(
-    instance$data,
+    instance$train,
     mt_max_iter = mt_max_iter,
     z_method = as.character(z_method),
     alpha = alpha,
     t = t,
     a = a,
     thresh = thresh,
+    stratify_by_status = TRUE,
     include_mt_beta_history = TRUE
   )
 
-  p <- ncol(instance$data)
+  p <- ncol(instance$train)
   truth <- instance$covar_true_effect
   total <- instance$covar_blocks
 
@@ -77,7 +78,7 @@ rfsrc_varselect_wrapper <- function(data, job, instance,
   checkmate::assert_subset(cutoff_method, choices = "vita")
 
   rf_c1 <- rfsrc(
-    Surv(time, status) ~ ., data = instance$data,
+    Surv(time, status) ~ ., data = instance$train,
     splitrule = splitrule,
     cause = c(1, 0),
     importance = importance,
@@ -86,7 +87,7 @@ rfsrc_varselect_wrapper <- function(data, job, instance,
   )
 
   rf_c2 <- rfsrc(
-    Surv(time, status) ~ ., data = instance$data,
+    Surv(time, status) ~ ., data = instance$train,
     splitrule = splitrule,
     cause = c(0, 1),
     importance = importance,
@@ -131,13 +132,13 @@ coxboost_varselect_wrapper <- function(data, job, instance,
                                        cmprsk = "csh", stepno = 100, penalty = 2000
                                        ) {
   cbfit <- CoxBoost(
-    time = instance$data$time,
-    status = instance$data$status,
-    x = as.matrix(instance$data[, -c(1, 2)]),
+    time = instance$train$time,
+    status = instance$train$status,
+    x = as.matrix(instance$train[, -c(1, 2)]),
     cmprsk = as.character(cmprsk),
     stepno = stepno,
     # Default is 9 * sum(status[subset] == 1), should be approx 9 * 250
-    # since in our setting sum(instance$data$status != 0) is approx 233
+    # since in our setting sum(instance$train$status != 0) is approx 233
     penalty = penalty
   )
 
