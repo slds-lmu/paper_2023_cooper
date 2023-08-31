@@ -725,19 +725,20 @@ plot_boxplot_subset <- function(data, measure, ...) {
     filter(measure %in% .env$measure) |>
     filter(!is.na(value))
   
-  if (measure == "PPV") {
+  # if (measure == "PPV") {
     xdat <- xdat |>
       mutate(block = ifelse(grepl("^B3", block),
-                            "Block 3 (Disjoint)", block))
-  }
+                            "B3 (Disjoint)", block))
+  # }
   
   if (measure == "FPR") {
-    xdat <- xdat |>
-     # filter(!(block %in% c("B4 (Cor. Noise)", "Noise")))
-      filter(!(block %in% c("Noise")))
+    # xdat <- xdat |>
+    #   filter(!(block %in% c("B4 (Cor. Noise)", "Noise")))
+    #   filter(!(block %in% c("Noise")))
   }
   
   xdat |>
+    dplyr::mutate(block = factor(block, levels = sort(unique(block)))) |>
     ggplot(aes(x = model, y = value, color = model, fill = model)) +
     facet_grid(rows = vars(cause), cols = vars(block), scales = "free") +
     coord_flip() +
@@ -751,36 +752,33 @@ plot_boxplot_subset <- function(data, measure, ...) {
     )
 }
 
-# p_ppv1 <- plot_boxplot_subset(
-#   res_long_selected, measure = "PPV", lambda1 > lambda2 & grepl("^B[12]", block))
-# 
-# ggsave(plot = p_ppv1, filename = "cen-selected-ppv-equallambda-1.pdf", path = "selected-plots", width = 9, height = 5)
-# 
-# p_ppv2 <- plot_boxplot_subset(
-#   res_long_selected, measure = "PPV", lambda1 > lambda2 & grepl("^B[34]", block))
-# 
-# ggsave(plot = p_ppv2, filename = "cen-selected-ppv-equallambda-2.pdf", path = "selected-plots", width = 9, height = 5)
-# 
-# p_fpr1 <- plot_boxplot_subset(
-#   res_long_selected, measure = "FPR", lambda1 > lambda2)
-# 
-# p_fpr2 <- plot_boxplot_subset(
-#   res_long_selected, measure = "FPR", lambda1 > lambda2)
-# 
-
-
-
+# THis is somehow the most frankensteinian of all loops.
 for (measure in c("PPV", "FPR")) {
   #for (blocks in c("^B[12]", "^B[34]")) {
-    p <- plot_boxplot_subset(res_long_selected, measure = measure, lambda1 == lambda2)
     
-
+    width <- ifelse(measure == "FPR", 10, 8.5)
+    height <- ifelse(measure == "FPR", 3.5, 3)
+  
+#
+    p <- plot_boxplot_subset(res_long_selected, measure = measure, lambda1 == lambda2)
+  
     filename <- glue::glue("selected-plots/cen-selected-{tolower(measure)}-equallambda.pdf")
-    ggsave(filename = filename, plot = p, width = 8.5, height = 5)
+    ggsave(filename = filename, plot = p, width = width, height = height)
+    
+    p2 <- dplyr::filter(res_long_selected, cause == "Cause 1") |>
+      plot_boxplot_subset(measure = measure, lambda1 == lambda2)
+    filename <- glue::glue("selected-plots/cen-selected-{tolower(measure)}-equallambda-cause1.pdf")
+    ggsave(filename = filename, plot = p2, width = width, height = height)
   #}
 }
 
 
 
+```
+
+
+```{r}
+dplyr::filter(res_long_selected, cause == "Cause 1") |>
+      plot_boxplot_subset(measure = "FPR", lambda1 == lambda2)
 ```
 
