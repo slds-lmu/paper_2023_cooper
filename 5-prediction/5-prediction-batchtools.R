@@ -37,9 +37,9 @@ addProblem(name = "sim_surv_binder", fun = sim_surv_binder, seed = config$sim_se
 addProblem(name = "bladder_geno", fun = get_bladder_data, seed = config$sim_seed, cache = config$sim_cache)
 
 # Algorithms -----------------------------------------------------------
-addAlgorithm(name = "fwel_mt", fun = fwel_mt_prediction_wrapper)
-addAlgorithm(name = "coxboost", fun = coxboost_varselect_pred)
-# addAlgorithm(name = "rfsrc", fun = rfsrc_varselect_pred)
+addAlgorithm(name = "cooper", fun = fwel_mt_prediction_wrapper)
+# addAlgorithm(name = "coxboost", fun = coxboost_prediction)
+# addAlgorithm(name = "rfsrc", fun = rfsrc_prediction)
 
 
 # Experiments -----------------------------------------------------------
@@ -59,12 +59,14 @@ prob_design <- list(
 )
 
 algo_design <- list(
-  fwel_mt = expand.grid(
-    mt_max_iter = 3,
+  cooper = expand.grid(
+    mt_max_iter = c(1, 3, 9),
     alpha = c(0.75, 1),
     t = c(100),
+    nfolds = 10,
+    z_method = c("original", "aligned"),
     thresh = c(1e-3, 1e-5)
-  ),
+  )
   # rfsrc = expand.grid(
   #   importance = "random",
   #   cutoff_method = "vita",
@@ -72,11 +74,11 @@ algo_design <- list(
   #   nodesize = 30,
   #   splitrule = "logrank"
   # ),
-  coxboost = expand.grid(
-    cmprsk = "csh",
-    stepno = 117, # c(100, 300), # 117 is what binder et al report for bladder data
-    penalty = 3000 # c(1000, 3000)
-  )
+ # coxboost = expand.grid(
+ #    cmprsk = "csh",
+ #    stepno = 117, # c(100, 300), # 117 is what binder et al report for bladder data
+ #    penalty = 3000 # c(1000, 3000)
+ # )
 )
 
 addExperiments(prob_design, algo_design, repls = config$repls)
@@ -85,6 +87,10 @@ jobtbl <- unwrap(getJobPars(), c("algo.pars", "prob.pars"))
 
 # Test jobs -----------------------------------------------------------
 if (FALSE) {
+  jobtbl[problem == "sim_surv_binder" & alpha < 1]
+
+  jobtbl[, .(n = .N), by = c("algorithm", "problem", "alpha")]
+
   testJob(4)
   testJob(2997)
 }
@@ -92,8 +98,28 @@ if (FALSE) {
 # Submit -----------------------------------------------------------
 
 
-submitJobs(findNotSubmitted(jobtbl[algorithm == "fwel_mt"]))
-submitJobs(findNotSubmitted())
+#submitJobs(findNotSubmitted(jobtbl[algorithm == "cooper"]))
+#submitJobs(findNotSubmitted())
+
+for (iproblem in sort(unique(jobtbl$problem))) {
+  for (ialgorithm in unique(jobtbl$algorithm)) {
+    for (ialpha in unique(jobtbl$alpha)) {
+
+      jobs <- jobtbl[algorithm == ialgorithm & problem == iproblem & alpha == ialpha,]
+      job_ids <- findNotStarted(jobs)
+      n <- nrow(job_ids)
+      cli::cli_alert_info("Starting {ialgorithm}/{iproblem} alpha={ialpha}: {n} jobs")
+
+      submitJobs(job_ids)
+      waitForJobs(job_ids)
+
+      pushoverr::pushover(
+       title = "CooPeR Prediction BM",
+        message = glue::glue("Finished {ialgorithm}/{iproblem} alpha={ialpha}: {n} jobs")
+      )
+    }
+  }
+}
 
 
 

@@ -6,6 +6,7 @@ fwel_mt_prediction_wrapper <- function(
     mt_max_iter = 2,
     t = 100,
     a = 0.5,
+    nfolds = 10,
     thresh = 1e-7
 ) {
   # suppressMessages(require(survival))
@@ -20,8 +21,8 @@ fwel_mt_prediction_wrapper <- function(
   # Only for quick debugging
   if (FALSE) instance <- sim_surv_binder(n_train = 400, n_test = 200, p = 5000)
 
-  message("Fitting fwelnet")
-  fit <- fwelnet::fwelnet_mt_cox(
+  message("Fitting cooper")
+  fit <- fwelnet::cooper(
     instance[["train"]],
     mt_max_iter = mt_max_iter,
     z_method = as.character(z_method),
@@ -30,7 +31,7 @@ fwel_mt_prediction_wrapper <- function(
     a = a,
     thresh = thresh,
     stratify_by_status = TRUE,
-    nfolds = 10,
+    nfolds = nfolds,
     include_mt_beta_history = TRUE
   )
 
@@ -41,10 +42,10 @@ fwel_mt_prediction_wrapper <- function(
 
   eval_times <- quantile(instance$test$time, probs = seq(0.1, 0.7, .1), type = 2, names = FALSE)
 
-  message("Running Score() with AUC")
-
+  # Refitting glmnet
   rr_glmnet_c1 <- refit_glmnet(fit, instance$test, event = 1, alpha = alpha)
 
+  message("Running Score() with AUC and Brier")
   scores <- riskRegression::Score(
     list(
       cooper = fit,

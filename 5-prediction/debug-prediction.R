@@ -1,7 +1,7 @@
-# Load bladder data / bladder prep funs
 source(here::here("4-varsel-prediction/get-bladder-data.R"))
-# simulation setup binder et al
 source(here::here("2-variable-selection-sim/20-varsel-simulation.R"))
+source(here::here("5-prediction/5-prediction-wrapper.R"))
+source(here::here("R/utils_riskRegression.R"))
 # Ensure stuff in R/ is loaded (happens via .Rprofile)
 
 library(fwelnet)
@@ -11,9 +11,9 @@ library(ggplot2)
 library(data.table)
 library(riskRegression)
 
-instance <- sim_surv_binder(n_train = 400, n_test = 200, p = 5000, ce = 0.5, lambda1 = 0.1, lambda2 = 0.1, lambda_c = 0.1)
+#instance <- sim_surv_binder(n_train = 400, n_test = 200, p = 500, ce = 0.5, lambda1 = 0.1, lambda2 = 0.1, lambda_c = 0.1)
 # set.seed(21537)
-#instance <- get_bladder_data(type = "both", split = 2/3)
+instance <- get_bladder_data(type = "both", split = 2/3)
 
 check_status(instance$train$status)
 check_status(instance$test$status)
@@ -28,7 +28,7 @@ set.seed(2153)
 
 tictoc::tic()
 mt_max_iter <- 3
-fit <- fwelnet::fwelnet_mt_cox(
+fit <- fwelnet::cooper(
   as.data.frame(instance$train),
   mt_max_iter = mt_max_iter,
   alpha = 1,
@@ -51,6 +51,17 @@ rr_glmnet_c1 <- refit_glmnet(fit, instance$test, event = 1)
 
 # Use eval times based on test data, in 10% - 70% percentiles (arbitrarily), typ = 2 ensures times exist in data
 eval_times <- quantile(instance$test$time, probs = seq(0.1, 0.7, .1), type = 2, names = FALSE)
+
+cbfit <- CoxBoost::CoxBoost(
+  time = instance$train$time,
+  status = instance$train$status,
+  x = as.matrix(instance$train[, -c(1, 2)]),
+  cmprsk = "csh",
+  stepno = 100,
+  # Default is 9 * sum(status[subset] == 1), should be approx 9 * 250
+  # since in our setting sum(instance$train$status != 0) is approx 233
+  penalty = 1000
+)
 
 scores <- Score(
   list(cooper = fit, rr_glmnet = rr_glmnet_c1),
