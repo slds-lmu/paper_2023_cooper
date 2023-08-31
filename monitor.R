@@ -59,7 +59,8 @@ for (current_reg in reg_name) {
     tbl_errors <- tbl_errors[, c("job.id", "time.running", "problem", "algorithm")]
     print(tbl_errors[, .(count = .N), by = algorithm])
 
-    print(getErrorMessages(findErrors(reg = reg), reg = reg)[, "message"])
+    print(unique(getErrorMessages(findErrors(reg = reg), reg = reg)[, "message"]))
+
   }
 
 }
