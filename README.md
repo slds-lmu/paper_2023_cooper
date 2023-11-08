@@ -1,4 +1,4 @@
-# fwelnet_cr_sim
+# Simulation Code for Cooperative Penalized Regression (CooPeR) Porject
 
 Simulation code for [`fwelnet`](https://github.com/jemus42/fwelnet) in competing
 risk settings, based on the [original fwelnet implementation](https://github.com/kjytay/fwelnet/)
@@ -16,3 +16,5 @@ Upon first load it's going to bug you to run `renv::restore()` to locally
 install dependencies as specified in `renv.lock`.
 
 Run `renv::update()` / `renv::snapshot()` to update & lock dependencies.
+Run `renv::restore()` to install all dependencies.
+Please note that you may want to install the appropriate R version (see e.g. [rig](https://github.com/r-lib/rig))
