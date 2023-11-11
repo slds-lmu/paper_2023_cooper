@@ -1,6 +1,5 @@
-source(here::here("4-varsel-prediction/get-bladder-data.R"))
-source(here::here("4-varsel-prediction/algorithms.R"))
-source(here::here("2-variable-selection-sim/20-varsel-simulation.R"))
+source(here::here("4-varsel-prediction/4-algorithms.R"))
+source(here::here("2-variable-selection-sim/2-varsel-simulation.R"))
 
 library(batchtools)
 library(randomForestSRC)
@@ -34,7 +33,6 @@ if (continue_bt) {
   makeExperimentRegistry(file.dir = reg_dir, packages = c("randomForestSRC", "CoxBoost", "rlang", "data.table", "riskRegression"),
                          seed = config$global.seed,
                          source = c(here::here("4-varsel-prediction/algorithms.R"),
-                                    here::here("4-varsel-prediction/get-bladder-data.R"),
                                     here::here("2-variable-selection-sim/20-varsel-simulation.R"))
   )
 }

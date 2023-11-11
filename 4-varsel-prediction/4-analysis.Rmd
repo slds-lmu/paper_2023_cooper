@@ -109,8 +109,11 @@ scores_bladder |>
     scales = "free"
   ) +
   geom_point(alpha = .2) +
-  geom_line(alpha = .5, size = 2) +
-  scale_y_continuous(labels = scales::percent)
+  geom_line(alpha = .5, linewidth = 2) +
+  scale_y_continuous(labels = scales::percent) +
+  labs(
+    color = NULL, fill = NULL
+  )
 ```
 
 RFSRC only: `mtry = 1000` works best.

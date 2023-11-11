@@ -1,5 +1,5 @@
-source(here::here("2-variable-selection-sim/20-varsel-simulation.R"))
-source(here::here("2-variable-selection-sim/20-varsel-algorithms.R"))
+source(here::here("2-variable-selection-sim/2-simulation.R"))
+source(here::here("2-variable-selection-sim/2-algorithms.R"))
 
 library(batchtools)
 library(randomForestSRC)
