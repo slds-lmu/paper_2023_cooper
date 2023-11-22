@@ -61,3 +61,4 @@ fwelnet_cr_sim*.tgz
 selected-plots/*png
 selected-plots/*pdf
 batchtools.conf.R
+registries_*
