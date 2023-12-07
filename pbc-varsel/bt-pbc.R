@@ -61,7 +61,7 @@ algo_design <- list(
 
 addExperiments(prob_design, algo_design, repls = config$repls)
 summarizeExperiments()
-jobtbl <- unwrap(getJobPars(), c("algo.pars", "prob.pars"))
+jobtbl <- unwrap(getJobTable(), c("algo.pars", "prob.pars"))
 
 # Test jobs -----------------------------------------------------------
 if (FALSE) testJob(id = 1)
@@ -72,5 +72,5 @@ ids <- findNotStarted()
 submitJobs(ids)
 waitForJobs()
 
-res <- ijoin(tidyr::unnest(reduceResultsDataTable(), cols = "result"), unwrap(getJobPars()))
+res <- ijoin(tidyr::unnest(reduceResultsDataTable(), cols = "result"), jobtbl)
 saveRDS(res, here::here("pbc-varsel", "results.rds"))
