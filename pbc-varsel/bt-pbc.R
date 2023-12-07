@@ -54,7 +54,7 @@ algo_design <- list(
     alpha = c(1),
     t = c(100),
     thresh = c(1e-7),
-    conf_level = c(0.9, 0.95)
+    conf_level = c(0.9, 0.95, 0.99)
   )
 )
 
