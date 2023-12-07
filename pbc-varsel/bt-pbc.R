@@ -62,14 +62,14 @@ algo_design <- list(
 addExperiments(prob_design, algo_design, repls = config$repls)
 summarizeExperiments()
 jobtbl <- unwrap(getJobTable(), c("algo.pars", "prob.pars"))
+jobtbl[, chunk := lpt(num_noise, n.chunks = 50)]
 
 # Test jobs -----------------------------------------------------------
 if (FALSE) testJob(id = 1)
 
 # Submit -----------------------------------------------------------
 
-ids <- findNotStarted()
-submitJobs(ids)
+submitJobs(jobtbl)
 waitForJobs()
 
 res <- ijoin(tidyr::unnest(reduceResultsDataTable(), cols = "result"), jobtbl)
