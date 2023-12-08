@@ -72,7 +72,10 @@ if (FALSE) testJob(id = 250)
 submitJobs(jobtbl)
 waitForJobs()
 
+message("Done!")
+
 res_file <- here::here("pbc-varsel", "results.rds")
 if (file.exists(res_file)) file.remove(res_file)
 res <- ijoin(tidyr::unnest(reduceResultsDataTable(), cols = "result"), jobtbl)
+message("Writing ", res_file)
 saveRDS(res, res_file)
