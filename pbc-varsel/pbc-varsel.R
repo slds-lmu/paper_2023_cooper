@@ -1,7 +1,7 @@
 library(data.table)
 library(fwelnet)
 
-get_pbc_data <- function(job, data, na.rm = TRUE, num_noise = 0) {
+get_pbc_data <- function(job = NULL, data = NULL, na.rm = TRUE, num_noise = 0) {
   checkmate::assert_int(num_noise, lower = 0)
 
   ee = new.env(parent = emptyenv(), hash = FALSE)
@@ -11,7 +11,9 @@ get_pbc_data <- function(job, data, na.rm = TRUE, num_noise = 0) {
   if (na.rm) xdf <- na.omit(xdf)
 
   xdf$time <- xdf$days
-  xdf$days <- NULL
+  xdf$ptno <- NULL # patient number
+  xdf$days <- NULL # recoded time
+  xdf$unit <- NULL # Must be factor, but then too few events
 
   xdf <- data.table::as.data.table(xdf)
 
@@ -38,60 +40,89 @@ recode_cr_status <- function(xdf, target_event = 1) {
 }
 
 
-# pbc_data <- get_pbc_data(na.rm = TRUE, num_noise = 1)
+# pbc_data <- get_pbc_data(na.rm = TRUE, num_noise = 4)
+# target_event <- 1
+# pbc_varsel_score(
+#   instance = get_pbc_data(na.rm = TRUE, num_noise = 4),
+#   target_event = 1,
+#   conf_level = 0.95,
+#   mt_max_iter = 2, t = 100, thresh = 1e-7, alpha = 1
+# )
 
 
-pbc_varsel_score <- function(job, data, instance, target_event = 1, conf_level = 0.95, mt_max_iter = 3, t = 100, thresh = 1e-7, alpha = 1) {
+pbc_varsel_score <- function(job = NULL, data = NULL, instance,
+                             target_event = 1, conf_level = 0.95,
+                             mt_max_iter = 3, t = 100, thresh = 1e-7, alpha = 1) {
   pbc_data <- instance
 
-  mod_cph <- survival::coxph(survival::Surv(time, status) ~ .,
-                             data = recode_cr_status(pbc_data, target_event = target_event))
-
+  # Fitting CSC should be part of data generating function I guess but otherwise inconvenient
+  # "True" covariates depend on confidence level, so easier to re-fit and subset dymanically.
+  mod_cph <- survival::coxph(
+    survival::Surv(time, status) ~ .,
+    # Fit only on original data, not noise vars
+    data = recode_cr_status(pbc_data[, which(!startsWith(names(pbc_data), "xnoise")), with = FALSE],
+                            target_event = target_event)
+  )
   cph_coefs <- broom::tidy(mod_cph)
-  coefs_true <- cph_coefs[cph_coefs$p.value < (1 - conf_level), ][["term"]]
+  coefs_true <- cph_coefs$term[cph_coefs$p.value < (1 - conf_level)]
 
-  cofit <- fwelnet::cooper(pbc_data, mt_max_iter = 3, stratify_by_status = TRUE, t = 100, thresh = 1e-7)
+
+  cofit <- fwelnet::cooper(
+    pbc_data,
+    mt_max_iter = mt_max_iter,
+    stratify_by_status = TRUE,
+    t = t,
+    thresh = thresh
+  )
 
   pbc_covars = setdiff(names(pbc_data), c("time", "status"))
   noise_vars = pbc_covars[startsWith(pbc_covars, "xnoise")]
 
-  selected_vars <- function(copper_fit, event = 1) {
-    res <- coef(copper_fit, event = event)
-    names(res[res != 0])
-  }
 
-  not_selected_vars <- function(copper_fit, event = 1) {
-    res <- coef(copper_fit, event = event)
-    names(res[res == 0])
-  }
+  data.table::rbindlist(list(
+    score_model(cofit, target_event = target_event, model =  "cooper", coefs_true, noise_vars, pbc_covars),
+    score_model(cofit, target_event = target_event, model =  "coxnet", coefs_true, noise_vars, pbc_covars)
+  ))
+}
 
-  cooper_selected_c1 <- selected_vars(cofit, event = target_event)
-  cooper_not_selected_c1 <- not_selected_vars(cofit, event = target_event)
+selected_vars <- function(copper_fit, event = 1, use_initial_fit = FALSE) {
+  res <- coef(copper_fit, event = event, use_initial_fit = use_initial_fit)
+  names(res[res != 0])
+}
+
+not_selected_vars <- function(copper_fit, event = 1, use_initial_fit = FALSE) {
+  res <- coef(copper_fit, event = event, use_initial_fit = use_initial_fit)
+  names(res[res == 0])
+}
+
+score_model <- function(cooper_fit, target_event = 1, model = "cooper", coefs_true, noise_vars, pbc_covars) {
+  checkmate::assert_subset(model, choices = c("cooper", "coxnet"))
+
+
+  cooper_selected <- selected_vars(cooper_fit, event = target_event, use_initial_fit = model == "coxnet")
+  cooper_not_selected <- not_selected_vars(cooper_fit, event = target_event, use_initial_fit = model == "coxnet")
 
   which_positive <- pbc_covars %in% coefs_true
-  which_negative <- !which_positive
+  # total_neg based only on noise vars, treating non-signif original vars as neither true nor false
+  which_negative <- pbc_covars %in% noise_vars
 
   total_positive <- sum(which_positive)
   total_negative <- sum(which_negative)
 
   result <- data.table::data.table(
-    total = length(pbc_covars),
+    total = total_positive + total_negative,
     total_pos = sum(which_positive),
     total_neg = sum(which_negative),
-    tp = sum(cooper_selected_c1 %in% pbc_covars[which_positive]),
-    fp = sum(cooper_selected_c1 %in% pbc_covars[which_negative]),
-    tn = sum(cooper_not_selected_c1 %in% pbc_covars[which_negative]),
-    fn = sum(cooper_not_selected_c1 %in% pbc_covars[which_positive]),
-    selected = list(cooper_selected_c1)
+    tp = sum(cooper_selected %in% pbc_covars[which_positive]),
+    fp = sum(cooper_selected %in% pbc_covars[which_negative]),
+    tn = sum(cooper_not_selected %in% pbc_covars[which_negative]),
+    fn = sum(cooper_not_selected %in% pbc_covars[which_positive]),
+    selected = list(cooper_selected),
+    true = list(coefs_true)
   )
 
-
-  result[, tpr := tp/total_pos]
-  result[, fpr := fp/total_neg]
   result[, ppv := tp/(tp + fp)]
-  result[, npv := tn/(tn + fn)]
-  result[, fdr := 1 - ppv]
-  result[, f1 := (2 * ppv * tpr) / (ppv + tpr)]
-  result[, acc := (tp+tn)/total]
+  result[, fpr := fp/total_neg]
+  result$model <- model
   result
 }

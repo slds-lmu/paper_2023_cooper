@@ -65,12 +65,14 @@ jobtbl <- unwrap(getJobTable(), c("algo.pars", "prob.pars"))
 jobtbl[, chunk := lpt(num_noise, n.chunks = 50)]
 
 # Test jobs -----------------------------------------------------------
-if (FALSE) testJob(id = 1)
+if (FALSE) testJob(id = 250)
 
 # Submit -----------------------------------------------------------
 
 submitJobs(jobtbl)
 waitForJobs()
 
+res_file <- here::here("pbc-varsel", "results.rds")
+if (file.exists(res_file)) file.remove(res_file)
 res <- ijoin(tidyr::unnest(reduceResultsDataTable(), cols = "result"), jobtbl)
-saveRDS(res, here::here("pbc-varsel", "results.rds"))
+saveRDS(res, res_file)
