@@ -62,3 +62,4 @@ selected-plots/*png
 selected-plots/*pdf
 batchtools.conf.R
 registries_*
+registries/
