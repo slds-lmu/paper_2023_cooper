@@ -7,6 +7,7 @@ options(batchtools.progress = TRUE)
 
 # Settings ----------------------------------------------------------------
 config <- list(
+  sim_seed = 134,
   global_seed = 563,
   repls = 100
 )
@@ -33,7 +34,7 @@ if (continue_bt) {
 }
 
 # Problems -----------------------------------------------------------
-addProblem(name = "get_pbc_data", fun = get_pbc_data, seed = config$sim_seed, cache = config$sim_cache)
+addProblem(name = "get_pbc_data", fun = get_pbc_data, seed = config$sim_seed, cache = TRUE)
 
 # Algorithms -----------------------------------------------------------
 addAlgorithm(name = "cooper_varsel_pbc", fun = cooper_varsel_pbc)
@@ -45,7 +46,7 @@ addAlgorithm(name = "coxboost_pbc_varsel", fun = coxboost_pbc_varsel)
 prob_design <- list(
   get_pbc_data = expand.grid(
     conf_level = c(0.9, 0.95, 0.99),
-    num_noise = sort(c(0, as.vector(sapply(c(1, 2, 5), \(x) x * 10^(1:3)))))
+    num_noise = sort(c(0, as.vector(sapply(c(1, 2.5, 5), \(x) x * 10^(1:3)))))
   )
 )
 
