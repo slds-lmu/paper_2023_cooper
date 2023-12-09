@@ -77,10 +77,7 @@ jobtbl[, chunk := lpt(log10(num_noise + 1), n.chunks = 200)]
 jobtbl[, (n = .N), by = .(chunk)]
 jobtbl[chunk == 1,]
 
-jobtbl |>
-  dplyr::group_by(algorithm, num_noise) |>
-  dplyr::slice_sample(n = 1) |>
-  submitJobs()
+
 
 # Test jobs -----------------------------------------------------------
 if (FALSE) testJob(id = 250)
