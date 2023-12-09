@@ -115,6 +115,7 @@ score_model <- function(model_fit, target_event = 1, model = "cooper", coefs_tru
   result[, ppv := tp/(tp + fp)]
   result[, fpr := fp/total_neg]
   result$model <- model
+  result$target_event <- target_event
   result
 }
 

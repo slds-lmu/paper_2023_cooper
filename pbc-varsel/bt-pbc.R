@@ -72,13 +72,26 @@ algo_design <- list(
 addExperiments(prob_design, algo_design, repls = config$repls)
 summarizeExperiments()
 jobtbl <- unwrap(getJobTable(), c("algo.pars", "prob.pars"))
-jobtbl[, chunk := lpt(log10(num_noise + 1), n.chunks = 200)]
+jobtbl[, chunk := lpt(log10(num_noise + 1), n.chunks = 1000)]
 
 jobtbl[, (n = .N), by = .(chunk)]
 
 
+
+
 # Test jobs -----------------------------------------------------------
 if (FALSE) testJob(id = 250)
+
+if (FALSE) {
+  jobtbl[findNotSubmitted()] |>
+    submitJobs()
+
+  jobtbl |>
+    dplyr::filter(num_noise == 10) |>
+    dplyr::group_by(algorithm, conf_level) |>
+    dplyr::slice_sample(n = 1) |>
+    submitJobs()
+}
 
 # Submit -----------------------------------------------------------
 
