@@ -2,8 +2,8 @@
 # source(here::here("2-variable-selection-sim/2-algorithms.R"))
 
 library(batchtools)
-# library(randomForestSRC)
-# library(CoxBoost)
+options(batchtools.progress = TRUE)
+
 
 # Settings ----------------------------------------------------------------
 config <- list(
@@ -75,8 +75,6 @@ jobtbl <- unwrap(getJobTable(), c("algo.pars", "prob.pars"))
 jobtbl[, chunk := lpt(log10(num_noise + 1), n.chunks = 200)]
 
 jobtbl[, (n = .N), by = .(chunk)]
-jobtbl[chunk == 1,]
-
 
 
 # Test jobs -----------------------------------------------------------
@@ -84,10 +82,10 @@ if (FALSE) testJob(id = 250)
 
 # Submit -----------------------------------------------------------
 
-submitJobs(jobtbl)
-waitForJobs()
+#submitJobs(jobtbl)
+#waitForJobs()
 
-message("Done!")
+#message("Done!")
 
 # res_file <- here::here("pbc-varsel", "results.rds")
 # if (file.exists(res_file)) file.remove(res_file)
