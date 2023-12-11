@@ -1,7 +1,7 @@
-#' Tidy up the output of fwelnet_mt_cox
+#' Tidy up the output of cooper
 #'
 #'
-#' @param mtres As returned by [`fwelnet_mt_cox()`].
+#' @param mtres As returned by [`cooper()`].
 #' @param truth A data.frame of true effects, with a structure like
 #' |x  |beta  | truth|
 #' |:--|:-----|-----:|

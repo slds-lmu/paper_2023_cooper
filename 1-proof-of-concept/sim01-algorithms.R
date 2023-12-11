@@ -6,7 +6,7 @@ fwel_mt_wrapper <- function(
     t = 1, a = 0.5, thresh = 1e-3
     ) {
 
-  fwelnet::fwelnet_mt_cox(
+  cooper::cooper(
     instance$data,
     mt_max_iter = mt_max_iter,
     z_method = as.character(z_method),

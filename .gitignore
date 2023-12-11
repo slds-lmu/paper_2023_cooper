@@ -53,9 +53,6 @@ rsconnect/
 *_cache/
 # End of https://www.toptal.com/developers/gitignore/api/r
 fiddle.R
-fwelnet_cr_sim.Rcheck/
-fwelnet_cr_sim*.tar.gz
-fwelnet_cr_sim*.tgz
 
 # Until everything is finalized
 selected-plots/*png

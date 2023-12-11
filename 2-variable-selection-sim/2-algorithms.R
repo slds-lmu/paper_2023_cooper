@@ -18,7 +18,7 @@ fwel_mt_varselect_wrapper <- function(
 
   # instance <- sim_surv_binder(n_train = 400, p = 5000)
 
-  fit <- fwelnet::fwelnet_mt_cox(
+  fit <- cooper::cooper(
     instance$train,
     mt_max_iter = mt_max_iter,
     z_method = as.character(z_method),

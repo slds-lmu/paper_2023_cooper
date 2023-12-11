@@ -1,4 +1,5 @@
 registries/*
 registries_bak/*
+attic/*
 # Ignore due to bioconductor dependencies that complicate everything
-4-varsel-prediction/test_tcga.R
+test_tcga.R

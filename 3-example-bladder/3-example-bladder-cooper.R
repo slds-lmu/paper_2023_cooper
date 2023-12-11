@@ -7,7 +7,7 @@ bladder_file <- here::here("data/bladder-binder-clinical_geno.rds")
 dat <- data.table::as.data.table(readRDS(bladder_file))
 
 mt_max_iter <- 3
-fit <- fwelnet::fwelnet_mt_cox(
+fit <- cooper::cooper(
   dat,
   mt_max_iter = mt_max_iter,
   z_method = "original",

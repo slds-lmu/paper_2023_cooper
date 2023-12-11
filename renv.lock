@@ -152,13 +152,6 @@
       ],
       "Hash": "26749bd5c7c4123dd23aeb9159be22d6"
     },
-    "PRROC": {
-      "Package": "PRROC",
-      "Version": "1.3.1",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "5506f0a5a0661ac39bfcfca702f1f282"
-    },
     "Publish": {
       "Package": "Publish",
       "Version": "2023.01.17",
@@ -332,24 +325,6 @@
         "withr"
       ],
       "Hash": "c21ca34590a8dd80fccec5bf1b2d26d7"
-    },
-    "bench": {
-      "Package": "bench",
-      "Version": "1.1.3",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Requirements": [
-        "R",
-        "glue",
-        "methods",
-        "pillar",
-        "profmem",
-        "rlang",
-        "stats",
-        "tibble",
-        "utils"
-      ],
-      "Hash": "d3920bdeb09b0dd8562c5ca24da562b7"
     },
     "bit": {
       "Package": "bit",
@@ -541,6 +516,26 @@
       ],
       "Hash": "f20c47fd52fae58b4e377c37bb8c335b"
     },
+    "cooper": {
+      "Package": "cooper",
+      "Version": "0.1.0.9008",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteUsername": "jemus42",
+      "RemoteRepo": "cooper",
+      "RemoteRef": "main",
+      "RemoteSha": "adfe87d0711b469f53a9eaed69c44df8d82616e7",
+      "Requirements": [
+        "Matrix",
+        "checkmate",
+        "data.table",
+        "glmnet",
+        "stats",
+        "survival"
+      ],
+      "Hash": "457c0cf400ded808954e2830d4be7733"
+    },
     "cpp11": {
       "Package": "cpp11",
       "Version": "0.4.3",
@@ -606,21 +601,6 @@
         "stats"
       ],
       "Hash": "c7f527c59edc72c4bce63519b8d38752"
-    },
-    "diffobj": {
-      "Package": "diffobj",
-      "Version": "0.3.5",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Requirements": [
-        "R",
-        "crayon",
-        "methods",
-        "stats",
-        "tools",
-        "utils"
-      ],
-      "Hash": "bcaa8b95f8d7d01a5dedfd959ce88ab8"
     },
     "digest": {
       "Package": "digest",
@@ -806,25 +786,6 @@
         "utils"
       ],
       "Hash": "ba4be138fe47eac3e16a6deaa4da106e"
-    },
-    "fwelnet": {
-      "Package": "fwelnet",
-      "Version": "0.1.0.9006",
-      "Source": "GitHub",
-      "RemoteType": "github",
-      "RemoteHost": "api.github.com",
-      "RemoteUsername": "jemus42",
-      "RemoteRepo": "fwelnet",
-      "RemoteRef": "master",
-      "RemoteSha": "4e47d7c085ca50034c99545bb3a7974a19167be1",
-      "Requirements": [
-        "Matrix",
-        "checkmate",
-        "data.table",
-        "glmnet",
-        "survival"
-      ],
-      "Hash": "b67c2bcc734ebdabcf83c7cb029ac309"
     },
     "generics": {
       "Package": "generics",
@@ -1192,17 +1153,6 @@
       ],
       "Hash": "d908914ae53b04d4c0c0fd72ecc35370"
     },
-    "lgr": {
-      "Package": "lgr",
-      "Version": "0.4.4",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Requirements": [
-        "R",
-        "R6"
-      ],
-      "Hash": "a6bc51765d7e9eeb2b225a11805527aa"
-    },
     "lifecycle": {
       "Package": "lifecycle",
       "Version": "1.0.3",
@@ -1293,69 +1243,6 @@
       ],
       "Hash": "18e9c28c1d3ca1560ce30658b22ce104"
     },
-    "mlbench": {
-      "Package": "mlbench",
-      "Version": "2.1-3.1",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Requirements": [
-        "R"
-      ],
-      "Hash": "844a27c138c8dda93819209acd235720"
-    },
-    "mlr3": {
-      "Package": "mlr3",
-      "Version": "0.16.1",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Requirements": [
-        "R",
-        "R6",
-        "backports",
-        "checkmate",
-        "data.table",
-        "evaluate",
-        "future",
-        "future.apply",
-        "lgr",
-        "mlbench",
-        "mlr3measures",
-        "mlr3misc",
-        "palmerpenguins",
-        "paradox",
-        "parallelly",
-        "uuid"
-      ],
-      "Hash": "adc6c5e420f3dd5dcdc079033ba065f9"
-    },
-    "mlr3measures": {
-      "Package": "mlr3measures",
-      "Version": "0.5.0",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Requirements": [
-        "PRROC",
-        "R",
-        "checkmate"
-      ],
-      "Hash": "540045d567107f6305daf6e9bffa6287"
-    },
-    "mlr3misc": {
-      "Package": "mlr3misc",
-      "Version": "0.13.0",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Requirements": [
-        "R",
-        "R6",
-        "backports",
-        "checkmate",
-        "data.table",
-        "digest",
-        "methods"
-      ],
-      "Hash": "d6e11a7820fe331d8dfbd66762fd19c3"
-    },
     "multcomp": {
       "Package": "multcomp",
       "Version": "1.4-25",
@@ -1440,16 +1327,6 @@
       ],
       "Hash": "2a0dc8c6adfb6f032e4d4af82d258ab5"
     },
-    "palmerpenguins": {
-      "Package": "palmerpenguins",
-      "Version": "0.1.1",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Requirements": [
-        "R"
-      ],
-      "Hash": "6c6861efbc13c1d543749e9c7be4a592"
-    },
     "pammtools": {
       "Package": "pammtools",
       "Version": "0.5.91",
@@ -1474,21 +1351,6 @@
         "vctrs"
       ],
       "Hash": "6a116abdb47ad863f42e1d91bc25cd66"
-    },
-    "paradox": {
-      "Package": "paradox",
-      "Version": "0.11.1",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Requirements": [
-        "R6",
-        "backports",
-        "checkmate",
-        "data.table",
-        "methods",
-        "mlr3misc"
-      ],
-      "Hash": "d257067d1721ed3861f9ad966c06477d"
     },
     "parallelly": {
       "Package": "parallelly",
@@ -1630,16 +1492,6 @@
         "survival"
       ],
       "Hash": "3f60fadb28cfebdd20b0dd4198a38c60"
-    },
-    "profmem": {
-      "Package": "profmem",
-      "Version": "0.6.0",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Requirements": [
-        "utils"
-      ],
-      "Hash": "4974ce1d5ab22f266af90826f295f6c7"
     },
     "progress": {
       "Package": "progress",
@@ -1790,16 +1642,6 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "c66b930d20bb6d858cd18e1cebcfae5c"
-    },
-    "rematch2": {
-      "Package": "rematch2",
-      "Version": "2.1.2",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Requirements": [
-        "tibble"
-      ],
-      "Hash": "76c9e04c712a05848ae7a23d2f170a40"
     },
     "renv": {
       "Package": "renv",
@@ -2121,17 +1963,6 @@
       ],
       "Hash": "a84e2cc86d07289b3b6f5069df7a004c"
     },
-    "tictoc": {
-      "Package": "tictoc",
-      "Version": "1.2",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Requirements": [
-        "R",
-        "methods"
-      ],
-      "Hash": "2c6c63f3f4f103d41cb2aae1ab1c7ce1"
-    },
     "tidyr": {
       "Package": "tidyr",
       "Version": "1.3.0",
@@ -2220,16 +2051,6 @@
       ],
       "Hash": "1fe17157424bb09c48a8b3b550c753bc"
     },
-    "uuid": {
-      "Package": "uuid",
-      "Version": "1.1-1",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Requirements": [
-        "R"
-      ],
-      "Hash": "3d78edfb977a69fc7a0341bee25e163f"
-    },
     "vctrs": {
       "Package": "vctrs",
       "Version": "0.6.4",
@@ -2310,23 +2131,6 @@
         "withr"
       ],
       "Hash": "8318e64ffb3a70e652494017ec455561"
-    },
-    "waldo": {
-      "Package": "waldo",
-      "Version": "0.5.1",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Requirements": [
-        "cli",
-        "diffobj",
-        "fansi",
-        "glue",
-        "methods",
-        "rematch2",
-        "rlang",
-        "tibble"
-      ],
-      "Hash": "2c993415154cdb94649d99ae138ff5e5"
     },
     "webshot": {
       "Package": "webshot",
