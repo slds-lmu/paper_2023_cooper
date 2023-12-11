@@ -15,6 +15,8 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+source(here::here("1-proof-of-concept/mt_res_tidy_plot.R"))
+source(here::here("1-proof-of-concept/sim01-problems.R"))
 
 library(batchtools)
 library(ggplot2)
@@ -27,13 +29,19 @@ reg_dir <- here::here("registries", reg_name)
 loadRegistry(reg_dir)
 ```
 
-```{r get-results, cache = TRUE}
+```{r get-results,eval=!file.exists(here::here("1-proof-of-concept", "res.rds"))}
 res <-  ijoin(reduceResultsDataTable(), flatten(getJobPars()))
+saveRDS(res, file = here::here("1-proof-of-concept", "res.rds"))
+
 nrow(res)/nrow(getJobTable())
 nrow(findErrors())/nrow(getJobTable())
 
 res |>
   count(problem, z_scale, z_method, theta, t, thresh)
+```
+
+```{r eval=file.exists(here::here("1-proof-of-concept", "res.rds"))}
+res_long <- readRDS(here::here("1-proof-of-concept", "res.rds"))
 ```
 
 
@@ -50,16 +58,15 @@ getJobTable() |>
   theme_minimal()
 ```
 
-```{r tidy-results, cache = TRUE, dependson="get-results"}
-# # Need a cleaner solution that's maybe also faster
-# res_long <- purrr::pmap_dfr(res, ~{
-#   res_tidy <- tidy_mt_res(..2, true_effects, problem = ..3)
-#   res_tidy$theta <- ..10
-#   res_tidy
-# })
-
+```{r tidy-results, cache = TRUE, dependson="get-results", eval=!file.exists(here::here("1-proof-of-concept", "res_long.rds"))}
 res_long <- tidy_mt_res_bt(res, true_effects)
+saveRDS(res_long, file = here::here("1-proof-of-concept", "res_long.rds"))
 ```
+
+```{r eval=file.exists(here::here("1-proof-of-concept", "res_long.rds"))}
+res_long <- readRDS(here::here("1-proof-of-concept", "res_long.rds"))
+```
+
 
 ## Estimates over mt-iterations
 
@@ -452,7 +459,8 @@ p_poc <- res_long |>
       problem == "sim_c" ~ "C",
       problem == "sim_d" ~ "D"
     ),
-    x = stringr::str_replace(x, "x", "X")
+    x = stringr::str_replace(x, "x", "X"),
+    iter = factor(iter, levels = c("glmnet", "fwelnet_mt"))
   ) |>
   ggplot(aes(x = x, y = error, fill = iter, color = iter)) +
   facet_grid(rows = vars(beta), cols = vars(Setting), labeller = labeller(beta = label_context, Setting = label_both), scales = "free_x") +
@@ -461,7 +469,8 @@ p_poc <- res_long |>
   geom_boxplot(alpha = 0.2) +
   scale_color_brewer(
     palette = "Dark2", aesthetics = c("color", "fill"), 
-    labels = c(fwelnet_mt = "Multi-Task fwelnet", glmnet = "Cause-Specific glmnet"),
+    breaks = c("glmnet", "fwelnet_mt"),
+    labels = c(glmnet = "Coxnet", fwelnet_mt = "CooPeR"),
     name = NULL
   ) +
   labs(
@@ -478,8 +487,10 @@ p_poc <- res_long |>
     panel.grid.major.x = element_blank()
   )
 
-ggsave(plot = p_poc, filename = "poc-boxplot-errors.pdf", path = here::here("selected-plots"), width = 10, height = 7)
-ggsave(plot = p_poc, filename = "poc-boxplot-errors.png", path = here::here("selected-plots"), width = 10, height = 7)
+p_poc
+
+ggsave(plot = p_poc, filename = "poc-boxplot-errors.pdf", path = here::here("selected-plots"), width = 10, height = 6)
+ggsave(plot = p_poc, filename = "poc-boxplot-errors.png", path = here::here("selected-plots"), width = 10, height = 6)
 
 ```
 

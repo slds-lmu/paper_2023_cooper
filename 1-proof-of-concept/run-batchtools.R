@@ -14,19 +14,20 @@ set.seed(config$global_seed)
 # Registry ----------------------------------------------------------------
 if (!file.exists(here::here("registries"))) dir.create(here::here("registries"))
 reg_name <- "fwel_simulations"
+reg_name <- "DEBUG"
 reg_dir <- here::here("registries", reg_name)
 unlink(reg_dir, recursive = TRUE)
-makeExperimentRegistry(file.dir = reg_dir)
+makeExperimentRegistry(file.dir = reg_dir, source = here::here("1-proof-of-concept", "sim01-sim_cr.R"))
 
 # Problems -----------------------------------------------------------
-source("02-problems.R")
+source(here::here("1-proof-of-concept", "sim01-problems.R"))
 addProblem(name = "sim_a", fun = sim_a, seed = config$sim_seed, cache = config$sim_cache)
 addProblem(name = "sim_b", fun = sim_b, seed = config$sim_seed, cache = config$sim_cache)
 addProblem(name = "sim_c", fun = sim_c, seed = config$sim_seed, cache = config$sim_cache)
 addProblem(name = "sim_d", fun = sim_d, seed = config$sim_seed, cache = config$sim_cache)
 
 # Algorithms -----------------------------------------------------------
-source("03-algorithms.R")
+source(here::here("1-proof-of-concept", "sim01-algorithms.R"))
 addAlgorithm(name = "fwel_mt", fun = fwel_mt_wrapper)
 
 
@@ -53,7 +54,7 @@ summarizeExperiments()
 unwrap(getJobPars(), c("algo.pars", "prob.pars"))
 
 # Test jobs -----------------------------------------------------------
-if (interactive()) testJob(id = 5600)
+if (interactive()) testJob(id = 1600)
 
 # Submit -----------------------------------------------------------
 if (grepl("node\\d{2}|bipscluster", system("hostname", intern = TRUE))) {
