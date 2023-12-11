@@ -13,9 +13,9 @@ get_bladder_data <- function(job = NULL, data = NULL, split = 2/3, standardize =
   )
 
   if (!file.exists(bladder_file)) {
-    message("Recreating bladder dataset from bladder-data-prep.R")
+    message("Recreating bladder dataset from data-raw/preprocess-orig-binder.R")
     #source(here::here("4-varsel-prediction/bladder-data-prep.R"))
-    source(here::here("4-varsel-prediction/preprocess-orig-binder.R"))
+    source(here::here("data-raw/preprocess-orig-binder.R"))
   }
   bladder_surv <- readRDS(bladder_file)
 
