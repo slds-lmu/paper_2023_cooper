@@ -1,35 +1,29 @@
-
-library(data.table)
-
 set.seed(2023)
 
-bladder_file <- here::here("data/bladder-binder-clinical_geno.rds")
-dat <- data.table::as.data.table(readRDS(bladder_file))
+bladder <- readRDS(here::here("data/bladder-binder-clinical_geno.rds"))
 
-mt_max_iter <- 3
+table(bladder$status)
+
 fit <- cooper::cooper(
-  dat,
-  mt_max_iter = mt_max_iter,
-  z_method = "original",
+  bladder,
+  mt_max_iter = 3,
   alpha = 1,
   t = 100,
-  a = 0.5,
   thresh = 1e-7,
   stratify_by_status = TRUE,
-  nfolds = 5,
-  include_mt_beta_history = TRUE
+  nfolds = 5
 )
 
-# Coefs
-glmnet_beta1 <- fit$beta1[, 1]
-glmnet_beta2 <- fit$beta2[, 1]
-fwel_beta1 <- fit$beta1[, mt_max_iter + 1]
-fwel_beta2 <- fit$beta2[, mt_max_iter + 1]
+# Extract
+glmnet_beta1 <- coef(fit, event = 1, use_initial_fit = TRUE)
+glmnet_beta2 <- coef(fit, event = 2, use_initial_fit = TRUE)
+cooper_beta1 <- coef(fit, event = 1)
+cooper_beta2 <- coef(fit, event = 2)
 
-fw_coefs <- list(
-  fwelnet = list(
-    cause1 = fwel_beta1[fwel_beta1 != 0],
-    cause2 = fwel_beta2[fwel_beta2 != 0]
+selected <- list(
+  cooper = list(
+    cause1 = cooper_beta1[cooper_beta1 != 0],
+    cause2 = cooper_beta2[cooper_beta2 != 0]
   ),
   glmnet = list(
     cause1 = glmnet_beta1[glmnet_beta1 != 0],
@@ -37,8 +31,10 @@ fw_coefs <- list(
   )
 )
 
-# Same in causes?
-intersect(names(fw_coefs$fwelnet$cause1), names(fw_coefs$fwelnet$cause2))
-intersect(names(fw_coefs$glmnet$cause1), names(fw_coefs$glmnet$cause2))
+# Covariables shared between causes for
+# cooper:
+intersect(names(selected$cooper$cause1), names(selected$cooper$cause2))
+# glmnet:
+intersect(names(selected$glmnet$cause1), names(selected$glmnet$cause2))
 
 
