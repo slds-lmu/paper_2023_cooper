@@ -1,15 +1,14 @@
-# Simulation Code for Cooperative Penalized Regression (CooPeR) Porject
+# Simulation Code for Cooperative Penalized Regression (CooPeR) Project
 
-Simulation code for [`fwelnet`](https://github.com/jemus42/fwelnet) in competing
+Simulation code for [`cooper`](https://github.com/jemus42/cooper) in competing
 risk settings, based on the [original fwelnet implementation](https://github.com/kjytay/fwelnet/)
 ([preprint](https://arxiv.org/pdf/2006.01395.pdf)).
 
 ## Structure
 
 - `R/`: Helper functions for simulation and plotting. 
-   - Idea was to load via `devtools::load_all` (hence the dummy `DESCRIPTION`), 
-   but that was scrapped due to unecessary dependencies.
-- `*.Rmd`: Quick / interactive experiments to get a feeling for what's worth including in a simulation
+   - Loaded automatically via `.Rprofile`.
+- `n-<name>/` folders with code for specific settings
 
 Note the project uses `renv` to ensure consistent R dependencies.  
 Upon first load it's going to bug you to run `renv::restore()` to locally 
