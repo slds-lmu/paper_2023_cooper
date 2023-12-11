@@ -22,6 +22,10 @@ library(patchwork)
 library(dplyr)
 library(kableExtra)
 library(data.table)
+source(here::here("2-variable-selection-sim/2-simulation.R"))
+
+result_file <- here::here("2-variable-selection-sim/results.rds")
+# result_long_file <- here::here("2-variable-selection-sim/results_long.rds")
 
 reg_name <- "fwel_sim_varsel"
 reg_dir <- here::here("registries", reg_name)
@@ -37,12 +41,21 @@ theme_set(
 )
 ```
 
-```{r get-results, cache = TRUE}
+```{r get-results, eval=!file.exists(result_file)}
 res <-  ijoin(reduceResultsDataTable(), flatten(getJobPars()))
 jobs_total <- nrow(getJobTable())
 jobs_completed <- 100 * nrow(res)/jobs_total
 jobs_errored <- 100 * nrow(findErrors())/jobs_total
 
+saveRDS(res, result_file)
+```
+
+```{r, eval=file.exists(result_file)}
+res <- readRDS(result_file)
+```
+
+
+```{r}
 res |>
   count(algorithm, problem, t, thresh) |>
   kable(caption = glue::glue("Finished jobs ({jobs_total} total, {jobs_completed}% completed, {jobs_errored}% errored)")) |>
@@ -81,32 +94,10 @@ res_long[, block := gsub("3", "3.", block)]
 res_long[, block := factor(block, levels = sort(unique(block)))]
 
 # Params for methods
-params_fwelnet <- c("t", "thresh", "mt_max_iter", "alpha")
-params_rfsrc <- c("importance", "cutoff_method", "mtry", "nodesize", "splitrule")
-params_coxboost <- c("cmprsk", "stepno", "penalty")
-
-params_sim <- c("n_train", "p", "ce", "lambda1", "lambda2", "lambda_c")
-# tbl_sim_params <- res_long |>
-#   select(job.id, params_sim) |>
-#   tidyr::pivot_longer(cols = -job.id, names_to = "sim_param", values_to = "sim_param_value")
-# 
-# tbl_fwelnet_params <- res_long |>
-#   filter(algorithm == "fwel_mt") |>
-#   select(-params_sim, -params_rfsrc, -params_coxboost) |>
-#   tidyr::pivot_longer(cols = params_fwelnet, names_to = "algorithm_param", values_to = "algorithm_param_value", values_transform = as.character)
-# 
-# tbl_rfsrc_params <- res_long |>
-#   filter(algorithm == "rfsrc") |>
-#   select(-params_sim, -params_fwelnet, -params_coxboost) |>
-#   tidyr::pivot_longer(cols = params_rfsrc, names_to = "algorithm_param", values_to = "algorithm_param_value", values_transform = as.character)
-# 
-# 
-# 
-# 
-
-# res_long |>
-#   tidyr::unite(col = model_params, params_fwelnet, sep = ";", na.rm = TRUE) |>
-#   select(model_params)
+# params_fwelnet <- c("t", "thresh", "mt_max_iter", "alpha")
+# params_rfsrc <- c("importance", "cutoff_method", "mtry", "nodesize", "splitrule")
+# params_coxboost <- c("cmprsk", "stepno", "penalty")
+# params_sim <- c("n_train", "p", "ce", "lambda1", "lambda2", "lambda_c")
 
 ```
 
@@ -194,7 +185,7 @@ plot_varselect_boxplot(
 ## Covariates & true effects
 
 ```{r, include = FALSE}
-tmp <- sim_surv_binder(n_train = 400, p = 5000)
+tmp <- sim_surv_binder(n_train = 10, p = 5000)
 truth <- tmp$covar_true_effect |> sapply(length)
 total <- tmp$covar_blocks |> sapply(length)
 ```
@@ -222,7 +213,7 @@ Simulated data dimensions: n = 400, p = 5000
   
 ## Confusion Matrix stats
  
-```{r confmat-measures-boxplot, fig.height=12}
+```{r confmat-measures-boxplot, fig.height=12, eval=FALSE}
 res_long |>
   mutate(
     cause = paste0("Cause ", cause),
@@ -551,10 +542,10 @@ res_long_selected <- res_long |>
     model = case_when(
       model == "fwelnet" ~ "CooPeR",
       model == "coxboost" ~ "CoxBoost",
-      model == "glmnet" ~ "Pen. Cox",
+      model == "glmnet" ~ "Coxnet",
       model == "rfsrc" ~ "RSF"
     ),
-    model = factor(model, levels = rev(c("CooPeR", "Pen. Cox", "RSF", "CoxBoost")))
+    model = factor(model, levels = rev(c("CooPeR", "Coxnet", "RSF", "CoxBoost")))
   )
 ```
 
@@ -601,11 +592,11 @@ p_ppv1 <- res_long_selected |>
     x = NULL, y = "PPV [%]", color = NULL, fill = NULL
   )
 
-ggsave(plot = p_ppv1, filename = "selected-ppv-equallambda.pdf", path = "selected-plots", width = 10, height = 4)
-ggsave(plot = p_ppv1, filename = "selected-ppv-equallambda.png", path = "selected-plots", width = 10, height = 4)
+ggsave(plot = p_ppv1, filename = "selected-ppv-equallambda.pdf", path = here::here("selected-plots"), width = 12, height = 4)
+ggsave(plot = p_ppv1, filename = "selected-ppv-equallambda.png", path = here::here("selected-plots"), width = 12, height = 4, bg = "white")
 ```
 
-```{r selected-ppv-difflambda}
+```{r selected-ppv-difflambda, eval = FALSE}
 p_ppv2 <- res_long_selected |>
   filter(lambda2 == 0.01 & lambda1 == 0.1) |>
   tidyr::pivot_longer(cols = tpr:acc, names_to = "measure", values_to = "value", names_transform = toupper) |>
@@ -623,8 +614,8 @@ p_ppv2 <- res_long_selected |>
     x = NULL, y = "PPV [%]", color = NULL, fill = NULL
   )
 
-ggsave(plot = p_ppv2, filename = "selected-ppv-difflambda.pdf", path = "selected-plots", width = 16, height = 7)
-ggsave(plot = p_ppv2, filename = "selected-ppv-difflambda.png", path = "selected-plots", width = 16, height = 7)
+ggsave(plot = p_ppv2, filename = "selected-ppv-difflambda.pdf", path = here::here("selected-plots"), width = 12, height = 4)
+ggsave(plot = p_ppv2, filename = "selected-ppv-difflambda.png", path = here::here("selected-plots"), width = 12, height = 4)
 ```
 
 ```{r selected-fpr-equallambda}
@@ -640,13 +631,13 @@ p_fpr1 <- res_long_selected |>
   scale_y_continuous(labels = scales::percent_format()) +
   scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill"), guide = "none") +
   labs(
-    title = "Susceptibility to noise: FPR",
-    subtitle = "Simulation setting with approx. equal proportions of cause 1 and 2",
+    # title = "Susceptibility to noise: FPR",
+    # subtitle = "Simulation setting with approx. equal proportions of cause 1 and 2",
     x = NULL, y = "FPR [%]", color = NULL, fill = NULL
   )
 
-ggsave(plot = p_fpr1, filename = "selected-fpr-equallambda.pdf", path = "selected-plots", width = 16, height = 7)
-ggsave(plot = p_fpr1, filename = "selected-fpr-equallambda.png", path = "selected-plots", width = 16, height = 7)
+ggsave(plot = p_fpr1, filename = "selected-fpr-equallambda.pdf", path = "selected-plots", width = 14, height = 4)
+ggsave(plot = p_fpr1, filename = "selected-fpr-equallambda.png", path = "selected-plots", width = 14, height = 4, bg = "white")
 ```
 
 ```{r selected-fpr-difflambda}
@@ -689,8 +680,8 @@ p_npv1 <- res_long_selected |>
     x = NULL, y = "NPV [%]", color = NULL, fill = NULL
   )
 
-ggsave(plot = p_npv1, filename = "selected-npv-equallambda.pdf", path = "selected-plots", width = 16, height = 7)
-ggsave(plot = p_npv1, filename = "selected-npv-equallambda.png", path = "selected-plots", width = 16, height = 7)
+ggsave(plot = p_npv1, filename = "selected-npv-equallambda.pdf", path = "selected-plots", width = 12, height = 4)
+ggsave(plot = p_npv1, filename = "selected-npv-equallambda.png", path = "selected-plots", width = 12, height = 4)
 ```
 
 ```{r selected-npv-difflambda}
@@ -715,7 +706,7 @@ ggsave(plot = p_npv2, filename = "selected-npv-difflambda.pdf", path = "selected
 ggsave(plot = p_npv2, filename = "selected-npv-difflambda.png", path = "selected-plots", width = 16, height = 7)
 ```
 
-### Tweaked versions up versions
+### CEN versions
 
 ```{r}
 plot_boxplot_subset <- function(data, measure, ...) {
@@ -774,11 +765,5 @@ for (measure in c("PPV", "FPR")) {
 
 
 
-```
-
-
-```{r}
-dplyr::filter(res_long_selected, cause == "Cause 1") |>
-      plot_boxplot_subset(measure = "FPR", lambda1 == lambda2)
 ```
 
