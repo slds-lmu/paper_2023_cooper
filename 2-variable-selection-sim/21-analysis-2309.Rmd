@@ -22,6 +22,9 @@ library(patchwork)
 library(dplyr)
 library(kableExtra)
 library(data.table)
+source(here::here("2-variable-selection-sim/2-simulation.R"))
+
+result_file <- here::here("2-variable-selection-sim/results.rds")
 
 reg_name <- "fwel_sim_varsel_2309"
 reg_dir <- here::here("registries", reg_name)
@@ -37,16 +40,17 @@ theme_set(
 )
 ```
 
-```{r get-results, cache = TRUE}
+```{r get-results, eval=!file.exists(result_file)}
 res <-  ijoin(reduceResultsDataTable(), flatten(getJobPars()))
 jobs_total <- nrow(getJobTable())
 jobs_completed <- 100 * nrow(res)/jobs_total
 jobs_errored <- 100 * nrow(findErrors())/jobs_total
 
-res |>
-  count(algorithm, problem, t, thresh) |>
-  kable(caption = glue::glue("Finished jobs ({jobs_total} total, {jobs_completed}% completed, {jobs_errored}% errored)")) |>
-  kable_styling()
+saveRDS(res, result_file)
+```
+
+```{r, eval=file.exists(result_file)}
+res <- readRDS(result_file)
 ```
 
 
@@ -65,7 +69,7 @@ getJobTable() |>
     n_complete = sum(!is.na(time.running)),
     .groups = "drop"
   ) |>
-  mutate(across(where(is.numeric), round, 1)) |>
+  mutate(across(where(is.numeric), \(x) round(x, 1))) |>
   kable(caption = "Job runtime (mins)") |>
   kable_styling()
 ```
@@ -94,27 +98,6 @@ params_rfsrc <- c("importance", "cutoff_method", "mtry", "nodesize", "splitrule"
 params_coxboost <- c("cmprsk", "stepno", "penalty")
 
 params_sim <- c("n_train", "p", "ce", "lambda1", "lambda2", "lambda_c")
-# tbl_sim_params <- res_long |>
-#   select(job.id, params_sim) |>
-#   tidyr::pivot_longer(cols = -job.id, names_to = "sim_param", values_to = "sim_param_value")
-# 
-# tbl_fwelnet_params <- res_long |>
-#   filter(algorithm == "fwel_mt") |>
-#   select(-params_sim, -params_rfsrc, -params_coxboost) |>
-#   tidyr::pivot_longer(cols = params_fwelnet, names_to = "algorithm_param", values_to = "algorithm_param_value", values_transform = as.character)
-# 
-# tbl_rfsrc_params <- res_long |>
-#   filter(algorithm == "rfsrc") |>
-#   select(-params_sim, -params_fwelnet, -params_coxboost) |>
-#   tidyr::pivot_longer(cols = params_rfsrc, names_to = "algorithm_param", values_to = "algorithm_param_value", values_transform = as.character)
-# 
-# 
-# 
-# 
-
-# res_long |>
-#   tidyr::unite(col = model_params, params_fwelnet, sep = ";", na.rm = TRUE) |>
-#   select(model_params)
 
 ```
 
@@ -216,7 +199,7 @@ plot_varselect_boxplot(
 ## Covariates & true effects
 
 ```{r, include = FALSE}
-tmp <- sim_surv_binder(n_train = 400, p = 5000)
+tmp <- sim_surv_binder(n_train = 100, p = 5000)
 truth <- tmp$covar_true_effect |> sapply(length)
 total <- tmp$covar_blocks |> sapply(length)
 ```
@@ -244,7 +227,7 @@ Simulated data dimensions: n = 400, p = 5000
   
 ## Confusion Matrix stats
  
-```{r confmat-measures-boxplot, fig.height=12}
+```{r confmat-measures-boxplot, fig.height=12, eval=FALSE}
 res_long |>
   mutate(
     cause = paste0("Cause ", cause),
@@ -336,35 +319,7 @@ res_long |>
   collapse_rows(1:2)
 ```
 
-
-
 ### Positive: Detection of true effects
-
-TPR, PPV, F1?
-
-Note on F1: Depends on ratio of positive/negative labels in true data, so comparison across different blocks with different numbers of true effects is not ideal.
-
-```{r blockwise-pos-measures-boxplot, fig.height=12}
-res_long |>
-  mutate(
-    block = stringr::str_replace_all(block, "31", "3.1"),
-    block = stringr::str_replace_all(block, "32", "3.2"),
-    cause = paste0("Cause ", cause)
-  ) |>
-  tidyr::pivot_longer(cols = tpr:acc, names_to = "measure", values_to = "value", names_transform = toupper) |>
-  filter(measure %in% c("ACC","TPR", "PPV", "F1")) |>
-  filter(!is.na(value)) |>
-  ggplot(aes(x = model, y = value, color = model, fill = model)) +
-  facet_grid(rows = vars(cause, measure), cols = vars(block), scales = "free") +
-  #coord_flip() +
-  geom_boxplot(alpha = 0.5) +
-  scale_y_continuous(labels = scales::percent_format()) +
-  scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill")) +
-  labs(
-    title = "Classification metrics by model and covariate block",
-    x = "Model", y = "Rate [%]", color = NULL, fill = NULL
-  )
-```
 
 Subset to only PPV with more model differentiation
 
@@ -521,35 +476,6 @@ res_long |>
   )
 ```
 
-
-### ROC-Like Bidimensional Scatter
-
-Hard to make out anything useful except that fwelnet seems to work fine and block3.2/cause 2 is harder than 3.1/cause 1 :/
-
-```{r roc, eval = FALSE}
-res_long |>
-  mutate(
-    block = stringr::str_replace_all(block, "31", "3.1"),
-    block = stringr::str_replace_all(block, "32", "3.2"),
-    cause = paste0("Cause ", cause)
-  ) |>
-  filter(!is.na(tpr)) |>
-  ggplot(aes(x = fpr, y = tpr, color = model, fill = model)) +
-  facet_grid(rows = vars(block), cols = vars(cause), scales = "free") +
-  geom_point(position = position_jitter(width = 0.01, height = 0.01), alpha = .5, size = 3) +
-  geom_hline(yintercept = 1:4 * 0.25, lty = "dashed", color = "darkgray") +
-  geom_abline(slope = 1, intercept = 0, lty = "dashed", color = "black") +
-  scale_x_continuous(labels = scales::percent_format(), limits = c(0, 1)) +
-  scale_y_continuous(labels = scales::percent_format(), breaks = 0:4 * 0.25) +
-  scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill")) +
-  labs(
-    title = "Classification metrics by model and covariate block",
-    subtitle = "Jitter +/- 0.01 applied on both axes for visibility",
-    x = "False Positive Rate", y = "True Positive Rate", color = NULL, fill = NULL
-  )
-```
-
-
 ## Selected Plots for Paper
 
 Some tweaks for presentability purposes
@@ -573,10 +499,10 @@ res_long_selected <- res_long |>
     model = case_when(
       model == "fwelnet" ~ "CooPeR",
       model == "coxboost" ~ "CoxBoost",
-      model == "glmnet" ~ "Pen. Cox",
+      model == "glmnet" ~ "Coxnet",
       model == "rfsrc" ~ "RSF"
     ),
-    model = factor(model, levels = rev(c("CooPeR", "Pen. Cox", "RSF", "CoxBoost")))
+    model = factor(model, levels = rev(c("CooPeR", "Coxnet", "RSF", "CoxBoost")))
   )
 ```
 
@@ -604,6 +530,7 @@ cb_jobs |>
 ```
 
 
+
 ```{r selected-ppv-equallambda}
 p_ppv1 <- res_long_selected |>
   filter(lambda2 == lambda1) |>
@@ -623,8 +550,8 @@ p_ppv1 <- res_long_selected |>
     x = NULL, y = "PPV [%]", color = NULL, fill = NULL
   )
 
-ggsave(plot = p_ppv1, filename = "selected-ppv-equallambda.pdf", path = "selected-plots", width = 10, height = 4)
-ggsave(plot = p_ppv1, filename = "selected-ppv-equallambda.png", path = "selected-plots", width = 10, height = 4)
+ggsave(plot = p_ppv1, filename = "selected-ppv-equallambda.pdf", path = here::here("selected-plots"), width = 12, height = 4)
+ggsave(plot = p_ppv1, filename = "selected-ppv-equallambda.png", path = here::here("selected-plots"), width = 12, height = 4, bg = "white")
 ```
 
 ```{r selected-ppv-difflambda}
@@ -659,16 +586,16 @@ p_fpr1 <- res_long_selected |>
   facet_grid(rows = vars(cause), cols = vars(block), scales = "free") +
   coord_flip() +
   geom_boxplot(alpha = 0.5) +
-  scale_y_continuous(labels = scales::percent_format()) +
+  scale_y_continuous(labels = scales::percent_format(), breaks = scales::pretty_breaks(n = 3)) +
   scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill"), guide = "none") +
   labs(
-    title = "Susceptibility to noise: FPR",
-    subtitle = "Simulation setting with approx. equal proportions of cause 1 and 2",
+    # title = "Susceptibility to noise: FPR",
+    # subtitle = "Simulation setting with approx. equal proportions of cause 1 and 2",
     x = NULL, y = "FPR [%]", color = NULL, fill = NULL
   )
 
-ggsave(plot = p_fpr1, filename = "selected-fpr-equallambda.pdf", path = "selected-plots", width = 16, height = 7)
-ggsave(plot = p_fpr1, filename = "selected-fpr-equallambda.png", path = "selected-plots", width = 16, height = 7)
+ggsave(plot = p_fpr1, filename = "selected-fpr-equallambda.pdf", path = "selected-plots", width = 14, height = 4)
+ggsave(plot = p_fpr1, filename = "selected-fpr-equallambda.png", path = "selected-plots", width = 14, height = 4, bg = "white")
 ```
 
 ```{r selected-fpr-difflambda}
@@ -693,51 +620,8 @@ ggsave(plot = p_fpr2, filename = "selected-fpr-difflambda.pdf", path = "selected
 ggsave(plot = p_fpr2, filename = "selected-fpr-difflambda.png", path = "selected-plots", width = 16, height = 7)
 ```
 
-```{r selected-npv-equallambda}
-p_npv1 <- res_long_selected |>
-  filter(lambda2 == lambda1) |>
-  tidyr::pivot_longer(cols = tpr:acc, names_to = "measure", values_to = "value", names_transform = toupper) |>
-  filter(measure %in% c("NPV")) |>
-  filter(!is.na(value)) |>
-  ggplot(aes(x = model, y = value, color = model, fill = model)) +
-  facet_grid(rows = vars(cause), cols = vars(block), scales = "free") +
-  coord_flip() +
-  geom_boxplot(alpha = 0.5) +
-  scale_y_continuous(labels = scales::percent_format()) +
-  scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill"), guide = "none") +
-  labs(
-    title = "Susceptibility to noise: NPV",
-    subtitle = "Simulation setting with approx. equal proportions of cause 1 and 2",
-    x = NULL, y = "NPV [%]", color = NULL, fill = NULL
-  )
 
-ggsave(plot = p_npv1, filename = "selected-npv-equallambda.pdf", path = "selected-plots", width = 16, height = 7)
-ggsave(plot = p_npv1, filename = "selected-npv-equallambda.png", path = "selected-plots", width = 16, height = 7)
-```
-
-```{r selected-npv-difflambda}
-p_npv2 <- res_long_selected |>
-  filter(lambda2 == 0.01 & lambda1 == 0.1) |>
-  tidyr::pivot_longer(cols = tpr:acc, names_to = "measure", values_to = "value", names_transform = toupper) |>
-  filter(measure %in% c("NPV")) |>
-  filter(!is.na(value)) |>
-  ggplot(aes(x = model, y = value, color = model, fill = model)) +
-  facet_grid(rows = vars(cause), cols = vars(block), scales = "free") +
-  coord_flip() +
-  geom_boxplot(alpha = 0.5) +
-  scale_y_continuous(labels = scales::percent_format()) +
-  scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill"), guide = "none") +
-  labs(
-    title = "Susceptibility to noise: NPV",
-    subtitle = "Simulation setting with cause 2 less prevalent",
-    x = NULL, y = "NPV [%]", color = NULL, fill = NULL
-  )
-
-ggsave(plot = p_npv2, filename = "selected-npv-difflambda.pdf", path = "selected-plots", width = 16, height = 7)
-ggsave(plot = p_npv2, filename = "selected-npv-difflambda.png", path = "selected-plots", width = 16, height = 7)
-```
-
-### Tweaked versions up versions
+### CEN versions
 
 ```{r}
 plot_boxplot_subset <- function(data, measure, ...) {
@@ -780,8 +664,7 @@ for (measure in c("PPV", "FPR")) {
     
     width <- ifelse(measure == "FPR", 10, 8.5)
     height <- ifelse(measure == "FPR", 3.5, 3)
-  
-#
+ 
     p <- plot_boxplot_subset(res_long_selected, measure = measure, lambda1 == lambda2)
   
     filename <- glue::glue("selected-plots/cen-selected-{tolower(measure)}-equallambda.pdf")
@@ -794,13 +677,108 @@ for (measure in c("PPV", "FPR")) {
   #}
 }
 
-
-
 ```
 
+## Tables
 
 ```{r}
-dplyr::filter(res_long_selected, cause == "Cause 1") |>
-      plot_boxplot_subset(measure = "FPR", lambda1 == lambda2)
+measure_table <- function(res_long_selected, measure = "PPV", aggr_point = median, aggr_var = IQR, minmax = max) {
+  res_long_selected |>
+    filter(lambda2 == lambda1) |>
+    #filter(grepl("^B[12]", block)) |>
+    tidyr::pivot_longer(cols = tpr:acc, names_to = "measure", values_to = "value", names_transform = toupper) |>
+    filter(measure %in% c(measure)) |>
+    filter(!is.na(value)) |>
+    select(model, cause, block, value) |>
+    group_by(model, cause, block) |>
+    summarize(
+      aggr = 100 * aggr_point(value),
+      aggrv = 100 * aggr_var(value),
+      .groups = "drop"
+    ) |>
+    group_by(cause, block) |>
+    mutate(
+      stat_formatted = glue::glue("{round(aggr, 2)} ({round(aggrv, 2)})"),
+      stat_formatted = cell_spec(stat_formatted, bold = aggr == minmax(aggr), format = kbl_format)
+    ) |>
+    ungroup() |>
+    select(-aggr, -aggrv) |>
+    tidyr::pivot_wider(names_from = model, values_from = stat_formatted) |>
+    select(Cause = cause, Block = block, CooPeR, Coxnet, CoxBoost, RSF)
+}
+
+ppv_tbl_median <- measure_table(res_long_selected, measure = "PPV", aggr_point = median, aggr_var = IQR, minmax = max)
+ppv_tbl_mean <- measure_table(res_long_selected, measure = "PPV", aggr_point = mean, aggr_var = sd, minmax = max)
+
+fpr_tbl_median <- measure_table(res_long_selected, measure = "FPR", aggr_point = median, aggr_var = IQR, minmax = min)
+fpr_tbl_mean <- measure_table(res_long_selected, measure = "FPR", aggr_point = mean, aggr_var = sd, minmax = min)
+
 ```
 
+
+```{r ppv-table}
+kbl_format <- "latex"
+options(knitr.table.format = kbl_format)
+
+ppv_kbl_median <- ppv_tbl_median |>
+  select(-Cause) |>
+  kbl(
+    caption = "Median (IQR) of PPV scores (\\%) across different covariate blocks for causes 1 and 2.\\label{tab:ppv-median}",
+    escape = FALSE, booktabs = TRUE, format = kbl_format
+  ) |>
+  kable_styling(protect_latex = TRUE) |>
+  footnote(general = "Method with highest scores within each cause/block", general_title = "Bold:") |>
+  pack_rows(index = table(ppv_tbl$Cause))
+
+ppv_kbl_mean <- ppv_tbl_mean |>
+  select(-Cause) |>
+  kbl(
+    caption = "Mean (SD) of PPV scores (\\%) across different covariate blocks for causes 1 and 2.\\label{tab:ppv-mean}",
+    escape = FALSE, booktabs = TRUE, format = kbl_format
+  ) |>
+  kable_styling(protect_latex = TRUE) |>
+  footnote(general = "Method with highest scores within each cause/block", general_title = "Bold:") |>
+  pack_rows(index = table(ppv_tbl$Cause))
+
+if (kbl_format == "latex") {
+  writeLines(ppv_kbl_median, con = here::here("tables", "ppv-median.tex"))
+}
+
+if (kbl_format == "latex") {
+  writeLines(ppv_kbl_mean, con = here::here("tables", "ppv-mean.tex"))
+}
+
+```
+
+```{r fpr-table}
+kbl_format <- "latex"
+options(knitr.table.format = kbl_format)
+
+fpr_kbl_median <- fpr_tbl_median |>
+  select(-Cause) |>
+  kbl(
+    caption = "Median (IQR) of FPR scores (\\%) across different covariate blocks for causes 1 and 2.",
+    escape = FALSE, booktabs = TRUE, format = kbl_format
+  ) |>
+  kable_styling(protect_latex = TRUE) |>
+  footnote(general = "Method with lowest scores within each cause/block", general_title = "Bold:") |>
+  pack_rows(index = table(ppv_tbl$Cause))
+
+fpr_kbl_mean <- fpr_tbl_mean |>
+  select(-Cause) |>
+  kbl(
+    caption = "Mean (SD) of FPR scores (\\%) across different covariate blocks for causes 1 and 2.",
+    escape = FALSE, booktabs = TRUE, format = kbl_format
+  ) |>
+  kable_styling(protect_latex = TRUE) |>
+  footnote(general = "Method with lowest scores within each cause/block", general_title = "Bold:") |>
+  pack_rows(index = table(ppv_tbl$Cause))
+
+if (kbl_format == "latex") {
+  writeLines(fpr_kbl_median, con = here::here("tables", "fpr-median.tex"))
+}
+
+if (kbl_format == "latex") {
+  writeLines(fpr_kbl_mean, con = here::here("tables", "fpr-mean.tex"))
+}
+```

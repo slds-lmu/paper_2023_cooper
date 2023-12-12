@@ -28,7 +28,7 @@ selected <- list(
 
 # Covariables shared between causes for
 # CooPeR:
-intersect(names(selected$cooper$cause1), names(selected$cooper$cause2))
+intersect(names(selected$cooper$cause1), names(selected$cooper$cause2)) |> sort()
 # Coxnet:
 intersect(names(selected$coxnet$cause1), names(selected$coxnet$cause2))
 
