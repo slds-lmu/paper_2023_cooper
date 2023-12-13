@@ -1,12 +1,8 @@
-
 library(data.table)
 library(CoxBoost)
 
 set.seed(2023)
-
-bladder_file <- here::here("data/bladder-binder-clinical_geno.rds")
-dat <- data.table::as.data.table(readRDS(bladder_file))
-
+dat <- data.table::as.data.table(readRDS(here::here("data/bladder-binder-clinical_geno.rds")))
 
 # Coxboost ----------------------------------------------------------------
 cbfit <- CoxBoost(

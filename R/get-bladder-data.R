@@ -5,11 +5,6 @@ get_bladder_data <- function(job = NULL, data = NULL, split = 2/3, standardize =
     "clinical" = here::here("data/bladder-binder-clinical.rds"),
     "geno" = here::here("data/bladder-binder-geno.rds"),
     "both" = here::here("data/bladder-binder-clinical_geno.rds")
-
-    # old versions
-    # "clinical" = here::here("data/bladder_surv_clinical.rds"),
-    # "geno" = here::here("data/bladder_surv_geno.rds"),
-    # "both" = here::here("data/bladder_surv_clin_geno.rds")
   )
 
   if (!file.exists(bladder_file)) {

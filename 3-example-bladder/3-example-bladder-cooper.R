@@ -28,8 +28,19 @@ selected <- list(
 
 # Covariables shared between causes for
 # CooPeR:
-intersect(names(selected$cooper$cause1), names(selected$cooper$cause2)) |> sort()
+(cooper_shared <- intersect(names(selected$cooper$cause1), names(selected$cooper$cause2)))
 # Coxnet:
-intersect(names(selected$coxnet$cause1), names(selected$coxnet$cause2))
+(coxnet_shared <- intersect(names(selected$coxnet$cause1), names(selected$coxnet$cause2)))
 
+coxnet_beta1[names(coxnet_beta1) == "age"]
+coxnet_beta2[names(coxnet_beta2) == "age"]
+cooper_beta1[names(cooper_beta1) == "age"]
+cooper_beta2[names(cooper_beta2) == "age"]
 
+reference <- readxl::read_excel("data-raw/10780432ccr062940-sup-supplemental_file_2.xls", sheet = "Progression classifier probes") |>
+  janitor::clean_names()
+
+cooper_shared[cooper_shared %in% reference$probe_id]
+
+reference |>
+  dplyr::filter(probe_id %in% cooper_shared)
