@@ -1,7 +1,7 @@
 # Variable selection ----------------------------------------------------------------------------------------------
 
 # fwelnet wrapper for variable selection sim
-fwel_mt_varselect_wrapper <- function(
+cooper_varsel_wrapper <- function(
     data, job, instance,
     alpha = 1, z_method = "original",
     mt_max_iter = 2,
@@ -77,7 +77,7 @@ rfsrc_varselect_wrapper <- function(data, job, instance,
   # not sure about other methods yet
   checkmate::assert_subset(cutoff_method, choices = "vita")
 
-  rf_c1 <- rfsrc(
+  rf_c1 <- randomForestSRC::rfsrc(
     Surv(time, status) ~ ., data = instance$train,
     splitrule = splitrule,
     cause = c(1, 0),
@@ -86,7 +86,7 @@ rfsrc_varselect_wrapper <- function(data, job, instance,
     nodesize = nodesize
   )
 
-  rf_c2 <- rfsrc(
+  rf_c2 <- randomForestSRC::rfsrc(
     Surv(time, status) ~ ., data = instance$train,
     splitrule = splitrule,
     cause = c(0, 1),
@@ -131,7 +131,7 @@ rfsrc_varselect_wrapper <- function(data, job, instance,
 coxboost_varselect_wrapper <- function(data, job, instance,
                                        cmprsk = "csh", stepno = 100, penalty = 2000
                                        ) {
-  cbfit <- CoxBoost(
+  cbfit <- CoxBoost::CoxBoost(
     time = instance$train$time,
     status = instance$train$status,
     x = as.matrix(instance$train[, -c(1, 2)]),
@@ -197,16 +197,6 @@ get_confusion <- function(beta, truth, total, block = "block1", model = "glmnet"
   # This feels uncomfortably hacky.
   predicted <- which(beta[total[[block]]] != 0) + (total[[block]][[1]] - 1)
   predicted0 <- which(beta[total[[block]]] == 0) + (total[[block]][[1]] - 1)
-
-  # Double check that indices are set correctly. Names are x<j>, so we can check that quickly
-  # checkmate::assert(
-  #   checkmate::assert_true(
-  #     all.equal(as.integer(sub(pattern = "x", replacement = "", names(predicted))), unname(predicted))
-  #   ),
-  #   checkmate::assert_true(
-  #     all.equal(as.integer(sub(pattern = "x", replacement = "", names(predicted0))), unname(predicted0))
-  #   )
-  # )
 
   # block31 has only effect on cause 1 -> true effect index set is empty for cause 2 + vice versa
   if (cause == 1L & block == "block32") truth[["block32"]] <- integer(0)

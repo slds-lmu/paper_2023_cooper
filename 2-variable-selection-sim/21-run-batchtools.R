@@ -20,6 +20,7 @@ continue_bt <- FALSE
 # Registry ----------------------------------------------------------------
 if (!file.exists(here::here("registries"))) dir.create(here::here("registries"))
 reg_name <- "varsel"
+reg_name <- "DEBUG"
 reg_dir <- here::here("registries", reg_name)
 
 if (continue_bt) {
@@ -28,10 +29,10 @@ if (continue_bt) {
   unlink(reg_dir, recursive = TRUE)
   makeExperimentRegistry(
     file.dir = reg_dir,
-    packages = c("randomForestSRC", "CoxBoost"),
+    #packages = c("randomForestSRC", "CoxBoost"),
     seed = config$global.seed,
-    source = c(here::here("2-variable-selection-sim/20-varsel-algorithms.R"),
-               here::here("2-variable-selection-sim/20-varsel-simulation.R"))
+    source = c(here::here("2-variable-selection-sim/2-algorithms.R"),
+               here::here("2-variable-selection-sim/2-simulation.R"))
   )
 }
 
@@ -39,7 +40,7 @@ if (continue_bt) {
 addProblem(name = "sim_surv_binder", fun = sim_surv_binder, seed = config$sim_seed, cache = config$sim_cache)
 
 # Algorithms -----------------------------------------------------------
-addAlgorithm(name = "fwel_mt", fun = fwel_mt_varselect_wrapper)
+addAlgorithm(name = "cooper", fun = cooper_varsel_wrapper)
 addAlgorithm(name = "rfsrc", fun = rfsrc_varselect_wrapper)
 addAlgorithm(name = "coxboost", fun = coxboost_varselect_wrapper)
 
@@ -58,7 +59,7 @@ prob_design <- list(
 )
 
 algo_design <- list(
-  fwel_mt = expand.grid(
+  cooper = expand.grid(
     mt_max_iter = 3,
     alpha = c(1),
     t = c(100),
@@ -84,28 +85,14 @@ summarizeExperiments()
 jobtbl <- unwrap(getJobPars(), c("algo.pars", "prob.pars"))
 
 # Test jobs -----------------------------------------------------------
-if (FALSE) testJob(id = 1)
-
+if (FALSE) testJob(id = 273)  # random cooper
+if (FALSE) testJob(id = 785)  # random rfsrc
+if (FALSE) testJob(id = 1171) # random coxboost
 # Submit -----------------------------------------------------------
 
-submitJobs(jobtbl[algorithm == "fwel_mt"])
-submitJobs(jobtbl[algorithm == "coxboost"])
-# submitJobs(jobtbl[algorithm == "rfsrc"])
-
-ids <- findNotStarted()
-submitJobs(ids)
-
-# Monitor jobs ------------------------------------------------------------
-if (interactive()) {
-  getStatus()
-
-  ijoin(
-    unwrap(getJobPars(findErrors()), c("algo.pars", "prob.pars")),
-    getErrorMessages(findErrors())
-  )
+if (FALSE) {
+  submitJobs(jobtbl[algorithm == "cooper"])
+  submitJobs(jobtbl[algorithm == "coxboost"])
+  submitJobs(jobtbl[algorithm == "rfsrc"])
 }
-
-# Get results -------------------------------------------------------------
-# res <-  ijoin(reduceResultsDataTable(), flatten(getJobPars()))
-# res
 

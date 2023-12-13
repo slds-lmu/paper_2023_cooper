@@ -248,7 +248,6 @@ sim_surv_binder_resample <- function(job = NULL, data = NULL, n_train = 400, n_t
 
   instance
 }
-# sim_surv_binder_resample(job = NULL, data = NULL)
 
 # Debugging and sanity checking -----------------------------------------------------------------------------------
 
@@ -281,20 +280,10 @@ if (FALSE) {
       n = glue::glue("{freq_mean} ({freq_min} - {freq_max})"),
       prop = glue::glue("{prop_mean} ({prop_min} - {prop_max})")
     )
-
-  # bench::press(
-  #   n = c(100, 1000),
-  #   p = 5000,
-  #   bench::mark(
-  #     sim_surv_binder(n = n, p = p)
-  #   )
-  # )
-
 }
 
 
 if (FALSE) {
-
   res <- expand.grid(
     iter = 1:100,
     p = 500, n = 400,
@@ -336,35 +325,8 @@ if (FALSE) {
       prop = glue::glue("{prop_mean} ({prop_min} - {prop_max})")
     ) |>
     kableExtra::kable(format = "latex") |>
-    kableExtra::kable_styling() |> clipr::write_clip()
+    kableExtra::kable_styling()
 
-
-
-}
-
-if (FALSE) {
-  n <- 1000
-  p <- 100
-  X <- block_corr_binder(n = n, p = p)
-  Xcorr <- cor(X)
-
-  # First couple features should have correlations around 0.5
-  Xcorr[1:5, 1:5]
-
-  # Peek at empirical correlation structure
-  Xcorr <- as.data.frame(Xcorr)
-  names(Xcorr) <- paste0("x", seq_len(p))
-  Xcorr$var <- paste0("x", seq_len(p))
-
-  Xcorr |>
-    tidyr::pivot_longer(cols =  tidyr::starts_with("x")) |>
-    dplyr::mutate(
-      var = factor(var, paste0("x", seq_len(p))),
-      name = factor(name, paste0("x", seq_len(p)))
-    ) |>
-    ggplot2::ggplot(ggplot2::aes(var, name, fill = value)) +
-    ggplot2::geom_tile() +
-    ggplot2::scale_fill_binned(type = "viridis", breaks = seq(0, 1, .25))
 }
 
 if (FALSE) {
