@@ -20,7 +20,7 @@ continue_bt <- FALSE
 # Registry ----------------------------------------------------------------
 if (!file.exists(here::here("registries"))) dir.create(here::here("registries"))
 reg_name <- "varsel"
-reg_name <- "DEBUG"
+#reg_name <- "DEBUG"
 reg_dir <- here::here("registries", reg_name)
 
 if (continue_bt) {

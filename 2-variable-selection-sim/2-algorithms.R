@@ -34,12 +34,14 @@ cooper_varsel_wrapper <- function(
   truth <- instance$covar_true_effect
   total <- instance$covar_blocks
 
-  glmnet_beta1 <- fit$beta1[, 1]
-  glmnet_beta2 <- fit$beta2[, 1]
+  # glmnet_beta1 <- fit$beta1[, 1]
+  # glmnet_beta2 <- fit$beta2[, 1]
+  glmnet_beta1 <- coef(fit, event = 1, use_initial_fit = TRUE)
+  glmnet_beta2 <- coef(fit, event = 2, use_initial_fit = TRUE)
 
-  # Same for fwelnet estimates
-  fwel_beta1 <- fit$beta1[, mt_max_iter + 1]
-  fwel_beta2 <- fit$beta2[, mt_max_iter + 1]
+  # Same for cooper estimates
+  cooper_beta1 <- coef(fit, event = 1)
+  cooper_beta2 <- coef(fit, event = 2)
 
   # Get confusion matrix per block of predictors, by model, by cause.
   # I am painfully aware that this is not "nice", but time is finite and patience is, too.
@@ -52,10 +54,10 @@ cooper_varsel_wrapper <- function(
       get_confusion(glmnet_beta2, truth, total, x,  model = "glmnet", cause = 2L)
     }),
     lapply(names(total), function(x) {
-      get_confusion(fwel_beta1, truth, total, x,  model = "fwelnet", cause = 1L)
+      get_confusion(cooper_beta1, truth, total, x,  model = "cooper", cause = 1L)
     }),
     lapply(names(total), function(x) {
-      get_confusion(fwel_beta2, truth, total, x,  model = "fwelnet", cause = 2L)
+      get_confusion(cooper_beta2, truth, total, x,  model = "cooper", cause = 2L)
     })
   ))
 

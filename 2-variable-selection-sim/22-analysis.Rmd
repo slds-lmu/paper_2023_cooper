@@ -93,7 +93,7 @@ res_long |>
   count(lambda1, lambda2, lambda_setting)
 
 # Params for methods
-params_fwelnet <- c("t", "thresh", "mt_max_iter", "alpha")
+params_cooper <- c("t", "thresh", "mt_max_iter", "alpha")
 params_rfsrc <- c("importance", "cutoff_method", "mtry", "nodesize", "splitrule")
 params_coxboost <- c("cmprsk", "stepno", "penalty")
 
@@ -146,12 +146,12 @@ plot_varselect_boxplot <- function(
     filter(.data$block %in% .env$blocks) |>
     mutate(
       model = dplyr::case_when(
-        model == "fwelnet" ~ "CooPeR",
+        model == "cooper" ~ "CooPeR",
         model == "coxboost" ~ "CoxBoost",
-        model == "glmnet" ~ "Pen. Cox",
+        model == "glmnet" ~ "Coxnet",
         model == "rfsrc" ~ "RSF"
       ),
-      model = factor(model, levels = rev(c("CooPeR", "Pen. Cox", "RSF", "CoxBoost")))
+      model = factor(model, levels = rev(c("CooPeR", "Coxnet", "RSF", "CoxBoost")))
     ) |>
     tidyr::pivot_longer(cols = tpr:acc, names_to = "measure", values_to = "value", names_transform = toupper) |>
     filter(.data$measure == .env$measure) |>
@@ -175,14 +175,14 @@ plot_varselect_boxplot <- function(
 
 plot_varselect_boxplot(
   res_long, measure = "PPV", 
-  #model %in% c("fwelnet", "glmnet"),
+  #model %in% c("cooper", "glmnet"),
   lambda_setting = "equal",
   blocks = c("block1", "block2", "block3.1", "block3.2")
 )
 
 plot_varselect_boxplot(
   res_long, measure = "PPV", 
-  #model %in% c("fwelnet", "glmnet"),
+  #model %in% c("cooper", "glmnet"),
   lambda_setting = "c1 less",
   blocks = c("block1", "block2", "block3.1", "block3.2")
 )
@@ -497,7 +497,7 @@ res_long_selected <- res_long |>
       TRUE ~ "Noise"
     ),
     model = case_when(
-      model == "fwelnet" ~ "CooPeR",
+      model == "cooper" ~ "CooPeR",
       model == "coxboost" ~ "CoxBoost",
       model == "glmnet" ~ "Coxnet",
       model == "rfsrc" ~ "RSF"
