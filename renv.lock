@@ -357,27 +357,6 @@
       "Repository": "CRAN",
       "Hash": "d69a786e85775b126bddbee185ae6084"
     },
-    "broom": {
-      "Package": "broom",
-      "Version": "1.0.5",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Requirements": [
-        "R",
-        "backports",
-        "dplyr",
-        "ellipsis",
-        "generics",
-        "glue",
-        "lifecycle",
-        "purrr",
-        "rlang",
-        "stringr",
-        "tibble",
-        "tidyr"
-      ],
-      "Hash": "fd25391c3c4f6ecf0fa95f1e6d15378c"
-    },
     "bslib": {
       "Package": "bslib",
       "Version": "0.5.0",
@@ -518,14 +497,14 @@
     },
     "cooper": {
       "Package": "cooper",
-      "Version": "0.1.0.9008",
+      "Version": "0.1.0.9009",
       "Source": "GitHub",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
       "RemoteUsername": "jemus42",
       "RemoteRepo": "cooper",
       "RemoteRef": "main",
-      "RemoteSha": "adfe87d0711b469f53a9eaed69c44df8d82616e7",
+      "RemoteSha": "3afb1be2c3ba699c40a1a6726ecff112c1f7aed5",
       "Requirements": [
         "Matrix",
         "checkmate",
@@ -534,7 +513,7 @@
         "stats",
         "survival"
       ],
-      "Hash": "457c0cf400ded808954e2830d4be7733"
+      "Hash": "9d723595cd75d8b25218b720e21c8957"
     },
     "cpp11": {
       "Package": "cpp11",
@@ -1033,6 +1012,28 @@
       ],
       "Hash": "8954069286b4b2b0d023d1b288dce978"
     },
+    "janitor": {
+      "Package": "janitor",
+      "Version": "2.2.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "dplyr",
+        "hms",
+        "lifecycle",
+        "lubridate",
+        "magrittr",
+        "purrr",
+        "rlang",
+        "snakecase",
+        "stringi",
+        "stringr",
+        "tidyr",
+        "tidyselect"
+      ],
+      "Hash": "5baae149f1082f466df9d1442ba7aa65"
+    },
     "jquerylib": {
       "Package": "jquerylib",
       "Version": "0.1.4",
@@ -1175,6 +1176,19 @@
         "R"
       ],
       "Hash": "4fbd3679ec8ee169ba28d4b1ea7d0e8f"
+    },
+    "lubridate": {
+      "Package": "lubridate",
+      "Version": "1.9.3",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "generics",
+        "methods",
+        "timechange"
+      ],
+      "Hash": "680ad542fbcf801442c83a6ac5a2126c"
     },
     "magrittr": {
       "Package": "magrittr",
@@ -1868,6 +1882,18 @@
       ],
       "Hash": "9067f962730f58b14d8ae54ca885509f"
     },
+    "snakecase": {
+      "Package": "snakecase",
+      "Version": "0.11.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "stringi",
+        "stringr"
+      ],
+      "Hash": "58767e44739b76965332e8a4fe3f91f1"
+    },
     "stringi": {
       "Package": "stringi",
       "Version": "1.7.12",
@@ -2001,6 +2027,17 @@
         "withr"
       ],
       "Hash": "79540e5fcd9e0435af547d885f184fd5"
+    },
+    "timechange": {
+      "Package": "timechange",
+      "Version": "0.2.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "cpp11"
+      ],
+      "Hash": "8548b44f79a35ba1791308b61e6012d7"
     },
     "timereg": {
       "Package": "timereg",
