@@ -191,7 +191,7 @@ get_confusion <- function(beta, truth, total, block = "block1", model = "glmnet"
   checkmate::assert_list(truth, types = "integer")
   checkmate::assert_list(total, types = "integer")
   checkmate::assert_choice(block, choices = names(truth), null.ok = FALSE)
-  checkmate::assert_choice(model, choices = c("glmnet", "fwelnet", "rfsrc", "coxboost"), null.ok = FALSE)
+  checkmate::assert_choice(model, choices = c("glmnet", "cooper", "rfsrc", "coxboost"), null.ok = FALSE)
   checkmate::assert_choice(cause, choices = c(1L, 2L))
 
   # Get indices of nonzero/zero coefs, need to offset with index of block
