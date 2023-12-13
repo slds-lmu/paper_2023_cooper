@@ -180,7 +180,7 @@ coxboost_varselect_wrapper <- function(data, job, instance,
 #' @param truth List of per-block true effects, `instance$covar_true_effect`
 #' @param total List of per-block indices, `instance$covar_blocks`
 #' @param block Block ID, character
-#' @param model Model identifier, e.g. `"fwelnet"`
+#' @param model Model identifier, e.g. `"cooper"`
 #' @param cause Integer cause 0 or 1
 #'
 #' @return A 1-row data.frame

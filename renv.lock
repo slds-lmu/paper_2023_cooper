@@ -504,7 +504,7 @@
       "RemoteUsername": "jemus42",
       "RemoteRepo": "cooper",
       "RemoteRef": "main",
-      "RemoteSha": "3afb1be2c3ba699c40a1a6726ecff112c1f7aed5",
+      "RemoteSha": "775d9048aba29b62179f8d89005d351b19780041",
       "Requirements": [
         "Matrix",
         "checkmate",
@@ -513,7 +513,7 @@
         "stats",
         "survival"
       ],
-      "Hash": "9d723595cd75d8b25218b720e21c8957"
+      "Hash": "4a9b3135741ac0c3fb4a68efb74747c8"
     },
     "cpp11": {
       "Package": "cpp11",

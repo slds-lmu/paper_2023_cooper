@@ -104,7 +104,7 @@ plot_mt_res <- function(mtres, true_effects) {
       guide = "none"
     ) +
     ggplot2::labs(
-      title = "Multi-Task fwelnet",
+      title = "CooPeR",
       subtitle = glue::glue(
         "z scalar: {mtres$z_scale}",
         "z method: {mtres$z_method}.",
