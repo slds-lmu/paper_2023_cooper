@@ -1,11 +1,18 @@
 source(here::here("R/utils.R"))
 library(data.table)
+library(cooper)
 library(randomForestSRC)
+library(CoxBoost)
+library(riskRegression)
 
 if (!dir.exists(here::here("results"))) dir.create(here::here("results"))
 
 bladder <- readRDS(here::here("data/bladder-binder-clinical_geno.rds"))
 bladder_dt <- data.table::as.data.table(bladder)
+
+# Reference data
+reference <- readxl::read_excel("data-raw/10780432ccr062940-sup-supplemental_file_2.xls", sheet = "Progression classifier probes") |>
+  janitor::clean_names()
 
 # CooPeR --------------------------------------------------------------------------------------
 cli::cli_alert_info("Fitting CooPeR")
@@ -51,8 +58,6 @@ coxnet_beta2[names(coxnet_beta2) == "age"]
 cooper_beta1[names(cooper_beta1) == "age"]
 cooper_beta2[names(cooper_beta2) == "age"]
 
-reference <- readxl::read_excel("data-raw/10780432ccr062940-sup-supplemental_file_2.xls", sheet = "Progression classifier probes") |>
-  janitor::clean_names()
 
 cooper_shared[cooper_shared %in% reference$probe_id]
 
