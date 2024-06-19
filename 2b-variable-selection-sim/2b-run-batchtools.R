@@ -82,7 +82,7 @@ algo_design <- list(
 addExperiments(prob_design, algo_design, repls = config$repls)
 summarizeExperiments()
 jobtbl <- unwrap(getJobPars(), c("algo.pars", "prob.pars"))
-jobtbl[, chunk := chunk(job.id, chunk.size = 50, shuffle = TRUE)]
+jobtbl[, chunk := chunk(job.id, chunk.size = 200, shuffle = TRUE)]
 
 # Test jobs -----------------------------------------------------------
 if (FALSE) testJob(id = 273)  # random cooper
