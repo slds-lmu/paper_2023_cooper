@@ -4,17 +4,21 @@ library(randomForestSRC)
 
 if (!dir.exists(here::here("results"))) dir.create(here::here("results"))
 
-set.seed(2023)
 bladder <- readRDS(here::here("data/bladder-binder-clinical_geno.rds"))
 bladder_dt <- data.table::as.data.table(bladder)
 
 # CooPeR --------------------------------------------------------------------------------------
+cli::cli_alert_info("Fitting CooPeR")
+
+set.seed(2023)
 
 cooperfit <- cooper::cooper(
   bladder, mt_max_iter = 3,
   alpha = 1, t = 100, thresh = 1e-7,
   stratify_by_status = TRUE, nfolds = 5
 )
+
+cli::cli_alert_success("Saving CooPeR model")
 
 saveRDS(cooperfit, here::here("results/3-bladder-cooper.rds"))
 
@@ -58,6 +62,7 @@ reference |>
 
 
 # rfsrc ---------------------------------------------------------------------------------------
+cli::cli_alert_info("Fitting rfsrc")
 
 set.seed(2023)
 
@@ -74,6 +79,8 @@ rf_c2 <- rfsrc_tuned(
   importance = "random",
   cause = 2
 )
+
+cli::cli_alert_success("Saving rfsrc models")
 
 saveRDS(rf_c1, here::here("results/3-bladder-rfsrc-c1.rds"))
 saveRDS(rf_c2, here::here("results/3-bladder-rfsrc-c2.rds"))
@@ -100,10 +107,15 @@ vimps[vita_c1 != 0 & vita_c2 != 0, ]
 
 
 # Coxboost ----------------------------------------------------------------
+cli::cli_alert_info("Fitting CoxBoost")
+
+set.seed(2023)
 cbfit <- coxboost_tuned(
   xdat = bladder_dt,
   cmprsk = "csh"
 )
+
+cli::cli_alert_success("Saving CoxBoost")
 
 saveRDS(cbfit, here::here("results/3-bladder-coxboost.rds"))
 
@@ -123,6 +135,7 @@ intersect(names(coefs_c1), names(coefs_c2))
 
 
 # Performances --------------------------------------------------------------------------------
+cli::cli_alert_info("Doing performance evaluation")
 
 rsfs = list(rf_c1, rf_c2)
 
@@ -151,5 +164,7 @@ scores_cmb <- data.table::rbindlist(lapply(1:2, function(cause) {
   scores_dat$cause = cause
   merge(scores_dat, eval_times_df, by = "times")
 }))
+
+cli::cli_alert_success("Saving scores")
 
 saveRDS(scores_cmb, here::here("results/3-bladder-scores.rds"))
