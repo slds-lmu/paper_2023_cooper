@@ -239,7 +239,7 @@ coxboost_varselect_wrapper <- function(data, job, instance,
 
     scores = Score(
       list(
-        coxboost = cbfit,
+        coxboost = cbfit
       ),
       formula = Hist(time, status) ~ 1,
       data = instance$test,
