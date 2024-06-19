@@ -24,7 +24,7 @@ library(kableExtra)
 library(data.table)
 source(here::here("2-variable-selection-sim/2-simulation.R"))
 
-result_file <- here::here("2-variable-selection-sim/results.rds")
+# result_file <- here::here("2-variable-selection-sim/results.rds")
 
 reg_name <- "varsel"
 reg_dir <- here::here("registries", reg_name)

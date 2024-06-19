@@ -11,7 +11,7 @@ config <- list(
   global_seed = 563,
   sim_seed = 569,
   sim_cache = FALSE,
-  repls = 100
+  repls = 1000
 )
 
 set.seed(config$global_seed)
@@ -51,7 +51,7 @@ addAlgorithm(name = "coxboost", fun = coxboost_varselect_wrapper)
 prob_design <- list(
   sim_surv_binder = expand.grid(
     n_train = 400,
-    n_test = 200,
+    n_test = 400,
     p = 5000,
     ce = c(0.5),
     # cause 1 either slightly higher prevalence or noticeably lower
@@ -91,12 +91,22 @@ if (FALSE) testJob(id = 1171) # random coxboost
 # Submit -----------------------------------------------------------
 
 if (Sys.info()[["nodename"]] %in% c("blog1", "blog2")) {
-  resources = list(partition = "teton", memory = 4096, comment = "cooper")
+  resources = list(partition = "teton,teton-knl", memory = 4096, comment = "cooper")
 } else {
   resources = list(comment = "cooper")
 }
 
-# submitJobs(
-#   jobtbl,
-#   resources = resources
-# )
+submitJobs(
+  jobtbl,
+  resources = resources
+)
+waitForJobs()
+
+res <-  ijoin(reduceResultsDataTable(), flatten(getJobPars()))
+jobs_total <- nrow(getJobTable())
+jobs_completed <- 100 * nrow(res)/jobs_total
+jobs_errored <- 100 * nrow(findErrors())/jobs_total
+
+c(completed = jobs_completed, errored = jobs_errored)
+
+saveRDS(res, here::here("results", "results-varsel.rds"))
