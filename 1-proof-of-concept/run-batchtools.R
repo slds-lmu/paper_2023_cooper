@@ -8,7 +8,7 @@ config <- list(
   sim_seed = 569,
   sim_n = 1000,
   sim_cache = TRUE,
-  repls = 100
+  repls = 1000
 )
 
 set.seed(config$global_seed)
@@ -65,8 +65,8 @@ algo_design <- list(
   cooper = expand.grid(
     mt_max_iter = 5,
     alpha = 1,
-    t = c(1, 50, 100),
-    thresh = c(1e-3, 1e-7, 0)
+    t = c(1, 100),
+    thresh = c(1e-3, 1e-7)
   )
 )
 
@@ -83,7 +83,10 @@ if (grepl("blog\\d{1}", Sys.info()[["nodename"]])) {
   ids[, chunk := chunk(job.id, chunk.size = 50)]
   submitJobs(
     ids = ids,
-    resources = list(memory = 2048, walltime = 6*3600)
+    resources = list(
+      partition = "teton-knl", memory = 2048, walltime = 2*3600,
+      comment = "cooper-poc"
+    )
   )
 } else {
   ids <- findNotStarted()
@@ -92,7 +95,9 @@ if (grepl("blog\\d{1}", Sys.info()[["nodename"]])) {
 waitForJobs()
 
 # Get results -------------------------------------------------------------
-res <-  ijoin(reduceResultsDataTable(), flatten(getJobPars()))
-res
+res <-  ijoin(reduceResultsDataTable(), unwrap(getJobPars()))
+
+nrow(res)/nrow(getJobTable())
+nrow(findErrors())/nrow(getJobTable())
 
 saveRDS(res, here::here("results", "results-poc.rds"))

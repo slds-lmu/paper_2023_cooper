@@ -147,7 +147,7 @@ rsfs = list(rf_c1, rf_c2)
 scores_cmb <- data.table::rbindlist(lapply(1:2, function(cause) {
   eval_times_df <- eval_times_quant(bladder_dt, cause = cause)
 
-  rr_glmnet <- refit_glmnet(cooperfit, bladder_dt, event = cause, alpha = alpha)
+  rr_glmnet <- refit_glmnet(cooperfit, bladder_dt, event = cause, alpha = 1)
 
   scores = Score(
     list(
