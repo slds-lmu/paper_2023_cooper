@@ -193,7 +193,7 @@ rfsrc_varselect_wrapper <- function(data, job, instance,
 coxboost_varselect_wrapper <- function(data, job, instance,
                                        cmprsk = "csh", stepno = 100, penalty = 2000
                                        ) {
-  checkmate::assert_subset(cmprks, choices = c("csh", "sh", "ccsh"))
+  checkmate::assert_subset(cmprk, choices = c("csh", "sh", "ccsh"))
   # cbfit <- CoxBoost::CoxBoost(
   #   time = instance$train$time,
   #   status = instance$train$status,
