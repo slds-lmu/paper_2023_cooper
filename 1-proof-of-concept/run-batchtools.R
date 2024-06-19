@@ -80,7 +80,7 @@ if (interactive()) testJob(id = 1600)
 # Submit -----------------------------------------------------------
 if (grepl("blog\\d{1}", Sys.info()[["nodename"]])) {
   ids <- findNotStarted()
-  ids[, chunk := chunk(job.id, chunk.size = 50)]
+  ids[, chunk := chunk(job.id, chunk.size = 300)]
   submitJobs(
     ids = ids,
     resources = list(
