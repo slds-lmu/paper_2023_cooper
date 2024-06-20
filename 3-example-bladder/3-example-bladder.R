@@ -4,11 +4,14 @@ library(cooper)
 library(randomForestSRC)
 library(CoxBoost)
 library(riskRegression)
-
 if (!dir.exists(here::here("results"))) dir.create(here::here("results"))
+set.seed(2023)
 
 bladder <- readRDS(here::here("data/bladder-binder-clinical_geno.rds"))
 bladder_dt <- data.table::as.data.table(bladder)
+
+
+splits <- partition_dt(bladder_dt, train_prop = 0.7)
 
 # Reference data
 reference <- readxl::read_excel("data-raw/10780432ccr062940-sup-supplemental_file_2.xls", sheet = "Progression classifier probes") |>
@@ -17,10 +20,8 @@ reference <- readxl::read_excel("data-raw/10780432ccr062940-sup-supplemental_fil
 # CooPeR --------------------------------------------------------------------------------------
 cli::cli_alert_info("Fitting CooPeR")
 
-set.seed(2023)
-
 cooperfit <- cooper::cooper(
-  bladder, mt_max_iter = 3,
+  splits$train, mt_max_iter = 3,
   alpha = 1, t = 100, thresh = 1e-7,
   stratify_by_status = TRUE, nfolds = 5
 )
@@ -64,22 +65,18 @@ cooper_shared[cooper_shared %in% reference$probe_id]
 reference |>
   dplyr::filter(probe_id %in% cooper_shared)
 
-
-
 # rfsrc ---------------------------------------------------------------------------------------
 cli::cli_alert_info("Fitting rfsrc")
 
-set.seed(2023)
-
 rf_c1 <- rfsrc_tuned(
-  xdat = bladder_dt,
+  xdat = splits$train,
   splitrule = "logrank",
   importance = "random",
   cause = 1
 )
 
 rf_c2 <- rfsrc_tuned(
-  xdat = bladder_dt,
+  xdat = splits$train,
   splitrule = "logrank",
   importance = "random",
   cause = 2
@@ -114,9 +111,8 @@ vimps[vita_c1 != 0 & vita_c2 != 0, ]
 # Coxboost ----------------------------------------------------------------
 cli::cli_alert_info("Fitting CoxBoost")
 
-set.seed(2023)
 cbfit <- coxboost_tuned(
-  xdat = bladder_dt,
+  xdat = splits$train,
   cmprsk = "csh"
 )
 
@@ -145,9 +141,9 @@ cli::cli_alert_info("Doing performance evaluation")
 rsfs = list(rf_c1, rf_c2)
 
 scores_cmb <- data.table::rbindlist(lapply(1:2, function(cause) {
-  eval_times_df <- eval_times_quant(bladder_dt, cause = cause)
+  eval_times_df <- eval_times_quant(splits$test, cause = cause)
 
-  rr_glmnet <- refit_glmnet(cooperfit, bladder_dt, event = cause, alpha = 1)
+  rr_glmnet <- refit_glmnet(cooperfit, splits$train, event = cause, alpha = 1)
 
   scores = Score(
     list(
@@ -157,7 +153,7 @@ scores_cmb <- data.table::rbindlist(lapply(1:2, function(cause) {
       coxboost = cbfit
     ),
     formula = Hist(time, status) ~ 1,
-    data = bladder_dt,
+    data = splits$test,
     metrics = c("Brier", "AUC"),
     summary = c("ibs", "ipa"),
     se.fit = FALSE,

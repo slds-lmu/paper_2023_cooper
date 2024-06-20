@@ -302,3 +302,20 @@ coxboost_tuned <- function(xdat, cmprsk = "csh", ...) {
   )
 }
 
+#' Partition data into train/test set with stratification
+#' by status on the status column
+partition_dt <- function(dt, train_prop = 0.7) {
+  dt <- data.table::as.data.table(dt)
+  dt[, rowid := seq_along(time)]
+  data.table::setkeyv(dt, "rowid")
+
+  train <- dt[,.SD[sample(.N, ceiling(train_prop * .N))], by = status]
+  test <- dt[rowid %in% setdiff(dt$rowid, train$rowid)]
+
+  stopifnot(identical(intersect(train$rowid, test$rowid), integer(0)))
+
+  train[, rowid := NULL]
+  test[, rowid := NULL]
+
+  list(train = train, test = test)
+}
