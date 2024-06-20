@@ -8,13 +8,14 @@ if (!dir.exists(here::here("results"))) dir.create(here::here("results"))
 set.seed(2023)
 
 bladder <- readRDS(here::here("data/bladder-binder-clinical_geno.rds"))
-bladder_dt <- data.table::as.data.table(bladder)
-
-
-splits <- partition_dt(bladder_dt, train_prop = 0.7)
+# Create list with $train and $test data
+splits <- partition_dt(bladder, train_prop = 0.7)
 
 # Reference data
-reference <- readxl::read_excel("data-raw/10780432ccr062940-sup-supplemental_file_2.xls", sheet = "Progression classifier probes") |>
+reference <- readxl::read_excel(
+  "data-raw/10780432ccr062940-sup-supplemental_file_2.xls",
+  sheet = "Progression classifier probes"
+) |>
   janitor::clean_names()
 
 # CooPeR --------------------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 source(here::here("2b-variable-selection-sim/2b-simulation.R"))
 source(here::here("2b-variable-selection-sim/2b-algorithms.R"))
 source(here::here("R/utils.R"))
+if (!dir.exists(here::here("results"))) dir.create(here::here("results"))
 
 library(batchtools)
 library(randomForestSRC)
@@ -114,4 +115,4 @@ jobs_errored <- 100 * nrow(findErrors())/jobs_total
 
 c(completed = jobs_completed, errored = jobs_errored)
 
-saveRDS(res, here::here("results", "results-varsel.rds"))
+saveRDS(res, here::here("results", "2-results-varsel.rds"))

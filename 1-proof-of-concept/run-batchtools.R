@@ -1,6 +1,7 @@
 library(batchtools)
 source(here::here("1-proof-of-concept", "sim01-problems.R"))
 source(here::here("R", "utils.R"))
+if (!dir.exists(here::here("results"))) dir.create(here::here("results"))
 
 # Settings ----------------------------------------------------------------
 config <- list(
@@ -100,4 +101,4 @@ res <-  ijoin(reduceResultsDataTable(), unwrap(getJobPars()))
 nrow(res)/nrow(getJobTable())
 nrow(findErrors())/nrow(getJobTable())
 
-saveRDS(res, here::here("results", "results-poc.rds"))
+saveRDS(res, here::here("results", "1-results-poc.rds"))
