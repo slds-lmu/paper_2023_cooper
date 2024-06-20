@@ -82,7 +82,7 @@ algo_design <- list(
 addExperiments(prob_design, algo_design, repls = config$repls)
 summarizeExperiments()
 jobtbl <- unwrap(getJobPars(), c("algo.pars", "prob.pars"))
-jobtbl[, chunk := chunk(job.id, chunk.size = 200, shuffle = TRUE)]
+jobtbl[, chunk := chunk(job.id, chunk.size = 400, shuffle = TRUE)]
 
 # Test jobs -----------------------------------------------------------
 if (FALSE) testJob(id = 273)  # random cooper
@@ -91,9 +91,14 @@ if (FALSE) testJob(id = 1171) # random coxboost
 # Submit -----------------------------------------------------------
 
 if (Sys.info()[["nodename"]] %in% c("blog1", "blog2")) {
-  resources = list(partition = "teton,teton-knl", memory = 4096, comment = "cooper")
+  resources = list(
+    partition = "teton-knl",
+    memory = 4096,
+    comment = "cooper-varsel",
+    walltime = 3600 * 24 * 2
+  )
 } else {
-  resources = list(comment = "cooper")
+  resources = list(comment = "cooper-varsel")
 }
 
 submitJobs(

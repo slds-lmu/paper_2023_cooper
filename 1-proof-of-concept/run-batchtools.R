@@ -75,11 +75,11 @@ summarizeExperiments()
 unwrap(getJobPars(), c("algo.pars", "prob.pars"))
 
 # Test jobs -----------------------------------------------------------
-if (interactive()) testJob(id = 1600)
+if (FALSE) testJob(id = 1600)
 
 # Submit -----------------------------------------------------------
 if (grepl("blog\\d{1}", Sys.info()[["nodename"]])) {
-  ids <- findNotStarted()
+  ids <- findNotSubmitted()
   ids[, chunk := chunk(job.id, chunk.size = 300)]
   submitJobs(
     ids = ids,
