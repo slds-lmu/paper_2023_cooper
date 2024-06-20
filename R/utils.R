@@ -276,7 +276,7 @@ rfsrc_tuned <- function(xdat, splitrule = "logrank", importance = "random", caus
 #' @param cmprsk Passed to `CoxBoost` and `CoxBoost::optimCoxBoostPenalty`
 # cbres = coxboost_tuned(instance$train)
 coxboost_tuned <- function(xdat, cmprsk = "csh", ...) {
-  xdat <- checkmate::assert_data_table(xdat)
+  xdat <- data.table::as.data.table(xdat)
   # remove time/status from predictor matrix
   outcome_vars <-  !(colnames(xdat) %in% c("time", "status"))
   xmat <- xdat[, ..outcome_vars]
