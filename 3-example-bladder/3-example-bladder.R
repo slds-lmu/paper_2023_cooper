@@ -169,7 +169,7 @@ scores_cmb <- data.table::rbindlist(lapply(1:2, function(cause) {
 
   scores_dat <- cleanup_score(scores)
   scores_dat$cause = cause
-  merge(scores_dat, eval_times_df, by = "times")
+  merge(scores_dat, eval_times_df, allow.cartesian = TRUE)
 }))
 
 cli::cli_alert_success("Saving scores")
