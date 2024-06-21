@@ -167,7 +167,7 @@ rfsrc_varselect_wrapper <- function(data, job, instance,
 
     scores = Score(
       list(
-        rfsrc = rf_models[[as.character(cause)]],
+        rfsrc = rf_models[[as.character(cause)]]
       ),
       formula = Hist(time, status) ~ 1,
       data = instance$test,

@@ -139,6 +139,11 @@ intersect(names(coefs_c1), names(coefs_c2))
 # Performances --------------------------------------------------------------------------------
 cli::cli_alert_info("Doing performance evaluation")
 
+cooperfit <- readRDS(here::here("results/3-bladder-cooper.rds"))
+rf_c1 <- readRDS(here::here("results/3-bladder-rfsrc-c1.rds"))
+rf_c2 <- readRDS(here::here("results/3-bladder-rfsrc-c2.rds"))
+cbfit <- readRDS(here::here("results/3-bladder-coxboost.rds"))
+
 rsfs = list(rf_c1, rf_c2)
 
 scores_cmb <- data.table::rbindlist(lapply(1:2, function(cause) {
