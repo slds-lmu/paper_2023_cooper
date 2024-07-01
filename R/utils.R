@@ -169,7 +169,7 @@ cleanup_score <- function(scores) {
                              meausure.vars = c("AUC", "Brier", "IBS", "IPA"))
   # Exclude some superfluous output
   result <- result[!(is.na(score) & model == "Null model"), ]
-  result <- result[!(metric == "IPA" & model == "Null model"), ]
+  #result <- result[!(metric == "IPA" & model == "Null model"), ]
   result
 }
 
@@ -318,4 +318,65 @@ partition_dt <- function(dt, train_prop = 0.7) {
   test[, rowid := NULL]
 
   list(train = train, test = test)
+}
+
+
+nonzeros <- function(x) {
+  res <- x[x > 0]
+  checkmate::assert_numeric(res, min.len = 1, finite = TRUE, any.missing = FALSE)
+  res
+}
+
+fit_csc_coxph <- function(instance, model, coefs, cause = 1, probs = seq(0.1, 0.8, .1)) {
+  require(rlang)
+  train <- data.table::as.data.table(instance$train)
+  test <- data.table::as.data.table(instance$test)
+
+  checkmate::assert_data_table(train, any.missing = FALSE, min.rows = 10, min.cols = 2)
+  checkmate::assert_data_table(test, any.missing = FALSE, min.rows = 10, min.cols = 2)
+  checkmate::assert_numeric(probs, lower = 1e-5, upper = 1, finite = TRUE, min.len = 1)
+  checkmate::assert_string(model, min.chars = 2)
+  checkmate::assert_numeric(coefs, finite = TRUE, any.missing = FALSE, min.len = 1, names = "named")
+  checkmate::assert_true(all(coef) > 0)
+  checkmate::assert_int(cause, lower = 1L, upper = 2L)
+  # sub-select data
+  train_cause <- train[, c("time", "status", names(coefs)), with = FALSE]
+  test_cause <- test[, c("time", "status", names(coefs)), with = FALSE]
+
+  eval_times_df <- eval_times_quant(instance$test, cause = cause, probs = probs)
+
+  if (cause == 1L) {
+    train_cause$status[train_cause$status == 2] <- 0
+    test_cause$status[test_cause$status == 2] <- 0
+
+  } else if (cause == 2L) {
+    train_cause$status[train_cause$status == 1] <- 0
+    test_cause$status[test_cause$status == 1] <- 0
+
+    train_cause$status[train_cause$status == 2] <- 1
+    test_cause$status[test_cause$status == 2] <- 1
+  }
+
+  # Fit coxph via survival rather than riskRegression::CSC b/c it weirdly makes a difference in Score()
+  # x = TRUE includes design matrix in output, needed for Score()
+  csc_model <- survival::coxph(formula = survival::Surv(time, status) ~ ., data = train_cause, x = TRUE)
+
+  # Get quantiles of time points from full dataset to allow later aggregation per timepoint
+  #  eval_times <- quantile(c(train$time, test$time), probs = eval_time_quantiles, names = FALSE)
+  eval_times_df <- eval_times_quant(test, cause = cause)
+
+  mod_scores <- riskRegression::Score(
+    rlang::list2(!!model := csc_model),
+    formula = Surv(time, status) ~ 1,
+    data = test_cause,
+    metrics = c("Brier", "AUC"),
+    summary = c("ibs", "ipa"),
+    # cause = cause,
+    se.fit = FALSE,
+    times = eval_times_df$times
+  )
+
+  scores_dat <- cleanup_score(mod_scores)
+  scores_dat$cause = cause
+  merge(scores_dat, eval_times_df, allow.cartesian = TRUE)
 }
