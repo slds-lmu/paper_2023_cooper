@@ -175,3 +175,26 @@ scores_cmb <- data.table::rbindlist(lapply(1:2, function(cause) {
 cli::cli_alert_success("Saving scores")
 
 saveRDS(scores_cmb, here::here("results/3-bladder-scores.rds"))
+
+library(ggplot2)
+
+p = scores_cmb |>
+  ggplot(aes(x = time_quant, y = score, color = model, fill = model)) +
+  facet_grid(cols = vars(cause), rows = vars(metric), scales = "free_y", labeller = label_both) +
+  geom_line() +
+  geom_point() +
+  labs(
+    title = "Bladder cancer example application",
+    subtitle = "Performance evaluation based on 70/30 train/test split",
+    color = NULL, fill = NULL
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    legend.position = "bottom"
+  )
+
+ggsave(
+  plot = p,
+  filename = fs::path(here::here("results"), "3-bladder-performance", ext = ".png"),
+  width = 6, height = 10
+)
