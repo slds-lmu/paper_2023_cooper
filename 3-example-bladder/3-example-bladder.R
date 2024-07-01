@@ -13,7 +13,7 @@ splits <- partition_dt(bladder, train_prop = 0.7)
 
 # Reference data
 reference <- readxl::read_excel(
-  "data-raw/10780432ccr062940-sup-supplemental_file_2.xls",
+  here::here("data-raw/10780432ccr062940-sup-supplemental_file_2.xls"),
   sheet = "Progression classifier probes"
 ) |>
   janitor::clean_names()
@@ -177,24 +177,41 @@ cli::cli_alert_success("Saving scores")
 saveRDS(scores_cmb, here::here("results/3-bladder-scores.rds"))
 
 library(ggplot2)
+library(dplyr)
+scores_cmb = readRDS(here::here("results/3-bladder-scores.rds"))
+
+
 
 p = scores_cmb |>
-  ggplot(aes(x = time_quant, y = score, color = model, fill = model)) +
+  mutate(
+    model = dplyr::case_when(
+      model == "cooper" ~ "CooPeR",
+      model == "coxboost" ~ "CoxBoost",
+      model == "glmnet" ~ "Coxnet",
+      model == "rsfrc" ~ "RSF",
+      model == "Null model" ~ "Null Model"
+    ),
+    model = factor(model, levels = rev(c("CooPeR", "Coxnet", "RSF", "CoxBoost", "Null Model")))
+  ) |>
+  filter(metric %in% c("Brier", "AUC")) |>
+  ggplot(aes(x = 100 * time_quant, y = 100 * score, color = model, fill = model)) +
   facet_grid(cols = vars(cause), rows = vars(metric), scales = "free_y", labeller = label_both) +
   geom_line() +
   geom_point() +
   labs(
     title = "Bladder cancer example application",
     subtitle = "Performance evaluation based on 70/30 train/test split",
+    x = "Time quantile (%)", y = "Score (%)",
     color = NULL, fill = NULL
   ) +
   theme_minimal(base_size = 14) +
   theme(
-    legend.position = "bottom"
+    legend.position = "bottom",
+    plot.title.position = "plot"
   )
 
 ggsave(
   plot = p,
   filename = fs::path(here::here("results"), "3-bladder-performance", ext = ".png"),
-  width = 6, height = 10
+  width = 6, height = 6, bg = "white"
 )
