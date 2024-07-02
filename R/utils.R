@@ -274,8 +274,9 @@ rfsrc_tuned <- function(xdat, splitrule = "logrank", importance = "random", caus
 #' CoxBoost wrapper that tunes penalty and step size using `optimCoxBoostPenalty()`
 #' @param xdat data.frame with `time` and `status` columns
 #' @param cmprsk Passed to `CoxBoost` and `CoxBoost::optimCoxBoostPenalty`
+#' @param iter.max Passed to `CoxBoost::optimCoxBoostPenalty()`
 # cbres = coxboost_tuned(instance$train)
-coxboost_tuned <- function(xdat, cmprsk = "csh", ...) {
+coxboost_tuned <- function(xdat, cmprsk = "csh", iter.max = 10, ...) {
   xdat <- data.table::as.data.table(xdat)
   # remove time/status from predictor matrix
   outcome_vars <-  !(colnames(xdat) %in% c("time", "status"))
@@ -288,7 +289,7 @@ coxboost_tuned <- function(xdat, cmprsk = "csh", ...) {
     status = xdat$status,
     x = xmat,
     cmprsk = cmprsk,
-    ...
+    iter.max = iter.max
   )
 
   CoxBoost::CoxBoost(

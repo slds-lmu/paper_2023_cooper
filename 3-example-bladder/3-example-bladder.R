@@ -126,7 +126,9 @@ cli::cli_alert_info("Fitting CoxBoost")
 
 cbfit <- coxboost_tuned(
   xdat = splits$train,
-  cmprsk = "csh"
+  cmprsk = "csh",
+  # default of 10 iters not sufficient here
+  iter.max = 100
 )
 
 cli::cli_alert_success("Saving CoxBoost")
