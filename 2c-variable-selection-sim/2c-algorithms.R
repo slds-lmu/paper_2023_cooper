@@ -1,4 +1,15 @@
 # Variable selection ----------------------------------------------------------------------------------------------
+if (FALSE) {
+  # debugging
+  instance <- sim_surv_binder(n_train = 200, p = 500, n_test = 200)
+  alpha = 1
+  z_method = "original"
+  mt_max_iter = 2
+  t = 100
+  a = 0.5
+  thresh = 1e-3
+}
+
 
 # cooper wrapper for variable selection sim
 cooper_varsel_wrapper <- function(
@@ -80,7 +91,6 @@ cooper_varsel_wrapper <- function(
   )
 
 }
-
 
 rfsrc_varselect_wrapper <- function(data, job, instance,
                                     splitrule = "logrank",

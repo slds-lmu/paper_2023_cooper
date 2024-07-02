@@ -55,9 +55,15 @@ selected_vars <- list(
 
 # Covariables shared between causes for
 # CooPeR:
-(cooper_shared <- intersect(names(selected_vars$cooper$cause1), names(selected_vars$cooper$cause2)))
+(cooper_shared <- intersect(
+  names(selected_vars$cooper$cause1),
+  names(selected_vars$cooper$cause2)
+))
 # Coxnet:
-(coxnet_shared <- intersect(names(selected_vars$coxnet$cause1), names(selected_vars$coxnet$cause2)))
+(coxnet_shared <- intersect(
+  names(selected_vars$coxnet$cause1),
+  names(selected_vars$coxnet$cause2)
+))
 
 coxnet_beta1[names(coxnet_beta1) == "age"]
 coxnet_beta2[names(coxnet_beta2) == "age"]
