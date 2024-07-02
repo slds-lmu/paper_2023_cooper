@@ -139,18 +139,11 @@ rfsrc_varselect_wrapper <- function(data, job, instance,
 
   res_varsel <- data.table::rbindlist(reslist_varsel)
 
-  # Create named "coefficient" vector using vimps as proxy with 0 := "unselected"
-  coef_c1 <- vimps$vita_c1
-  coef_c2 <- vimps$vita_c2
-
-  names(coef_c1) <- vimps$variable
-  names(coef_c2) <- vimps$variable
-
+  # Prediction
   scores_cmb <- data.table::rbindlist(list(
-    fit_csc_coxph(instance, model = "rfsrc", coefs = nonzeros(coef_c1), cause = 1),
-    fit_csc_coxph(instance, model = "rfsrc", coefs = nonzeros(coef_c2), cause = 2)
+    fit_csc_coxph(instance, model = "rfsrc", coefs = get_selected(rf_c1)[["1"]], cause = 1),
+    fit_csc_coxph(instance, model = "rfsrc", coefs = get_selected(rf_c2)[["2"]], cause = 2)
   ))
-
 
   list(
     varsel = res_varsel,

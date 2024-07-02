@@ -34,6 +34,7 @@ cli::cli_alert_success("Saving CooPeR model")
 
 saveRDS(cooperfit, here::here("results/3-bladder-cooper.rds"))
 
+
 # Extract coefficients from initial Coxnet
 coxnet_beta1 <- coef(cooperfit, event = 1, use_initial_fit = TRUE)
 coxnet_beta2 <- coef(cooperfit, event = 2, use_initial_fit = TRUE)
@@ -90,36 +91,9 @@ cli::cli_alert_success("Saving rfsrc models")
 saveRDS(rf_c1, here::here("results/3-bladder-rfsrc-c1.rds"))
 saveRDS(rf_c2, here::here("results/3-bladder-rfsrc-c2.rds"))
 
-vimps <- data.table::data.table(
-  variable = rownames(rf_c1[["importance"]]),
-  vi_c1 = rf_c1[["importance"]][, 1],
-  vi_c2 = rf_c2[["importance"]][, 2]
-)
+selected(rf_c1)
+selected(rf_c2)
 
-vimps[, vita_c1 := fifelse(vi_c1 <= abs(min(vi_c1)), 0, vi_c1)]
-vimps[, vita_c2 := fifelse(vi_c2 <= abs(min(vi_c2)), 0, vi_c2)]
-
-saveRDS(vimps, here::here("results/3-bladder-rfsrc-vimps.rds"))
-
-vimps[vita_c1 != 0 | vita_c2 != 0, ]
-
-# Count selected per cause
-nrow(vimps[vita_c1 != 0, ])
-nrow(vimps[vita_c2 != 0, ])
-
-# Overlap between causes?
-vimps[vita_c1 != 0 & vita_c2 != 0, ]
-
-coef_c1 <- vimps$vita_c1
-coef_c2 <- vimps$vita_c2
-
-names(coef_c1) <- vimps$variable
-names(coef_c2) <- vimps$variable
-
-selected$rfsrc <- list(
-  cause1 = nonzeros(coef_c1),
-  cause2 = nonzeros(coef_c2)
-)
 
 # Coxboost ----------------------------------------------------------------
 cli::cli_alert_info("Fitting CoxBoost")
@@ -136,13 +110,8 @@ cli::cli_alert_success("Saving CoxBoost")
 saveRDS(cbfit, here::here("results/3-bladder-coxboost.rds"))
 
 cb_coefs <- coef(cbfit)
-coefs_c1 <- cb_coefs[[1]][cb_coefs[[1]] != 0]
-coefs_c2 <- cb_coefs[[2]][cb_coefs[[2]] != 0]
-
-selected$coxboost <- list(
-  cause1 = coefs_c1,
-  cause2 = coefs_c2
-)
+coefs_c1 <- selected(cbfit)[[1]]
+coefs_c2 <- selected(cbfit)[[2]]
 
 # Count selected per cause
 length(coefs_c1)
@@ -163,14 +132,14 @@ cbfit <- readRDS(here::here("results/3-bladder-coxboost.rds"))
 
 # Fit CSCs with selected variables and gather results
 scores_cmb <- data.table::rbindlist(list(
-  fit_csc_coxph(splits, model = "cooper", coefs = selected$cooper$cause1, cause = 1),
-  fit_csc_coxph(splits, model = "cooper", coefs = selected$cooper$cause2, cause = 2),
-  fit_csc_coxph(splits, model = "glmnet", coefs = selected$coxnet$cause1, cause = 1),
-  fit_csc_coxph(splits, model = "glmnet", coefs = selected$coxnet$cause2, cause = 2),
-  fit_csc_coxph(splits, model = "rfsrc", coefs = selected$rfsrc$cause1, cause = 1),
-  fit_csc_coxph(splits, model = "rfsrc", coefs = selected$rfsrc$cause2, cause = 2),
-  fit_csc_coxph(splits, model = "coxboost", coefs = selected$coxboost$cause1, cause = 1),
-  fit_csc_coxph(splits, model = "coxboost", coefs = selected$coxboost$cause2, cause = 2)
+  fit_csc_coxph(splits, model = "cooper", coefs = selected(cooperfit, "cooper")[["1"]], cause = 1),
+  fit_csc_coxph(splits, model = "cooper", coefs = selected(cooperfit, "cooper")[["2"]], cause = 2),
+  fit_csc_coxph(splits, model = "coxnet", coefs = selected(cooperfit, "coxnet")[["1"]], cause = 1),
+  fit_csc_coxph(splits, model = "coxnet", coefs = selected(cooperfit, "coxnet")[["2"]], cause = 2),
+  fit_csc_coxph(splits, model = "rfsrc", coefs = selected(rf_c1)[["1"]], cause = 1),
+  fit_csc_coxph(splits, model = "rfsrc", coefs = selected(rf_c2)[["2"]], cause = 2),
+  fit_csc_coxph(splits, model = "coxboost", coefs = selected(cbfit)[["1"]], cause = 1),
+  fit_csc_coxph(splits, model = "coxboost", coefs = selected(cbfit)[["2"]], cause = 2)
 ))
 
 cli::cli_alert_success("Saving scores")
