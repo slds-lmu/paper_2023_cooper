@@ -4,6 +4,9 @@ library(cooper)
 library(randomForestSRC)
 library(CoxBoost)
 library(riskRegression)
+library(dplyr)
+library(ggplot2)
+
 if (!dir.exists(here::here("results"))) dir.create(here::here("results"))
 set.seed(2023)
 
@@ -60,7 +63,6 @@ coxnet_beta2[names(coxnet_beta2) == "age"]
 cooper_beta1[names(cooper_beta1) == "age"]
 cooper_beta2[names(cooper_beta2) == "age"]
 
-
 cooper_shared[cooper_shared %in% reference$probe_id]
 
 reference |>
@@ -94,8 +96,8 @@ vimps <- data.table::data.table(
   vi_c2 = rf_c2[["importance"]][, 2]
 )
 
-vimps[, vita_c1 := ifelse(vi_c1 <= abs(min(vi_c1)), 0, vi_c1)]
-vimps[, vita_c2 := ifelse(vi_c2 <= abs(min(vi_c2)), 0, vi_c2)]
+vimps[, vita_c1 := fifelse(vi_c1 <= abs(min(vi_c1)), 0, vi_c1)]
+vimps[, vita_c2 := fifelse(vi_c2 <= abs(min(vi_c2)), 0, vi_c2)]
 
 saveRDS(vimps, here::here("results/3-bladder-rfsrc-vimps.rds"))
 
@@ -108,6 +110,16 @@ nrow(vimps[vita_c2 != 0, ])
 # Overlap between causes?
 vimps[vita_c1 != 0 & vita_c2 != 0, ]
 
+coef_c1 <- vimps$vita_c1
+coef_c2 <- vimps$vita_c2
+
+names(coef_c1) <- vimps$variable
+names(coef_c2) <- vimps$variable
+
+selected$rfsrc <- list(
+  cause1 = nonzeros(coef_c1),
+  cause2 = nonzeros(coef_c2)
+)
 
 # Coxboost ----------------------------------------------------------------
 cli::cli_alert_info("Fitting CoxBoost")
@@ -125,8 +137,10 @@ cb_coefs <- coef(cbfit)
 coefs_c1 <- cb_coefs[[1]][cb_coefs[[1]] != 0]
 coefs_c2 <- cb_coefs[[2]][cb_coefs[[2]] != 0]
 
-coefs_c1
-coefs_c2
+selected$coxboost <- list(
+  cause1 = coefs_c1,
+  cause2 = coefs_c2
+)
 
 # Count selected per cause
 length(coefs_c1)
@@ -144,43 +158,22 @@ rf_c1 <- readRDS(here::here("results/3-bladder-rfsrc-c1.rds"))
 rf_c2 <- readRDS(here::here("results/3-bladder-rfsrc-c2.rds"))
 cbfit <- readRDS(here::here("results/3-bladder-coxboost.rds"))
 
-rsfs = list(rf_c1, rf_c2)
 
-scores_cmb <- data.table::rbindlist(lapply(1:2, function(cause) {
-  eval_times_df <- eval_times_quant(splits$test, cause = cause)
-
-  rr_glmnet <- refit_glmnet(cooperfit, splits$train, event = cause, alpha = 1)
-
-  scores = Score(
-    list(
-      cooper = cooperfit,
-      glmnet = rr_glmnet,
-      rsfrc = rsfs[[cause]],
-      coxboost = cbfit
-    ),
-    formula = Hist(time, status) ~ 1,
-    data = splits$test,
-    metrics = c("Brier", "AUC"),
-    summary = c("ibs", "ipa"),
-    se.fit = FALSE,
-    cause = cause,
-    times = eval_times_df$times
-  )
-
-  scores_dat <- cleanup_score(scores)
-  scores_dat$cause = cause
-  merge(scores_dat, eval_times_df, allow.cartesian = TRUE)
-}))
+# Fit CSCs with selected variables and gather results
+scores_cmb <- data.table::rbindlist(list(
+  fit_csc_coxph(splits, model = "cooper", coefs = selected$cooper$cause1, cause = 1),
+  fit_csc_coxph(splits, model = "cooper", coefs = selected$cooper$cause2, cause = 2),
+  fit_csc_coxph(splits, model = "glmnet", coefs = selected$coxnet$cause1, cause = 1),
+  fit_csc_coxph(splits, model = "glmnet", coefs = selected$coxnet$cause2, cause = 2),
+  fit_csc_coxph(splits, model = "rfsrc", coefs = selected$rfsrc$cause1, cause = 1),
+  fit_csc_coxph(splits, model = "rfsrc", coefs = selected$rfsrc$cause2, cause = 2),
+  fit_csc_coxph(splits, model = "coxboost", coefs = selected$coxboost$cause1, cause = 1),
+  fit_csc_coxph(splits, model = "coxboost", coefs = selected$coxboost$cause2, cause = 2)
+))
 
 cli::cli_alert_success("Saving scores")
-
 saveRDS(scores_cmb, here::here("results/3-bladder-scores.rds"))
-
-library(ggplot2)
-library(dplyr)
 scores_cmb = readRDS(here::here("results/3-bladder-scores.rds"))
-
-
 
 p = scores_cmb |>
   mutate(
@@ -188,7 +181,7 @@ p = scores_cmb |>
       model == "cooper" ~ "CooPeR",
       model == "coxboost" ~ "CoxBoost",
       model == "glmnet" ~ "Coxnet",
-      model == "rsfrc" ~ "RSF",
+      model == "rfsrc" ~ "RSF",
       model == "Null model" ~ "Null Model"
     ),
     model = factor(model, levels = rev(c("CooPeR", "Coxnet", "RSF", "CoxBoost", "Null Model")))
@@ -199,7 +192,7 @@ p = scores_cmb |>
   geom_line() +
   geom_point() +
   labs(
-    title = "Bladder cancer example application",
+    title = "Bladder cancer: Performance of CSCs fit with selected variables",
     subtitle = "Performance evaluation based on 70/30 train/test split",
     x = "Time quantile (%)", y = "Score (%)",
     color = NULL, fill = NULL
