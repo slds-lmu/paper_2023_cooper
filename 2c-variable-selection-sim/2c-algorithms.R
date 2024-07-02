@@ -56,16 +56,12 @@ cooper_varsel_wrapper <- function(
 
   res_varsel <- data.table::rbindlist(c(
     lapply(names(total), function(x) {
-      get_confusion(glmnet_beta1, truth, total, x,  model = "glmnet", cause = 1L)
-    }),
-    lapply(names(total), function(x) {
-      get_confusion(glmnet_beta2, truth, total, x,  model = "glmnet", cause = 2L)
-    }),
-    lapply(names(total), function(x) {
-      get_confusion(cooper_beta1, truth, total, x,  model = "cooper", cause = 1L)
-    }),
-    lapply(names(total), function(x) {
+      rbind(
+      get_confusion(glmnet_beta1, truth, total, x,  model = "glmnet", cause = 1L),
+      get_confusion(glmnet_beta2, truth, total, x,  model = "glmnet", cause = 2L),
+      get_confusion(cooper_beta1, truth, total, x,  model = "cooper", cause = 1L),
       get_confusion(cooper_beta2, truth, total, x,  model = "cooper", cause = 2L)
+      )
     })
   ))
 
