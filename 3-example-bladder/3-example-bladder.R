@@ -42,7 +42,7 @@ coxnet_beta2 <- coef(cooperfit, event = 2, use_initial_fit = TRUE)
 cooper_beta1 <- coef(cooperfit, event = 1)
 cooper_beta2 <- coef(cooperfit, event = 2)
 
-selected <- list(
+selected_vars <- list(
   cooper = list(
     cause1 = cooper_beta1[cooper_beta1 != 0],
     cause2 = cooper_beta2[cooper_beta2 != 0]
@@ -55,9 +55,9 @@ selected <- list(
 
 # Covariables shared between causes for
 # CooPeR:
-(cooper_shared <- intersect(names(selected$cooper$cause1), names(selected$cooper$cause2)))
+(cooper_shared <- intersect(names(selected_vars$cooper$cause1), names(selected_vars$cooper$cause2)))
 # Coxnet:
-(coxnet_shared <- intersect(names(selected$coxnet$cause1), names(selected$coxnet$cause2)))
+(coxnet_shared <- intersect(names(selected_vars$coxnet$cause1), names(selected_vars$coxnet$cause2)))
 
 coxnet_beta1[names(coxnet_beta1) == "age"]
 coxnet_beta2[names(coxnet_beta2) == "age"]
