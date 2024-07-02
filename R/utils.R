@@ -337,7 +337,6 @@ fit_csc_coxph <- function(instance, model, coefs, cause = 1, probs = seq(0.1, 0.
   checkmate::assert_numeric(probs, lower = 1e-5, upper = 1, finite = TRUE, min.len = 1)
   checkmate::assert_string(model, min.chars = 2)
   checkmate::assert_numeric(coefs, finite = TRUE, any.missing = FALSE, min.len = 1, names = "named")
-  checkmate::assert_true(all(coef) > 0)
   checkmate::assert_int(cause, lower = 1L, upper = 2L)
   # sub-select data
   train_cause <- train[, c("time", "status", names(coefs)), with = FALSE]
