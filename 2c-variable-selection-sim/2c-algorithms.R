@@ -141,8 +141,8 @@ rfsrc_varselect_wrapper <- function(data, job, instance,
 
   # Prediction
   scores_cmb <- data.table::rbindlist(list(
-    fit_csc_coxph(instance, model = "rfsrc", coefs = get_selected(rf_c1)[["1"]], cause = 1),
-    fit_csc_coxph(instance, model = "rfsrc", coefs = get_selected(rf_c2)[["2"]], cause = 2)
+    fit_csc_coxph(instance, model = "rfsrc", coefs = selected(rf_c1)[["1"]], cause = 1),
+    fit_csc_coxph(instance, model = "rfsrc", coefs = selected(rf_c2)[["2"]], cause = 2)
   ))
 
   list(
