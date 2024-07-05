@@ -1,6 +1,6 @@
 library(batchtools)
 library(data.table)
-source(here::here("1-proof-of-concept", "sim01-problems.R"))
+source(here::here("1-proof-of-concept", "1-problems.R"))
 source(here::here("R", "utils.R"))
 if (!dir.exists(here::here("results"))) dir.create(here::here("results"))
 
@@ -24,7 +24,7 @@ makeExperimentRegistry(
   file.dir = reg_dir,
   source = c(
     here::here("R", "utils.R"),
-    here::here("1-proof-of-concept", "sim01-problems.R")
+    here::here("1-proof-of-concept", "1-problems.R")
   ),
   seed = config$global_seed
 )
@@ -111,8 +111,9 @@ if (grepl("blog\\d{1}", Sys.info()[["nodename"]])) {
   submitJobs(
     ids = ids,
     resources = list(
-      partition = "teton-knl", memory = 1024, walltime = 2 * 3600,
-      comment = "cooper-poc"
+      partition = "teton", memory = 1024, walltime = 2 * 3600,
+      comment = "cooper-poc",
+      chunks.as.arrayjobs = FALSE
     )
   )
 } else {
