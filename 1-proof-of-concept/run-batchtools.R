@@ -44,8 +44,6 @@ cooper_wrapper <- function(
     t = 1, a = 0.5, thresh = 1e-3
 ) {
 
-  instance = sim_b(n = 500)
-
   fit <- cooper::cooper(
     instance$data,
     mt_max_iter = mt_max_iter,
@@ -57,7 +55,6 @@ cooper_wrapper <- function(
     thresh = thresh,
     include_mt_beta_history = FALSE
   )
-
 
   res = data.table::rbindlist(lapply(1:2, \(event) {
     rbind(
@@ -119,8 +116,10 @@ if (grepl("blog\\d{1}", Sys.info()[["nodename"]])) {
     )
   )
 } else {
-  ids <- findNotSubmitted()
-  submitJobs(ids = ids)
+  message("Submitting a random sample of jobs only")
+  submitJobs(
+    unwrap(getJobTable())[, .SD[sample(nrow(.SD), 5)], by = c("problem")]
+  )
 }
 waitForJobs()
 
@@ -132,7 +131,6 @@ nrow(findErrors())/nrow(getJobTable())
 res <-  reduceResultsDataTable()
 pars <- unwrap(getJobPars())
 
-
 res_long <- data.table::rbindlist(lapply(res$job.id, \(id) {
   result <- res[(job.id == id), result][[1]]
   result
@@ -140,7 +138,6 @@ res_long <- data.table::rbindlist(lapply(res$job.id, \(id) {
 }))
 
 res_long <- merge(pars, res_long, by = "job.id")
-
 
 saveRDS(res, here::here("results", "1-results-poc.rds"))
 saveRDS(res_long, here::here("results", "1-results-long-poc.rds"))
