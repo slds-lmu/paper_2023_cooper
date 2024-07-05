@@ -89,33 +89,42 @@ jobtbl[, chunk := chunk(job.id, chunk.size = 100, shuffle = TRUE)]
 if (FALSE) testJob(id = 273)  # random cooper
 if (FALSE) testJob(id = 785)  # random rfsrc
 if (FALSE) testJob(id = 1171) # random coxboost
+
 # Submit -----------------------------------------------------------
 
 if (Sys.info()[["nodename"]] %in% c("blog1", "blog2")) {
-  resources = list(
-    partition = "teton-knl",
-    memory = 4096,
-    comment = "cooper-varsel",
-    walltime = 3600 * 24 * 2
+  submitJobs(
+    jobtbl,
+    resources = list(
+      partition = "teton-knl",
+      memory = 4096,
+      comment = "cooper-varsel",
+      walltime = 3600 * 24 * 2
+    )
   )
-} else {
-  resources = list(comment = "cooper-varsel")
+  waitForJobs()
+
+  res <- reduceResultsDataTable()
+  pars <- unwrap(getJobPars())
+
+  res_varsel <- rbindlist(lapply(res$job.id, \(id) {
+    varsel_dt = as.data.table(res[job.id == id, result][[1]][["varsel"]])
+    varsel_dt[, job.id := id]
+    varsel_dt
+  }))
+
+  res_perf <- rbindlist(lapply(res$job.id, \(id) {
+    perf_dt = as.data.table(res[job.id == id, result][[1]][["scores"]])
+    perf_dt[, job.id := id]
+    perf_dt
+  }))
+
+  res_varsel <- ljoin(res_varsel, pars)
+  res_perf <- ljoin(res_perf, pars)
+
+  saveRDS(res_perf, here::here("results", "2-results-varsel-csc-perf.rds"))
+  saveRDS(res_varsel, here::here("results", "2-results-varsel-csc-varsel.rds"))
+
 }
 
-submitJobs(
-  jobtbl,
-  resources = resources
-)
-waitForJobs()
 
-res <-  ijoin(reduceResultsDataTable(), flatten(getJobPars()))
-jobs_total <- nrow(getJobTable())
-jobs_completed <- 100 * nrow(res)/jobs_total
-jobs_errored <- 100 * nrow(findErrors())/jobs_total
-
-c(completed = jobs_completed, errored = jobs_errored)
-
-saveRDS(res, here::here("results", "2-results-varsel-csc.rds"))
-
-
-ids = jobtbl[, .SD[sample(nrow(.SD), 2)], by = c("algorithm")]

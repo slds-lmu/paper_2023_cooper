@@ -1,26 +1,10 @@
 source(here::here("R/utils.R"))
 library(batchtools)
 library(data.table)
+library(ggplot2)
 
-res <- readRDS(here::here("results", "2-results-varsel.rds"))
-
-# res$result[[1]]$varsel
-# res$result[[1]]$scores
-
-res_varsel <- rbindlist(lapply(res$job.id, \(id) {
-  varsel_dt = as.data.table(res[job.id == id, result][[1]][["varsel"]])
-  varsel_dt[, job.id := id]
-  varsel_dt
-}))
-
-res_perf <- rbindlist(lapply(res$job.id, \(id) {
-  perf_dt = as.data.table(res[job.id == id, result][[1]][["scores"]])
-  perf_dt[, job.id := id]
-  perf_dt
-}))
-
-res_varsel <- ljoin(res_varsel, pars)
-res_perf <- ljoin(res_perf, pars)
+res_varsel <- readRDS(here::here("results", "2-results-varsel-csc-varsel.rds"))
+res_perf <- readRDS(here::here("results", "2-results-varsel-csc-perf.rds"))
 
 
 # vartiable selection -------------------------------------------------------------------------
@@ -48,7 +32,7 @@ res_varsel[, acc := (tp+tn)/total]
 
 plot_varselect_boxplot(
   res_varsel,
-  measure = "FNR",
+  measure = "PPV",
   #model %in% c("cooper", "glmnet"),
   lambda_setting = "equal",
   blocks = c("block1", "block2", "block3.1", "block3.2")
@@ -67,7 +51,7 @@ aggr_perf = res_perf[, .(
 
 library(dplyr)
 
-p_scores <- aggr_perf |>
+(p_scores <- aggr_perf |>
   filter(lambda1 == lambda2) |>
   filter(metric %in% c("Brier", "AUC")) |>
   mutate(
@@ -80,13 +64,18 @@ p_scores <- aggr_perf |>
     ),
     model = factor(model, levels = rev(c("CooPeR", "Coxnet", "RSF", "CoxBoost", "Null Model")))
   ) |>
-  ggplot(aes(x = 100 * time_quant, y = 100 * mean, colour = model, fill = model)) +
+  ggplot(aes(x = 100 * time_quant, y = mean, colour = model, fill = model)) +
   facet_grid(cols = vars(cause), rows = vars(metric), scales = "free_y", labeller = label_both) +
   geom_line() +
+  # geom_errorbar(aes(ymin = q25, ymax = q75)) +
+  geom_ribbon(aes(ymin = q25, ymax = q75), alpha = 1/7) +
   geom_point() +
+  scale_fill_brewer(palette = "Dark2", aesthetics = c("color", "fill")) +
   labs(
     title = "Performance scores from variable selection simulation",
-    subtitle = "Based on 1000 replications with 400 observations for train and test sets",
+    subtitle = paste0(
+      "Based on 1000 replications with 400 observations for train and test sets\n",
+      "Median with 25th and 75th percentiles shown as ribbons"),
     x = "Time quantile (%)",
     y = "Mean score (%)",
     color = NULL, fill = NULL
@@ -95,7 +84,7 @@ p_scores <- aggr_perf |>
   theme(
     legend.position = "bottom",
     plot.title.position = "plot"
-  )
+  ))
 
 ggsave(
   plot = p_scores,

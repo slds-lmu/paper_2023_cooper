@@ -152,12 +152,12 @@ cli::cli_alert_success("Saving scores")
 saveRDS(scores_cmb, here::here("results/3-bladder-scores.rds"))
 scores_cmb = readRDS(here::here("results/3-bladder-scores.rds"))
 
-p = scores_cmb |>
+(p = scores_cmb |>
   mutate(
     model = dplyr::case_when(
       model == "cooper" ~ "CooPeR",
       model == "coxboost" ~ "CoxBoost",
-      model == "glmnet" ~ "Coxnet",
+      model == "coxnet" ~ "Coxnet",
       model == "rfsrc" ~ "RSF",
       model == "Null model" ~ "Null Model"
     ),
@@ -168,6 +168,7 @@ p = scores_cmb |>
   facet_grid(cols = vars(cause), rows = vars(metric), scales = "free_y", labeller = label_both) +
   geom_line() +
   geom_point() +
+    scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill")) +
   labs(
     title = "Bladder cancer: Performance of CSCs fit with selected variables",
     subtitle = "Performance evaluation based on 70/30 train/test split",
@@ -178,7 +179,7 @@ p = scores_cmb |>
   theme(
     legend.position = "bottom",
     plot.title.position = "plot"
-  )
+  ))
 
 ggsave(
   plot = p,
