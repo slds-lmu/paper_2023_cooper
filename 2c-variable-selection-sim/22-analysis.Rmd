@@ -375,59 +375,6 @@ res_long |>
   )
 ```
 
-#### CoxBoost only
-
-```{r blockwise-ppv-coxboost}
-res_long |>
-  filter(lambda2 == lambda1, model == "coxboost") |>
-  mutate(
-    block = stringr::str_replace_all(block, "31", "3.1"),
-    block = stringr::str_replace_all(block, "32", "3.2"),
-    cause = paste0("Cause ", cause),
-    model = ifelse(model == "coxboost", glue::glue("{model} ({cmprsk}, penalty={penalty}, stepno={stepno})"), model)
-  ) |>
-  tidyr::pivot_longer(cols = tpr:acc, names_to = "measure", values_to = "value", names_transform = toupper) |>
-  filter(measure %in% c("PPV")) |>
-  filter(!is.na(value)) |>
-  ggplot(aes(x = reorder(model, value), y = value)) +
-  facet_grid(rows = vars(cause), cols = vars(block), scales = "free") +
-  coord_flip() +
-  geom_boxplot(alpha = 0.5) +
-  scale_y_continuous(labels = scales::percent_format()) +
-  #scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill")) +
-  labs(
-    title = "CoxBoost: Classification metrics by model and covariate block",
-    subtitle = "Simulation setting with approx. equal proportions of cause 1 and 2",
-    x = "Model", y = "PPV [%]", color = NULL, fill = NULL
-  )
-```
-
-#### RFSRC only
-
-```{r blockwise-ppv-rfsrc}
-res_long |>
-  filter(lambda2 == lambda1, model == "rfsrc") |>
-  mutate(
-    block = stringr::str_replace_all(block, "31", "3.1"),
-    block = stringr::str_replace_all(block, "32", "3.2"),
-    cause = paste0("Cause ", cause),
-    model = ifelse(model == "rfsrc", glue::glue("{model} (mtry={mtry}, {nodesize})"), model)
-  ) |>
-  tidyr::pivot_longer(cols = tpr:acc, names_to = "measure", values_to = "value", names_transform = toupper) |>
-  filter(measure %in% c("PPV")) |>
-  filter(!is.na(value)) |>
-  ggplot(aes(x = reorder(model, value), y = value)) +
-  facet_grid(rows = vars(cause), cols = vars(block), scales = "free") +
-  coord_flip() +
-  geom_boxplot(alpha = 0.5) +
-  scale_y_continuous(labels = scales::percent_format()) +
-  #scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill")) +
-  labs(
-    title = "RFSRC: Classification metrics by model and covariate block",
-    subtitle = "Simulation setting with approx. equal proportions of cause 1 and 2",
-    x = "Model", y = "PPV [%]", color = NULL, fill = NULL
-  )
-```
 
 ### Negative: Removal of noise variables
 

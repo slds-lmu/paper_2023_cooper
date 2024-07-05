@@ -420,3 +420,78 @@ selected.CoxBoost <- function(x, ...) {
     `2` = nonzeros(coef(x)[[2]])
   )
 }
+
+#' Plotting helper for variable selection results
+plot_varselect_boxplot <- function(
+    res_long, ..., measure, blocks = c("block1", "block2", "block3.1", "block3.2", "block4", "noise"),
+    lambda_setting = "equal"
+) {
+
+  tmp <- res_long |>
+    dplyr::filter(.data$lambda_setting == .env$lambda_setting) |>
+    dplyr::filter(...)
+
+  if (lambda_setting == "equal") {
+    label_sub <- "Setting with roughly equal proportions of causes 1 & 2"
+  } else if (lambda_setting == "c1 less") {
+    label_sub <- "Setting with cause 1 appearing less frequently than cause 2"
+  }
+
+  tmp |>
+    dplyr::filter(.data$block %in% .env$blocks) |>
+    dplyr::mutate(
+      model = dplyr::case_when(
+        model == "cooper" ~ "CooPeR",
+        model == "coxboost" ~ "CoxBoost",
+        model == "glmnet" ~ "Coxnet",
+        model == "rfsrc" ~ "RSF"
+      ),
+      model = factor(model, levels = rev(c("CooPeR", "Coxnet", "RSF", "CoxBoost")))
+    ) |>
+    tidyr::pivot_longer(cols = tpr:acc, names_to = "measure", values_to = "value", names_transform = toupper) |>
+    dplyr::filter(.data$measure == .env$measure) |>
+    # Pre=plot cosmetics
+    dplyr::mutate(
+      cause = paste0("Cause ", cause),
+      block = stringr::str_replace_all(block, "block", "Block ")
+    ) |>
+    ggplot(aes(y = model, x = value, color = model, fill = model)) +
+    facet_grid(rows = vars(cause), cols = vars(block), scales = "free") +
+    geom_boxplot(alpha = 0.5, show.legend = TRUE) +
+    scale_x_continuous(labels = scales::label_percent()) +
+    scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill")) +
+    labs(
+      title = glue::glue("Variable Selection Performance: {measure}"),
+      subtitle = label_sub,
+      y = NULL, x = glue::glue("{measure} [%]"),
+      color = NULL, fill = NULL
+    ) +
+    theme_minimal(base_size = 14) +
+    theme(
+      plot.title.position = "plot",
+      legend.position = "none"
+    )
+}
+
+measure_table <- function(res_long, measure = "PPV", aggr_point = median, aggr_var = IQR, minmax = max, kbl_format = "latex") {
+  res_long |>
+    dplyr::filter(lambda2 == lambda1) |>
+    dplyr::filter(.data$measure %in% .env$measure) |>
+    dplyr::filter(!is.na(value)) |>
+    dplyr::select(model, cause, block, value) |>
+    dplyr::group_by(model, cause, block) |>
+    dplyr::summarize(
+      aggr = 100 * aggr_point(value),
+      aggrv = 100 * aggr_var(value),
+      .groups = "drop"
+    ) |>
+    dplyr::group_by(cause, block) |>
+    dplyr::mutate(
+      stat_formatted = glue::glue("{round(aggr, 2)} ({round(aggrv, 2)})"),
+      stat_formatted = kableExtra::cell_spec(stat_formatted, bold = aggr == minmax(aggr), format = kbl_format)
+    ) |>
+    dplyr::ungroup() |>
+    dplyr::select(-aggr, -aggrv) |>
+    tidyr::pivot_wider(names_from = model, values_from = stat_formatted) |>
+    dplyr::select(Cause = cause, Block = block, CooPeR, Coxnet, CoxBoost, RSF)
+}
