@@ -1,29 +1,4 @@
 # Simulation settings -----------------------------------------------------
-# true_effects <- tibble::tribble(
-#   ~problem, ~beta,    ~x,  ~truth,
-#   "sim_a", "beta1", "x1", 1,
-#   "sim_a", "beta2", "x1", 1,
-#
-#   "sim_b", "beta1", "x1", 1,
-#   "sim_b", "beta2", "x2", 1,
-#
-#   "sim_c", "beta1", "x1", 1,
-#   "sim_c", "beta2", "x1", 0.25,
-#
-#   "sim_d", "beta1", "x1", 1,
-#   "sim_d", "beta1", "x2", 0.75,
-#   "sim_d", "beta1", "x3", -0.5,
-#   "sim_d", "beta2", "x1", 1,
-#   "sim_d", "beta2", "x2", 0.75,
-#   "sim_d", "beta2", "x3", -0.5,
-# )
-
-# sim_labels <- c(
-#   "sim_a" = "A: x1 has equal effect on both causes / same prevalence",
-#   "sim_b" = "B: x1 has effect on cause 1, x2 has equal effect on cause 2 / same prevalence",
-#   "sim_c" = "C: x1 has effect on cause 1 and smaller effect on cause2 / cause 2 less prevalent",
-#   "sim_d" = "D: x{1,2,3} have equal effects in both causes / cause 2 less prevalent"
-# )
 
 # A: x1 has the same (large) effect in both causes, both causes have equal prevalence
 # Censoring about as likely as event 1 or 2
@@ -40,7 +15,7 @@ sim_a <- function(data, job, n = 1000) {
     effects = tibble::tribble(
       ~variable, ~truth, ~cause,
       "x1", 1, 1,
-      "x1", 1, 1
+      "x1", 1, 2
     )
   )
 }
@@ -60,7 +35,9 @@ sim_b <- function(data, job, n = 1000) {
     effects = tibble::tribble(
       ~variable, ~truth, ~cause,
       "x1", 1, 1,
-      "x2", 1, 1
+      "x1", 0, 1,
+      "x2", 0, 1,
+      "x2", 1, 2,
     )
   )
 }

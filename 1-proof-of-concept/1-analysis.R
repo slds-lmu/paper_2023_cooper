@@ -1,30 +1,24 @@
 # Get results ---------------------------------------------------------------------------------
-knitr::opts_chunk$set(echo = TRUE)
-source(here::here("1-proof-of-concept/mt_res_tidy_plot.R"))
-source(here::here("1-proof-of-concept/1-problems.R"))
+# source(here::here("1-proof-of-concept/1-problems.R"))
 
 library(batchtools)
 library(ggplot2)
-library(patchwork)
 library(dplyr)
-library(kableExtra)
-res <- readRDS(here::here("results", "1-results-poc.rds"))
+# res <- readRDS(here::here("results", "1-results-poc.rds"))
 res_long <- readRDS(here::here("results", "1-results-long-poc.rds"))
 
 
-
-sim_labels <- c(
-  "sim_a" = "A: x1 has equal effect on both causes / same prevalence",
-  "sim_b" = "B: x1 has effect on cause 1, x2 has equal effect on cause 2 / same prevalence",
-  "sim_c" = "C: x1 has effect on cause 1 and smaller effect on cause2 / cause 2 less prevalent",
-  "sim_d" = "D: x{1,2,3} have equal effects in both causes / cause 2 less prevalent"
-)
+# sim_labels <- c(
+#   "sim_a" = "A: x1 has equal effect on both causes / same prevalence",
+#   "sim_b" = "B: x1 has effect on cause 1, x2 has equal effect on cause 2 / same prevalence",
+#   "sim_c" = "C: x1 has effect on cause 1 and smaller effect on cause2 / cause 2 less prevalent",
+#   "sim_d" = "D: x{1,2,3} have equal effects in both causes / cause 2 less prevalent"
+# )
 
 # Plot ----------------------------------------------------------------------------------------
-library(ggplot2)
 
 (p_poc <- res_long |>
-  dplyr::mutate(
+  mutate(
     Setting = toupper(sub(x = problem, "sim_", ""))
   ) |>
   ggplot(aes(x = variable, y = error, fill = method, color = method)) +
