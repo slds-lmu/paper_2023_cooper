@@ -35,7 +35,7 @@ sim_b <- function(data, job, n = 1000) {
     effects = tibble::tribble(
       ~variable, ~truth, ~cause,
       "x1", 1, 1,
-      "x1", 0, 1,
+      "x1", 0, 2,
       "x2", 0, 1,
       "x2", 1, 2,
     )

@@ -19,7 +19,11 @@ set.seed(config$global_seed)
 if (!file.exists(here::here("registries"))) dir.create(here::here("registries"))
 reg_name <- "poc"
 reg_dir <- here::here("registries", reg_name)
-unlink(reg_dir, recursive = TRUE)
+if (file.exists(reg_dir)) {
+  message("Deleting old registry")
+  unlink(reg_dir, recursive = TRUE)
+  stopifnot("Deleting registry failed" = !file.exists(reg_dir))
+}
 makeExperimentRegistry(
   file.dir = reg_dir,
   source = c(
@@ -41,7 +45,8 @@ cooper_wrapper <- function(
     data, job, instance,
     alpha = 1, z_method = "original",
     mt_max_iter = 5,
-    t = 1, a = 0.5, thresh = 1e-3
+    t = 1,
+    thresh = 1e-3
 ) {
 
   fit <- cooper::cooper(
@@ -51,7 +56,7 @@ cooper_wrapper <- function(
     stratify_by_status = TRUE,
     alpha = alpha,
     t = t,
-    a = a,
+    a = 0.5,
     thresh = thresh,
     include_mt_beta_history = FALSE
   )
@@ -107,7 +112,7 @@ if (FALSE) testJob(id = 1600)
 # Submit -----------------------------------------------------------
 if (grepl("blog\\d{1}", Sys.info()[["nodename"]])) {
   ids <- findNotSubmitted()
-  ids[, chunk := chunk(job.id, chunk.size = 100)]
+  ids[, chunk := chunk(job.id, chunk.size = 20)]
   submitJobs(
     ids = ids,
     resources = list(
