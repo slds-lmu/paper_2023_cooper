@@ -129,13 +129,13 @@ if (grepl("blog\\d{1}", Sys.info()[["nodename"]])) {
 }
 waitForJobs()
 
-nrow(res)/nrow(getJobTable())
-nrow(findErrors())/nrow(getJobTable())
-
-
 # Get results -------------------------------------------------------------
 res <-  reduceResultsDataTable()
 pars <- unwrap(getJobPars())
+
+nrow(res)/nrow(getJobTable())
+nrow(findErrors())/nrow(getJobTable())
+
 
 res_long <- data.table::rbindlist(lapply(res$job.id, \(id) {
   result <- res[(job.id == id), result][[1]]
