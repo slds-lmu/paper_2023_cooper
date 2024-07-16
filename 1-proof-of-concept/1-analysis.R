@@ -19,10 +19,11 @@ res_long <- readRDS(here::here("results", "1-results-long-poc.rds"))
 
 (p_poc <- res_long |>
   mutate(
-    Setting = toupper(sub(x = problem, "sim_", ""))
+    Setting = toupper(sub(x = problem, "sim_", "")),
+    Cause = cause
   ) |>
   ggplot(aes(x = variable, y = error, fill = method, color = method)) +
-  facet_grid(rows = vars(cause), cols = vars(Setting), labeller = labeller(cause = label_context, Setting = label_both), scales = "free_x") +
+  facet_grid(rows = vars(Cause), cols = vars(Setting), labeller = labeller(Cause = label_both, Setting = label_both), scales = "free_x") +
   geom_hline(yintercept = 0, linetype = "longdash", linewidth = 1) +
   #geom_jitter(alpha = 0.1, position = position_dodge2(width = .5, preserve = "single")) +
   geom_boxplot(alpha = 0.2) +

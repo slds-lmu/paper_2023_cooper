@@ -1,3 +1,7 @@
+# Recreate bladder cancer data as described by and used in:
+# - Dyrskjot et al. (2005.) "A Molecular Signature in Superficial Bladder Carcinoma Predicts Clinical Outcome." Clinical Cancer Research: An Official Journal of the American Association for Cancer Research 11 (11): 4029–36. https://doi.org/10.1158/1078-0432.CCR-04-2095.
+# - Binder et al. (2009). "Boosting for High-Dimensional Time-to-Event Data with Competing Risks." Bioinformatics 25 (7): 890–96. https://doi.org/10.1093/bioinformatics/btp088.
+
 dat1url <- "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE5nnn/GSE5479/suppl/GSE5479_Final_processed_data_1.txt"
 dat2url <- "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE5nnn/GSE5479/suppl/GSE5479_Final_processed_data_2.txt"
 
@@ -20,7 +24,6 @@ rownames(exprmat)[rownames(exprmat) == "1082-1_DK"] <- "1082-1"
 # https://aacrjournals.org/clincancerres/article/13/12/3545/13137/Gene-Expression-Signatures-Predict-Outcome-in-Non
 # downloads 10780432ccr062940-sup-supplemental_file_1.xls
 rawclinical <- readxl::read_excel(here::here("data-raw", "10780432ccr062940-sup-supplemental_file_1.xls"), .name_repair = make.names)
-#rawclinical <- read.csv2(here::here("data-raw", "10780432ccr062940-sup-supplemental_file_1.csv"))
 
 rawclinical$Sample.ID <- as.character(rawclinical$Sample.ID)
 rawclinical$Sample.ID[rawclinical$Sample.ID == "20421_S (91?)"] <- "20421_S"

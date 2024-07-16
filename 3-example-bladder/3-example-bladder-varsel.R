@@ -7,12 +7,20 @@ library(riskRegression)
 library(dplyr)
 library(ggplot2)
 
+bladder_file <- here::here("data/bladder-binder-clinical_geno.rds")
+
+if (!file.exists(bladder_file)) {
+  message("Recreating bladder dataset from data-raw/preprocess-binder.R")
+  source(here::here("data-raw/preprocess-binder.R"))
+}
+
 if (!dir.exists(here::here("results"))) dir.create(here::here("results"))
 set.seed(2023)
 
-bladder <- readRDS(here::here("data/bladder-binder-clinical_geno.rds"))
+bladder <- readRDS(bladder_file)
 
 # Reference data
+# Downloaded from supp table 2 (xlsx) https://aacrjournals.org/clincancerres/article/13/12/3545/13137/Gene-Expression-Signatures-Predict-Outcome-in-Non
 reference <- readxl::read_excel(
   here::here("data-raw/10780432ccr062940-sup-supplemental_file_2.xls"),
   sheet = "Progression classifier probes"

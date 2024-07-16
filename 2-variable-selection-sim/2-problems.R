@@ -212,43 +212,6 @@ sim_surv_binder <- function(job, data,
   )
 }
 
-sim_surv_binder_resample <- function(job = NULL, data = NULL, n_train = 400, n_test = 200, ...) {
-  dfile <- here::here("data/sim_binder.rds")
-
-  if (!file.exists(dfile)) {
-    warning("Need to create pre-saved file first!")
-    set.seed(213)
-    instance <- sim_surv_binder(job = NULL, data = NULL, n_train = 600, p = 5000, ce = 0.5, lambda1 = 0.1, lambda2 = 0.1, lambda_c = 0.1)
-    saveRDS(instance, dfile)
-    stop("Done, aborting.")
-  }
-
-  checkmate::assert(n_train + n_test == 600)
-
-  instance <- readRDS(dfile)
-  xdat <- instance$train
-
-  instance$train <- NULL
-  instance$test <- NULL
-
-  row_ids <- seq_len(nrow(xdat))
-  train_idx <- sample(row_ids, size = n_train, replace = FALSE)
-  test_idx <- setdiff(row_ids, train_idx)
-
-  # instance$train is the full dataset (n=600), we split it here to train and test
-  instance$train <- xdat[train_idx, ]
-  instance$test <- xdat[test_idx, ]
-
-  checkmate::assert(all(dim(instance$train) == c(n_train, 5002)))
-  checkmate::assert(all(dim(instance$test) == c(n_test, 5002)))
-  checkmate::assert_data_frame(instance$train, any.missing = FALSE)
-  checkmate::assert_data_frame(instance$test, any.missing = FALSE)
-  checkmate::assert_integerish(instance$train$status, lower = 0, upper = 2, any.missing = FALSE)
-  checkmate::assert_integerish(instance$test$status, lower = 0, upper = 2, any.missing = FALSE)
-
-  instance
-}
-
 # Debugging and sanity checking -----------------------------------------------------------------------------------
 
 if (FALSE) {
@@ -280,79 +243,6 @@ if (FALSE) {
       n = glue::glue("{freq_mean} ({freq_min} - {freq_max})"),
       prop = glue::glue("{prop_mean} ({prop_min} - {prop_max})")
     )
-}
-
-
-if (FALSE) {
-  res <- expand.grid(
-    iter = 1:100,
-    p = 500, n = 400,
-    lambda1 = c(0.1, 0.05),
-    lambda2  = c(0.1, 0.05),
-    lambda_c = c(0.1, 0.05)
-  ) |>
-  purrr::pmap(function(iter, p, n, lambda1, lambda2, lambda_c) {
-    status <- sim_surv_binder(n_train = n, p = p, lambda1 = lambda1, lambda2 = lambda2, lambda_c = lambda_c)$train$status
-
-    data.frame(
-      rep = iter,
-      table(status),
-      n = n, p = p, lambda1 = lambda1, lambda2 = lambda2, lambda_c = lambda_c
-    )
-
-  }) |>
-    data.table::rbindlist()
-
-
-  res_summary <- res |>
-    group_by(status, n, p, lambda1, lambda2, lambda_c) |>
-    summarize(
-      freq_min = min(Freq),
-      freq_mean = mean(Freq),
-      freq_max = max(Freq),
-      prop_min = min(Freq/n),
-      prop_mean = mean(Freq/n),
-      prop_max = max(Freq/n),
-      .groups = "keep"
-    )
-
-  res_summary |>
-    group_by(status) |>
-    dplyr::filter(lambda1 < 0.1 & lambda2 == 0.1 & lambda_c == 0.1) |>
-    mutate(across(starts_with("prop"), \(x) scales::label_percent(accuracy = .1)(x))) |>
-    transmute(
-      n = glue::glue("{freq_mean} ({freq_min} - {freq_max})"),
-      prop = glue::glue("{prop_mean} ({prop_min} - {prop_max})")
-    ) |>
-    kableExtra::kable(format = "latex") |>
-    kableExtra::kable_styling()
-
-}
-
-if (FALSE) {
-  # Check correlation structure matches expectation
-  library(ggplot2)
-  library(dplyr)
-  instance <- sim_surv_binder(n_train = 4000, n_test = 200, p = 5000, ce = 0.5, lambda = 0.1, lambda_c = 0.1)
-
-  xdf <- lapply(names(instance$covar_blocks), function(ni) {
-    x <- instance$train[, instance$covar_blocks[[ni]]]
-    xc <- cor(x)
-    data.frame(val = xc[xc < 1], block = ni)
-  })
-
-  xdf <- do.call(rbind, xdf)
-
-
-  ggplot(xdf, aes(x = val, fill = block)) +
-    facet_wrap(vars(block), scales = "free") +
-    geom_histogram() +
-    scale_fill_brewer(palette = "Dark2") +
-    theme_minimal()
-
-  xdf |>
-    group_by(block) |>
-    summarize(mean = mean(val))
 }
 
 # Original/naive/"safe" implementation for reference

@@ -55,8 +55,6 @@ rsconnect/
 fiddle.R
 
 # Until everything is finalized
-selected-plots/*png
-selected-plots/*pdf
 batchtools.conf.R
 registries_*
 registries/

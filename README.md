@@ -8,7 +8,11 @@ risk settings, based on the [original fwelnet implementation](https://github.com
 
 - `R/`: Helper functions for simulation and plotting. 
    - Loaded automatically via `.Rprofile`.
-- `n-<name>/` folders with code for specific settings
+- `n-<name>/`: Folders with code for specific settings.
+   - `1-proof-of-concept`:
+      - Contains `1-run-batchtools`
+- `data-raw/`: Preprocessing script and intermediate / raw files for the bladder cancer example application.
+- `data/`: Processed data in different forms depending on use-case.
 
 Note the project uses `renv` to ensure consistent R dependencies.  
 Upon first load it's going to bug you to run `renv::restore()` to locally 
