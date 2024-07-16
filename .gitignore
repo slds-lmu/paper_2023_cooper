@@ -1,6 +1,5 @@
 # Rendered Rmd
 *.html
-*.rds
 
 # Temp data
 GDCdata

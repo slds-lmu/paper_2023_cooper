@@ -1,0 +1,29 @@
+\begin{table}
+\centering
+\caption{Median (IQR) of FPR scores (\%) across different covariate blocks for causes 1 and 2.\label{tab:fpr-median}}
+\centering
+\begin{tabular}[t]{lllll}
+\toprule
+Block & CooPeR & Coxnet & CoxBoost & RSF\\
+\midrule
+\addlinespace[0.3em]
+\multicolumn{5}{l}{\textbf{Cause 1}}\\
+\hspace{1em}B1 (Mutual) & \textbf{0 (0)} & 4.88 (2.03) & 3.66 (2.03) & 17.89 (8.94)\\
+\hspace{1em}B2 (Reversed) & \textbf{0 (0)} & 4.88 (2.44) & 3.66 (1.63) & 2.85 (3.15)\\
+\hspace{1em}B3 (Disjoint 1) & 0.81 (0.81) & 1.01 (0.81) & 1.01 (0.81) & \textbf{0 (0.2)}\\
+\hspace{1em}B3 (Disjoint 2) & 1.6 (0.8) & 1.8 (0.8) & 1.8 (0.8) & \textbf{0 (0.2)}\\
+\hspace{1em}B4 (Cor. Noise) & \textbf{0 (0.2)} & 0.2 (0.4) & 0.2 (0.4) & \textbf{0 \vphantom{1} (0.2)}\\
+\hspace{1em}Noise & 0.31 (0.4) & 0.71 (0.37) & 0.74 (0.37) & \textbf{0.06 (0.11)}\\
+\addlinespace[0.3em]
+\multicolumn{5}{l}{\textbf{Cause 2}}\\
+\hspace{1em}B1 (Mutual) & \textbf{0 (0)} & 4.88 (2.44) & 4.07 (2.03) & 19.51 (10.16)\\
+\hspace{1em}B2 (Reversed) & \textbf{0 (0)} & 2.85 (2.03) & 2.85 (1.63) & \textbf{0 (0.41)}\\
+\hspace{1em}B3 (Disjoint 1) & 1.6 (0.8) & 1.6 (0.8) & 1.6 (0.8) & \textbf{0 (0.2)}\\
+\hspace{1em}B3 (Disjoint 2) & 0.81 (0.6) & 0.81 (0.6) & 1.01 (0.6) & \textbf{0 (0.2)}\\
+\hspace{1em}B4 (Cor. Noise) & \textbf{0 (0.2)} & 0.2 (0.4) & 0.2 (0.4) & \textbf{0 (0.2)}\\
+\hspace{1em}Noise & 0.31 (0.37) & 0.66 (0.4) & 0.71 (0.29) & \textbf{0.06 (0.11)}\\
+\bottomrule
+\multicolumn{5}{l}{\rule{0pt}{1em}\textit{Bold:}}\\
+\multicolumn{5}{l}{\rule{0pt}{1em}Method with lowest scores within each cause/block}\\
+\end{tabular}
+\end{table}

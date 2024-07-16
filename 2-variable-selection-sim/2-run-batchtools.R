@@ -1,5 +1,5 @@
-source(here::here("2c-variable-selection-sim/2c-problems.R"))
-source(here::here("2c-variable-selection-sim/2c-algorithms.R"))
+source(here::here("2-variable-selection-sim/2-problems.R"))
+source(here::here("2-variable-selection-sim/2-algorithms.R"))
 source(here::here("R/utils.R"))
 if (!dir.exists(here::here("results"))) dir.create(here::here("results"))
 
@@ -22,7 +22,6 @@ continue_bt <- FALSE
 # Registry ----------------------------------------------------------------
 if (!file.exists(here::here("registries"))) dir.create(here::here("registries"))
 reg_name <- "varsel-sim-pred-csc"
-#reg_name <- "DEBUG"
 reg_dir <- here::here("registries", reg_name)
 
 if (continue_bt) {
@@ -33,8 +32,8 @@ if (continue_bt) {
     file.dir = reg_dir,
     packages = c("cooper", "randomForestSRC", "CoxBoost", "survival", "riskRegression"),
     seed = config$global.seed,
-    source = c(here::here("2c-variable-selection-sim/2c-algorithms.R"),
-               here::here("2c-variable-selection-sim/2c-simulation.R"),
+    source = c(here::here("2-variable-selection-sim/2-algorithms.R"),
+               here::here("2-variable-selection-sim/2-problems.R"),
                here::here("R/utils.R"))
   )
 }
@@ -102,7 +101,6 @@ if (Sys.info()[["nodename"]] %in% c("blog1", "blog2")) {
       walltime = 3600 * 24 * 2
     )
   )
-  waitForJobs()
 
   res <- reduceResultsDataTable()
   pars <- unwrap(getJobPars())
@@ -125,6 +123,6 @@ if (Sys.info()[["nodename"]] %in% c("blog1", "blog2")) {
   saveRDS(res_perf, here::here("results", "2-results-varsel-csc-perf.rds"))
   saveRDS(res_varsel, here::here("results", "2-results-varsel-csc-varsel.rds"))
 
+} else {
+  message("Don't know how to properly submit jobs on this platform!")
 }
-
-

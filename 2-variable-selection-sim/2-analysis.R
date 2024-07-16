@@ -1,13 +1,13 @@
 source(here::here("R/utils.R"))
 library(batchtools)
 library(data.table)
+library(dplyr)
 library(ggplot2)
+library(kableExtra)
 
+# Postprocess results ---------------------------------------------------------
 res_varsel <- readRDS(here::here("results", "2-results-varsel-csc-varsel.rds"))
 res_perf <- readRDS(here::here("results", "2-results-varsel-csc-perf.rds"))
-
-
-# Variable selection --------------------------------------------------------------------------
 
 res_varsel[, thresh := format(thresh, scientific = TRUE)]
 res_varsel[, block := factor(block, levels = sort(unique(block)))]
@@ -16,7 +16,6 @@ res_varsel[, lambda_setting := fcase(
   lambda1 == lambda2, "equal",
   lambda1 < lambda2,  "c1 less"
 )]
-
 
 res_varsel[total_pos == 0, tp := NA]
 res_varsel[total_pos == 0, fn := NA]
@@ -28,12 +27,10 @@ res_varsel[, fdr := 1 - ppv]
 res_varsel[, f1 := (2 * ppv * tpr) / (ppv + tpr)]
 res_varsel[, acc := (tp+tn)/total]
 
-
-
 res_varsel_long <- res_varsel |>
   mutate(
     cause = paste0("Cause ", cause),
-    block = dplyr::case_when(
+    block = case_when(
       block == "block1" ~ "B1 (Mutual)",
       block == "block2" ~ "B2 (Reversed)",
       block == "block3.1" ~ "B3 (Disjoint 1)",
@@ -51,7 +48,6 @@ res_varsel_long <- res_varsel |>
   ) |>
   filter(lambda2 == lambda1) |>
   tidyr::pivot_longer(cols = tpr:acc, names_to = "measure", values_to = "value", names_transform = toupper)
-
 
 p_ppv1 <- res_varsel_long |>
   filter(measure %in% c("PPV")) |>
@@ -104,50 +100,12 @@ p_f1 <- res_varsel_long |>
 ggsave(plot = p_fpr1, filename = "2-f1-equallambda.pdf", path = here::here("results"), width = 12, height = 4)
 ggsave(plot = p_fpr1, filename = "2-f1-equallambda.png", path = here::here("results"), width = 12, height = 4, bg = "white")
 
-
-library(kableExtra)
-
-# table_base <- res_varsel_long |>
-#   filter(measure == "TPR") |>
-#   select(model, value, block, cause) |>
-#   group_by(model, block, cause) |>
-#   summarize(
-#     mean = mean(value, na.rm = TRUE),
-#     sd = sd(value, na.rm = TRUE),
-#     median = median(value, na.rm = TRUE),
-#     q25 = quantile(value, probs = 0.25, na.rm = TRUE),
-#     q75 = quantile(value, probs = 0.75, na.rm = TRUE),
-#     .groups = "drop"
-#   ) |>
-#   mutate(across(where(is.numeric), \(x) {
-#     x = round(100 * x, 2)
-#     ifelse(is.finite(x), x, "-")
-#   })) |>
-#   mutate(
-#     medianq = glue::glue("{median} [{q25}, {q75}]"),
-#     meansd = glue::glue("{mean} ({sd})")
-#   )
-#
-# table_base |>
-#   tidyr::pivot_wider(id_cols = c("cause", "model"), names_from = c("block"), values_from = c("medianq")) |>
-#   arrange(cause, desc(model)) |>
-#   select(Cuase = cause, Model = model, matches("B[123]")) |>
-#   kbl(
-#     caption = "TPR across 1000 replications with median and 25%, 75% quantile",
-#     format = "latex"
-#   ) |>
-#   kable_styling() |>
-#   collapse_rows(1) |>
-#   # writeLines()
-#   save_kable(file = here::here("results", "tpr-table.pdf"), keep_tex = TRUE)
-
-
+# Tables ----------------------------------------------------------------------
 
 ppv_tbl_median <- measure_table(res_varsel_long, measure = "PPV", aggr_point = median, aggr_var = IQR, minmax = max)
 fpr_tbl_median <- measure_table(res_varsel_long, measure = "FPR", aggr_point = median, aggr_var = IQR, minmax = min)
 tpr_tbl_median <- measure_table(res_varsel_long, measure = "TPR", aggr_point = median, aggr_var = IQR, minmax = max)
 npv_tbl_median <- measure_table(res_varsel_long, measure = "NPV", aggr_point = median, aggr_var = IQR, minmax = max)
-
 
 ppv_kbl_median <- ppv_tbl_median |>
   select(-Cause) |>
@@ -189,12 +147,10 @@ npv_kbl_median <- npv_tbl_median |>
   footnote(general = "Method with highest scores within each cause/block", general_title = "Bold:") |>
   pack_rows(index = table(npv_tbl_median$Cause))
 
-
 writeLines(ppv_kbl_median, con = here::here("results", "tab-ppv-median.tex"))
 writeLines(fpr_kbl_median, con = here::here("results", "tab-fpr-median.tex"))
 writeLines(tpr_kbl_median, con = here::here("results", "tab-tpr-median.tex"))
 writeLines(npv_kbl_median, con = here::here("results", "tab-npv-median.tex"))
-
 
 # Plot scores ---------------------------------------------------------------------------------
 aggr_perf = res_perf[, .(
@@ -206,10 +162,7 @@ aggr_perf = res_perf[, .(
   ),
   by = .(model, metric, cause, time_quant, lambda1, lambda2)]
 
-
-library(dplyr)
-
-(p_scores <- aggr_perf |>
+p_scores <- aggr_perf |>
   filter(lambda1 == lambda2) |>
   filter(metric %in% c("Brier", "AUC")) |>
   mutate(
@@ -245,10 +198,10 @@ library(dplyr)
   theme(
     legend.position = "bottom",
     plot.title.position = "plot"
-  ))
+  )
 
 ggsave(
   plot = p_scores,
-  filename = fs::path(here::here("results"), "2-performance-scores", ext = ".png"),
+  filename = fs::path(here::here("results"), "2-performance-scores", ext = "png"),
   width = 8, height = 6, bg = "white"
 )

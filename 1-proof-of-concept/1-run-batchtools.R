@@ -121,29 +121,28 @@ if (grepl("blog\\d{1}", Sys.info()[["nodename"]])) {
       chunks.as.arrayjobs = FALSE
     )
   )
+
+  waitForJobs()
+
+  # Get results -------------------------------------------------------------
+  res <-  reduceResultsDataTable()
+  pars <- unwrap(getJobPars())
+
+  nrow(res)/nrow(getJobTable())
+  nrow(findErrors())/nrow(getJobTable())
+
+
+  res_long <- data.table::rbindlist(lapply(res$job.id, \(id) {
+    result <- res[(job.id == id), result][[1]]
+    result
+    result[, job.id := ..id]
+  }))
+
+  res_long <- merge(pars, res_long, by = "job.id")
+
+  saveRDS(res, here::here("results", "1-results-poc.rds"))
+  saveRDS(res_long, here::here("results", "1-results-long-poc.rds"))
+
 } else {
-  message("Submitting a random sample of jobs only")
-  submitJobs(
-    unwrap(getJobTable())[, .SD[sample(nrow(.SD), 5)], by = c("problem")]
-  )
+  message("Don't know how to properly submit jobs on this platform!")
 }
-waitForJobs()
-
-# Get results -------------------------------------------------------------
-res <-  reduceResultsDataTable()
-pars <- unwrap(getJobPars())
-
-nrow(res)/nrow(getJobTable())
-nrow(findErrors())/nrow(getJobTable())
-
-
-res_long <- data.table::rbindlist(lapply(res$job.id, \(id) {
-  result <- res[(job.id == id), result][[1]]
-  result
-  result[, job.id := ..id]
-}))
-
-res_long <- merge(pars, res_long, by = "job.id")
-
-saveRDS(res, here::here("results", "1-results-poc.rds"))
-saveRDS(res_long, here::here("results", "1-results-long-poc.rds"))

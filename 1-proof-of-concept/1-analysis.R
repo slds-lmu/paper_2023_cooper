@@ -1,12 +1,9 @@
 # Get results ---------------------------------------------------------------------------------
-# source(here::here("1-proof-of-concept/1-problems.R"))
 
-library(batchtools)
 library(ggplot2)
 library(dplyr)
 # res <- readRDS(here::here("results", "1-results-poc.rds"))
 res_long <- readRDS(here::here("results", "1-results-long-poc.rds"))
-
 
 # sim_labels <- c(
 #   "sim_a" = "A: x1 has equal effect on both causes / same prevalence",
@@ -17,7 +14,7 @@ res_long <- readRDS(here::here("results", "1-results-long-poc.rds"))
 
 # Plot ----------------------------------------------------------------------------------------
 
-(p_poc <- res_long |>
+p_poc <- res_long |>
   mutate(
     Setting = toupper(sub(x = problem, "sim_", "")),
     Cause = cause
@@ -45,8 +42,8 @@ res_long <- readRDS(here::here("results", "1-results-long-poc.rds"))
     plot.title.position = "plot",
     panel.grid.minor = element_blank(),
     panel.grid.major.x = element_blank()
-  ))
+  )
 
 ggsave(plot = p_poc, filename = "1-poc-boxplot-errors.pdf", path = here::here("results"), width = 10, height = 6)
-ggsave(plot = p_poc, filename = "1-poc-boxplot-errors.png", path = here::here("results"), width = 10, height = 6)
+ggsave(plot = p_poc, filename = "1-poc-boxplot-errors.png", path = here::here("results"), width = 10, height = 6, bg = "white")
 
