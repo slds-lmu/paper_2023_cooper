@@ -10,7 +10,7 @@ library(ggplot2)
 bladder_file <- here::here("data/bladder-binder-clinical_geno.rds")
 
 if (!file.exists(bladder_file)) {
-  message("Recreating bladder dataset from data-raw/preprocess-binder.R")
+  cli::cli_alert_info("Recreating bladder dataset from data-raw/preprocess-binder.R")
   source(here::here("data-raw/preprocess-binder.R"))
 }
 

@@ -289,7 +289,12 @@ coxboost_tuned <- function(xdat, cmprsk = "csh", iter.max = 10, ...) {
     status = xdat$status,
     x = xmat,
     cmprsk = cmprsk,
-    iter.max = iter.max
+    iter.max = iter.max,
+    # Passed to cv.CoxBoost()
+    # indicates whether computations in the cross-validation folds should be performed in parallel, 
+    #  using package parallel. If TRUE, package parallel is employed using the default number of cores. 
+    #  A value larger than 1 is taken to be the number of cores that should be employed.
+    multicore = getOption("mc.cores", default = 1)
   )
 
   CoxBoost::CoxBoost(
