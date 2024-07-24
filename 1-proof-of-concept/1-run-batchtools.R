@@ -1,6 +1,7 @@
 library(batchtools)
 library(data.table)
 source(here::here("1-proof-of-concept", "1-problems.R"))
+source(here::here("1-proof-of-concept", "1-algorithms.R"))
 source(here::here("R", "utils.R"))
 if (!dir.exists(here::here("results"))) dir.create(here::here("results"))
 
@@ -40,49 +41,6 @@ addProblem(name = "sim_c", fun = sim_c, seed = config$sim_seed, cache = config$s
 addProblem(name = "sim_d", fun = sim_d, seed = config$sim_seed, cache = config$sim_cache)
 
 # Algorithms -----------------------------------------------------------
-
-cooper_wrapper <- function(
-    data, job, instance,
-    alpha = 1, z_method = "original",
-    mt_max_iter = 5,
-    t = 1,
-    thresh = 1e-3
-) {
-
-  fit <- cooper::cooper(
-    instance$data,
-    mt_max_iter = mt_max_iter,
-    z_method = as.character(z_method),
-    stratify_by_status = TRUE,
-    alpha = alpha,
-    t = t,
-    a = 0.5,
-    thresh = thresh,
-    include_mt_beta_history = FALSE
-  )
-
-  res = data.table::rbindlist(lapply(1:2, \(event) {
-    rbind(
-      data.table::data.table(
-        variable = fit$predictors,
-        estimate = coef(fit, event = event, use_initial_fit = TRUE),
-        cause = event,
-        method = "coxnet"
-      ),
-      data.table::data.table(
-        variable = fit$predictors,
-        estimate = coef(fit, event = event),
-        cause = event,
-        method = "cooper"
-      )
-    )
-  }))
-
-  res = merge(res, instance$effects, by = c("variable", "cause"))
-  res[, error := (truth - estimate)]
-
-}
-
 addAlgorithm(name = "cooper", fun = cooper_wrapper)
 
 # Experiments -----------------------------------------------------------
