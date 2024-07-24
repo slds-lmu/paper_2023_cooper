@@ -1,41 +1,3 @@
-sim_wrapper_cr <- function(
-    formula,
-    n = 1000,
-    time_grid  = seq(0, 10, by = 0.1)) {
-
-  # create data set with covariates
-  xdf1 <- tibble::tibble(
-    x0 = sample(c(-1,1), n, .3),
-    x1 = runif(n, -3, 3),
-    x2 = runif(n, -3, 3),
-    x3 = runif(n, -3, 3))
-  xdf2 <- mvtnorm::rmvnorm(n = nrow(xdf1), mean = rep(0, 10))
-  # noise variables
-  colnames(xdf2) <- paste0("x", 4:(ncol(xdf2)+3))
-  xdf <- cbind(xdf1, xdf2)
-
-  # baseline hazard
-  instance <- sim_pexp_cr(
-    formula = formula,
-    data    = xdf,
-    cut     = time_grid
-  )
-  instance$status <- instance$type
-  instance$type <- NULL
-  # add censoring
-  cens_times <- runif(nrow(instance), 0, 20)
-  cens <- instance$time > cens_times
-  instance$time <- pmin(instance$time, cens_times)
-  instance$status[cens] <- 0
-  instance$status[instance$time == 10] <- 0
-  instance <- as.data.frame(instance)
-  instance$id <- instance$hazard1 <- instance$hazard2 <- NULL
-  instance$x0 <- as.factor(instance$x0)
-
-  instance
-}
-
-
 # Copied verbatim from https://raw.githubusercontent.com/adibender/pem.xgb/master/R/sim-cr.R
 # to reduce dependencies, and explicitly namespaced functions
 #' Simulate competing risks time-to-event data via piece-wise exponential distribution
@@ -144,6 +106,50 @@ sim_pexp_cr <- function(formula, data, cut) {
 
 }
 
+#' Wrapper to simulate survival data using piecewise-exponential process
+#' Used in proof of concept simulation
+#' @param formula Passed to `sim_pexp_cr()`.
+#' @param n Number of observations to simulate
+#' @param time_grid Grid of time points ot use for survival times.
+#'
+#' @return A `data.frame` of competing risk survival data with `time`,`status` variables and 14 features.
+sim_wrapper_cr <- function(
+  formula,
+  n = 1000,
+  time_grid  = seq(0, 10, by = 0.1)) {
+
+  # create data set with covariates
+  xdf1 <- tibble::tibble(
+    x0 = sample(c(-1,1), n, .3),
+    x1 = runif(n, -3, 3),
+    x2 = runif(n, -3, 3),
+    x3 = runif(n, -3, 3))
+  xdf2 <- mvtnorm::rmvnorm(n = nrow(xdf1), mean = rep(0, 10))
+  # noise variables
+  colnames(xdf2) <- paste0("x", 4:(ncol(xdf2)+3))
+  xdf <- cbind(xdf1, xdf2)
+
+  # baseline hazard
+  instance <- sim_pexp_cr(
+    formula = formula,
+    data    = xdf,
+    cut     = time_grid
+  )
+  instance$status <- instance$type
+  instance$type <- NULL
+  # add censoring
+  cens_times <- runif(nrow(instance), 0, 20)
+  cens <- instance$time > cens_times
+  instance$time <- pmin(instance$time, cens_times)
+  instance$status[cens] <- 0
+  instance$status[instance$time == 10] <- 0
+  instance <- as.data.frame(instance)
+  instance$id <- instance$hazard1 <- instance$hazard2 <- NULL
+  instance$x0 <- as.factor(instance$x0)
+
+  instance
+}
+
 
 #' Simple status distribution check
 #' @param xs A status variable
@@ -162,6 +168,7 @@ check_status <- function(xs) {
 #' Cleanup output from riskRegression::Score to make it one long plottable data.frame
 #' @param scores As returned by `riskRegression::Score()`, assumed to contain
 #'   measures AUC, Brier, IBS and IPA.
+#' @return A `data.table` in long format of scores by model.
 cleanup_score <- function(scores) {
   result <- scores$AUC$score[scores$Brier$score, on = c("model", "times")]
   result <- data.table::melt(result , id.vars = c("model", "times"),
@@ -174,10 +181,11 @@ cleanup_score <- function(scores) {
 }
 
 #' Refit a GLMnet with riskRegression using the same predictors and lambda as a cooper fit.
-#' This allows evaluating the glmnet internally fit within cooper() with riskRegression::Score(),
-#' which is a workaround to use Score() for a cooper model and its internal glmnet simultaneously,
+#' This allows evaluating the glmnet internally fit within cooper() with `riskRegression::Score()``,
+#' which is a workaround to use `Score()` for a cooper model and its internal glmnet simultaneously,
 #' using the exact same data and parameters for each.
 #' @param cooperfit A model fit of class `"cooper"` as returned by `cooper()`.
+#' @return A `riskRegression::GLMnet()` model fit.
 refit_glmnet <- function(cooperfit, xnew, event = 1, alpha = 1) {
   checkmate::assert_class(cooperfit, "cooper")
   checkmate::assert_int(event, lower = 1)
@@ -199,24 +207,6 @@ refit_glmnet <- function(cooperfit, xnew, event = 1, alpha = 1) {
     cv = FALSE,
     standardize = TRUE, alpha = alpha
   )
-}
-
-
-# S3 method to have riskRegression's predictRisk work with CoxBoost
-predictRisk.CoxBoost <- function(object, newdata, times, cause, ...) {
-  checkmate::assert_int(cause, lower = 1)
-  checkmate::assert_numeric(times, lower = 0, finite = TRUE, min.len = 1)
-
-  # Returns list with predictions named "1" and "2"
-  # Entries are vector if times is a scalar, a matrix otherwise
-  res = predict(object, newdata = newdata, times = times, type = "CIF")
-
-  # only keep the cause of interest, in matrix form
-  res = matrix(res[[as.character(cause)]], ncol = length(times))
-
-  # riskRegression expects colnames to be eval times
-  colnames(res) <- times
-  res
 }
 
 #' @param xdf data.frame of test data, assumed to have `time` and `status` cols
@@ -291,8 +281,8 @@ coxboost_tuned <- function(xdat, cmprsk = "csh", iter.max = 10, ...) {
     cmprsk = cmprsk,
     iter.max = iter.max,
     # Passed to cv.CoxBoost()
-    # indicates whether computations in the cross-validation folds should be performed in parallel, 
-    #  using package parallel. If TRUE, package parallel is employed using the default number of cores. 
+    # indicates whether computations in the cross-validation folds should be performed in parallel,
+    #  using package parallel. If TRUE, package parallel is employed using the default number of cores.
     #  A value larger than 1 is taken to be the number of cores that should be employed.
     multicore = getOption("mc.cores", default = 1)
   )
@@ -310,6 +300,9 @@ coxboost_tuned <- function(xdat, cmprsk = "csh", iter.max = 10, ...) {
 
 #' Partition data into train/test set with stratification
 #' by status on the status column
+#' @param dt A data.table with `time` and `status` columns.
+#' @param train_prop Proportion of data to use for training, defaults to 70%.
+#' @return a `list` with `train` and `test` data.tables
 partition_dt <- function(dt, train_prop = 0.7) {
   dt <- data.table::as.data.table(dt)
   dt[, rowid := seq_along(time)]
@@ -326,13 +319,22 @@ partition_dt <- function(dt, train_prop = 0.7) {
   list(train = train, test = test)
 }
 
-
+#' Utility function to access non-zero elements in a vector.
 nonzeros <- function(x) {
   res <- x[x != 0]
   checkmate::assert_numeric(res, min.len = 1, finite = TRUE, any.missing = FALSE)
   res
 }
 
+#' Fit a cause-specific Cox model using `survival::coxph()` and evaluate with `riskRegression::Score()`
+#'
+#' @param instance Simulation data as produced by batchtools simulation function `sim_surv_binder()`.
+#' @param model Model type to fit, one of "cooper", "coxboost", "coxnet", "rfsrc".
+#' @param coefs Vector of model coefficients (or analogous proeprty) to use in the model fit.
+#' @param cause Event of interest, defaults to `1`.
+#' @param probs Quantiles to evaluate at, defaults to 10% - 80% in 10% steps.
+#' @return A data.table of `riskRegression::Score` results in long format.
+#'
 fit_csc_coxph <- function(instance, model, coefs, cause = 1, probs = seq(0.1, 0.8, .1)) {
   require(rlang)
   train <- data.table::as.data.table(instance$train)
@@ -403,8 +405,11 @@ selected.cooper <- function(x, model = "cooper", ...) {
   )
 }
 
+#' Quikcly accessing selected variables base on different model objects
 #' Focusing on cause-specific models, so only one cause-specific
 #' set of selected variables for each function call.
+#' @param x A model object, `coxboost` `rfsrc`.
+#' @return A list of cause-specific selected variables.
 selected.rfsrc <- function(x, ...) {
   checkmate::assert_integerish(x$cause.wt, lower = 0, upper = 1, len = 2)
   # This is c(1, 0) for cause 1 and c(0, 1) for cause 2
@@ -426,58 +431,12 @@ selected.CoxBoost <- function(x, ...) {
   )
 }
 
-#' Plotting helper for variable selection results
-plot_varselect_boxplot <- function(
-    res_long, ..., measure, blocks = c("block1", "block2", "block3.1", "block3.2", "block4", "noise"),
-    lambda_setting = "equal"
-) {
-
-  tmp <- res_long |>
-    dplyr::filter(.data$lambda_setting == .env$lambda_setting) |>
-    dplyr::filter(...)
-
-  if (lambda_setting == "equal") {
-    label_sub <- "Setting with roughly equal proportions of causes 1 & 2"
-  } else if (lambda_setting == "c1 less") {
-    label_sub <- "Setting with cause 1 appearing less frequently than cause 2"
-  }
-
-  tmp |>
-    dplyr::filter(.data$block %in% .env$blocks) |>
-    dplyr::mutate(
-      model = dplyr::case_when(
-        model == "cooper" ~ "CooPeR",
-        model == "coxboost" ~ "CoxBoost",
-        model == "glmnet" ~ "Coxnet",
-        model == "rfsrc" ~ "RSF"
-      ),
-      model = factor(model, levels = rev(c("CooPeR", "Coxnet", "RSF", "CoxBoost")))
-    ) |>
-    tidyr::pivot_longer(cols = tpr:acc, names_to = "measure", values_to = "value", names_transform = toupper) |>
-    dplyr::filter(.data$measure == .env$measure) |>
-    # Pre=plot cosmetics
-    dplyr::mutate(
-      cause = paste0("Cause ", cause),
-      block = stringr::str_replace_all(block, "block", "Block ")
-    ) |>
-    ggplot(aes(y = model, x = value, color = model, fill = model)) +
-    facet_grid(rows = vars(cause), cols = vars(block), scales = "free") +
-    geom_boxplot(alpha = 0.5, show.legend = TRUE) +
-    scale_x_continuous(labels = scales::label_percent()) +
-    scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill")) +
-    labs(
-      title = glue::glue("Variable Selection Performance: {measure}"),
-      subtitle = label_sub,
-      y = NULL, x = glue::glue("{measure} [%]"),
-      color = NULL, fill = NULL
-    ) +
-    theme_minimal(base_size = 14) +
-    theme(
-      plot.title.position = "plot",
-      legend.position = "none"
-    )
-}
-
+#' Quick wrapper to collect variavble selection scores in a table for LaTeX.
+#' @param res_long A data.table with `model`, `cause`, `block`, `value` columns.
+#' @param measure The measure to extract, defaults to `"PPV"`.
+#' @param aggr_point,aggr_var Functions to aggregate point and variance estimates, defaults to `median` and `IQR`.
+#' @param minmax Function to determine if a value is a minimum or maximum, defaults to `max`, indicating that higher is better.
+#' @param kbl_format Format for `kableExtra::cell_spec()`, defaults to `"latex"`.
 measure_table <- function(res_long, measure = "PPV", aggr_point = median, aggr_var = IQR, minmax = max, kbl_format = "latex") {
   res_long |>
     dplyr::filter(lambda2 == lambda1) |>

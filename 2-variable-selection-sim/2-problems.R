@@ -1,3 +1,7 @@
+# Simulation wrapper functions for high dimension data simulation
+# Batchtools main script: 2-run-batchtools.R
+
+
 # block_corr_mat <- function(n = 100, p = 15, corr = c(0.5, 0.35, 0.05)) {
 #   block_len <- p/length(corr)
 #

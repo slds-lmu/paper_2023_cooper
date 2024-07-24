@@ -6,17 +6,14 @@ library(CoxBoost)
 library(riskRegression)
 library(dplyr)
 library(ggplot2)
-
-bladder_file <- here::here("data/bladder-binder-clinical_geno.rds")
-
-if (!file.exists(bladder_file)) {
-  cli::cli_alert_info("Recreating bladder dataset from data-raw/preprocess-binder.R")
-  source(here::here("data-raw/preprocess-binder.R"))
-}
-
 if (!dir.exists(here::here("results"))) dir.create(here::here("results"))
 set.seed(2023)
 
+bladder_file <- here::here("data/bladder-binder-clinical_geno.rds")
+if (!file.exists(bladder_file)) {
+  cli::cli_alert_info("Recreating bladder dataset from data-raw/preprocess-bladder-data.R")
+  source(here::here("data-raw/preprocess-bladder-data.R"))
+}
 bladder <- readRDS(bladder_file)
 
 # Reference data
@@ -26,6 +23,7 @@ reference <- readxl::read_excel(
   sheet = "Progression classifier probes"
 ) |>
   janitor::clean_names()
+
 
 # CooPeR --------------------------------------------------------------------------------------
 cli::cli_alert_info("Fitting CooPeR")
@@ -102,16 +100,8 @@ cooper_beta2 <- coef(cooperfit, event = 2)
   names(selected(cooperfit, model = "coxnet")[[2]])
 ))
 
-coxnet_beta1[names(coxnet_beta1) == "age"]
-coxnet_beta2[names(coxnet_beta2) == "age"]
-cooper_beta1[names(cooper_beta1) == "age"]
-cooper_beta2[names(cooper_beta2) == "age"]
-
 cooper_shared[cooper_shared %in% reference$probe_id]
-
-reference |>
-  dplyr::filter(probe_id %in% cooper_shared)
-
+reference$probe_id[reference$probe_id %in% cooper_shared]
 
 ## rfsrc
 selected(rf_c1)

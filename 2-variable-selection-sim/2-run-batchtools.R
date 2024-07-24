@@ -102,27 +102,51 @@ if (Sys.info()[["nodename"]] %in% c("blog1", "blog2")) {
     )
   )
 
-  res <- reduceResultsDataTable()
-  pars <- unwrap(getJobPars())
-
-  res_varsel <- rbindlist(lapply(res$job.id, \(id) {
-    varsel_dt = as.data.table(res[job.id == id, result][[1]][["varsel"]])
-    varsel_dt[, job.id := id]
-    varsel_dt
-  }))
-
-  res_perf <- rbindlist(lapply(res$job.id, \(id) {
-    perf_dt = as.data.table(res[job.id == id, result][[1]][["scores"]])
-    perf_dt[, job.id := id]
-    perf_dt
-  }))
-
-  res_varsel <- ljoin(res_varsel, pars)
-  res_perf <- ljoin(res_perf, pars)
-
-  saveRDS(res_perf, here::here("results", "2-results-varsel-csc-perf.rds"))
-  saveRDS(res_varsel, here::here("results", "2-results-varsel-csc-varsel.rds"))
-
 } else {
-  message("Don't know how to properly submit jobs on this platform!")
+  ids <- findNotSubmitted()
+  submitJobs(ids = ids)
+  waitForJobs()
 }
+
+# Getting results
+res <- reduceResultsDataTable()
+pars <- unwrap(getJobPars())
+
+# Separately for variable selection and prediction performance scores
+res_varsel <- rbindlist(lapply(res$job.id, \(id) {
+  varsel_dt = as.data.table(res[job.id == id, result][[1]][["varsel"]])
+  varsel_dt[, job.id := id]
+  varsel_dt
+}))
+
+res_perf <- rbindlist(lapply(res$job.id, \(id) {
+  perf_dt = as.data.table(res[job.id == id, result][[1]][["scores"]])
+  perf_dt[, job.id := id]
+  perf_dt
+}))
+
+res_varsel <- ljoin(res_varsel, pars)
+res_perf <- ljoin(res_perf, pars)
+
+# Further post-processing of the variable selection results
+res_varsel[, thresh := format(thresh, scientific = TRUE)]
+res_varsel[, block := factor(block, levels = sort(unique(block)))]
+
+res_varsel[, lambda_setting := fcase(
+  lambda1 == lambda2, "equal",
+  lambda1 < lambda2,  "c1 less"
+)]
+
+res_varsel[total_pos == 0, tp := NA]
+res_varsel[total_pos == 0, fn := NA]
+res_varsel[, tpr := tp/total_pos]
+res_varsel[, fpr := fp/total_neg]
+res_varsel[, ppv := tp/(tp + fp)]
+res_varsel[, npv := tn/(tn + fn)]
+res_varsel[, fdr := 1 - ppv]
+res_varsel[, f1 := (2 * ppv * tpr) / (ppv + tpr)]
+res_varsel[, acc := (tp+tn)/total]
+
+
+saveRDS(res_perf, here::here("results", "2-results-varsel-csc-perf.rds"))
+saveRDS(res_varsel, here::here("results", "2-results-varsel-csc-varsel.rds"))

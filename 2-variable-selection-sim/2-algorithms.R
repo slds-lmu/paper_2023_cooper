@@ -1,4 +1,5 @@
-# Variable selection ----------------------------------------------------------------------------------------------
+# Algorithm wrapper functions for high dimension data simulation
+# Batchtools main script: 2-run-batchtools.R
 
 # cooper wrapper for variable selection sim
 cooper_varsel_wrapper <- function(

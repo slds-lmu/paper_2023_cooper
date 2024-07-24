@@ -1,0 +1,23 @@
+\begin{table}
+\centering
+\caption{Median (IQR) of PPV scores (\%) across different covariate blocks for causes 1 and 2.\label{tab:ppv-median}}
+\centering
+\begin{tabular}[t]{lllll}
+\toprule
+Block & CooPeR & Coxnet & CoxBoost & RSF\\
+\midrule
+\addlinespace[0.3em]
+\multicolumn{5}{l}{\textbf{Cause 1}}\\
+\hspace{1em}B1 (Mutual) & \textbf{100 (0)} & 25 (8.55) & 30.77 (11.36) & 6.67 (3.43)\\
+\hspace{1em}B2 (Reversed) & \textbf{100 (0)} & 25 (9.72) & 30.77 (9.7) & 15.38 (17.31)\\
+\hspace{1em}B3 (Disjoint 1) & \textbf{50 (20)} & 40 (16.67) & 44.44 (20.78) & 0 (0)\\
+\addlinespace[0.3em]
+\multicolumn{5}{l}{\textbf{Cause 2}}\\
+\hspace{1em}B1 (Mutual) & \textbf{100 (0)} & 25 (9.72) & 26.67 (9.8) & 5.88 (2.95)\\
+\hspace{1em}B2 (Reversed) & \textbf{100 (0)} & 33.33 (15.87) & 36.36 (15.87) & 0 (50)\\
+\hspace{1em}B3 (Disjoint 2) & \textbf{44.44 (20.78)} & \textbf{44.44 (20.78)} & 42.86 (16.67) & 0 (0)\\
+\bottomrule
+\multicolumn{5}{l}{\rule{0pt}{1em}\textit{Bold:}}\\
+\multicolumn{5}{l}{\rule{0pt}{1em}Method with best scores within each cause/block}\\
+\end{tabular}
+\end{table}

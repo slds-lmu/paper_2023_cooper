@@ -113,6 +113,7 @@ if (FALSE) testJob(id = 1600)
 if (grepl("blog\\d{1}", Sys.info()[["nodename"]])) {
   ids <- findNotSubmitted()
   ids[, chunk := chunk(job.id, chunk.size = 20)]
+
   submitJobs(
     ids = ids,
     resources = list(
@@ -124,25 +125,26 @@ if (grepl("blog\\d{1}", Sys.info()[["nodename"]])) {
 
   waitForJobs()
 
-  # Get results -------------------------------------------------------------
-  res <-  reduceResultsDataTable()
-  pars <- unwrap(getJobPars())
-
-  nrow(res)/nrow(getJobTable())
-  nrow(findErrors())/nrow(getJobTable())
-
-
-  res_long <- data.table::rbindlist(lapply(res$job.id, \(id) {
-    result <- res[(job.id == id), result][[1]]
-    result
-    result[, job.id := ..id]
-  }))
-
-  res_long <- merge(pars, res_long, by = "job.id")
-
-  saveRDS(res, here::here("results", "1-results-poc.rds"))
-  saveRDS(res_long, here::here("results", "1-results-long-poc.rds"))
-
 } else {
-  message("Don't know how to properly submit jobs on this platform!")
+  ids <- findNotSubmitted()
+  submitJobs(ids = ids)
+  waitForJobs()
 }
+
+# Get results -------------------------------------------------------------
+res <-  reduceResultsDataTable()
+pars <- unwrap(getJobPars())
+
+nrow(res)/nrow(getJobTable())
+nrow(findErrors())/nrow(getJobTable())
+
+res_long <- data.table::rbindlist(lapply(res$job.id, \(id) {
+  result <- res[(job.id == id), result][[1]]
+  result
+  result[, job.id := ..id]
+}))
+
+res_long <- merge(pars, res_long, by = "job.id")
+
+saveRDS(res, here::here("results", "1-results-poc.rds"))
+saveRDS(res_long, here::here("results", "1-results-long-poc.rds"))

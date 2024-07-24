@@ -4,29 +4,19 @@ library(cooper)
 library(randomForestSRC)
 library(CoxBoost)
 library(riskRegression)
+if (!dir.exists(here::here("results"))) dir.create(here::here("results"))
+  set.seed(2023)
 
 bladder_file <- here::here("data/bladder-binder-clinical_geno.rds")
-
 if (!file.exists(bladder_file)) {
-  message("Recreating bladder dataset from data-raw/preprocess-binder.R")
-  source(here::here("data-raw/preprocess-binder.R"))
+  message("Recreating bladder dataset from data-raw/preprocess-bladder-data.R")
+  source(here::here("data-raw/preprocess-bladder-data.R"))
 }
-
-if (!dir.exists(here::here("results"))) dir.create(here::here("results"))
-set.seed(2023)
-
 bladder <- readRDS(bladder_file)
+
 # Create list with $train and $test data
 splits <- partition_dt(bladder, train_prop = 0.7)
-
 saveRDS(splits, here::here("data/bladder-split.rds"))
-
-# Reference data
-reference <- readxl::read_excel(
-  here::here("data-raw/10780432ccr062940-sup-supplemental_file_2.xls"),
-  sheet = "Progression classifier probes"
-) |>
-  janitor::clean_names()
 
 # CooPeR --------------------------------------------------------------------------------------
 cli::cli_alert_info("Fitting CooPeR")
@@ -76,3 +66,30 @@ cbfit <- coxboost_tuned(
 cli::cli_alert_success("Saving CoxBoost")
 
 saveRDS(cbfit, here::here("results/3-bladder-coxboost.rds"))
+
+
+# Estimate performance ------------------------------------------------------------------------
+cli::cli_alert_info("Doing bladder performance evaluation")
+
+# Read stored models
+# cooperfit <- readRDS(here::here("results/3-bladder-cooper.rds"))
+# rf_c1 <- readRDS(here::here("results/3-bladder-rfsrc-c1.rds"))
+# rf_c2 <- readRDS(here::here("results/3-bladder-rfsrc-c2.rds"))
+# cbfit <- readRDS(here::here("results/3-bladder-coxboost.rds"))
+splits <- readRDS(here::here("data/bladder-split.rds"))
+
+# Fit CSCs with selected variables and gather results
+scores_cmb <- data.table::rbindlist(list(
+  fit_csc_coxph(splits, model = "cooper", coefs = selected(cooperfit, "cooper")[["1"]], cause = 1),
+  fit_csc_coxph(splits, model = "cooper", coefs = selected(cooperfit, "cooper")[["2"]], cause = 2),
+  fit_csc_coxph(splits, model = "coxnet", coefs = selected(cooperfit, "coxnet")[["1"]], cause = 1),
+  fit_csc_coxph(splits, model = "coxnet", coefs = selected(cooperfit, "coxnet")[["2"]], cause = 2),
+  fit_csc_coxph(splits, model = "rfsrc", coefs = selected(rf_c1)[["1"]], cause = 1),
+  fit_csc_coxph(splits, model = "rfsrc", coefs = selected(rf_c2)[["2"]], cause = 2),
+  fit_csc_coxph(splits, model = "coxboost", coefs = selected(cbfit)[["1"]], cause = 1),
+  fit_csc_coxph(splits, model = "coxboost", coefs = selected(cbfit)[["2"]], cause = 2)
+))
+
+cli::cli_alert_success("Saving scores")
+saveRDS(scores_cmb, here::here("results/3-bladder-scores.rds"))
+
