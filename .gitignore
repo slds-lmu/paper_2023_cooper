@@ -1,11 +1,6 @@
 # Rendered Rmd
 *.html
 
-# Temp data
-GDCdata
-MANIFEST.txt
-data-raw/NIHM*.xlsx
-
 attic/
 
 # Created by https://www.toptal.com/developers/gitignore/api/r

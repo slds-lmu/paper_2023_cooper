@@ -1,5 +1,3 @@
 registries/*
 registries_bak/*
 attic/*
-# Ignore due to bioconductor dependencies that complicate everything
-test_tcga.R
