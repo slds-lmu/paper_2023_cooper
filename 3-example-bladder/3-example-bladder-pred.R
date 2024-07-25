@@ -1,4 +1,4 @@
-source(here::here("R/utils.R"))
+invisible(lapply(list.files("R", pattern = "*.R", full.names = TRUE), source, echo = FALSE))
 library(data.table)
 library(cooper)
 library(randomForestSRC)
