@@ -1,4 +1,3 @@
-source(here::here("R/utils.R"))
 library(batchtools)
 library(data.table)
 library(dplyr)
