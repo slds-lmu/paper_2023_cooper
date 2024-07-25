@@ -1,7 +1,7 @@
 source(here::here("2-variable-selection-sim/2-problems.R"))
 source(here::here("2-variable-selection-sim/2-algorithms.R"))
-source(here::here("R/utils.R"))
 if (!dir.exists(here::here("results"))) dir.create(here::here("results"))
+invisible(lapply(list.files("R", pattern = "*.R", full.names = TRUE), source, echo = FALSE))
 
 library(batchtools)
 library(randomForestSRC)
@@ -16,27 +16,24 @@ config <- list(
 )
 
 set.seed(config$global_seed)
-# Set to FALSE to remove + recreate registry
-continue_bt <- FALSE
 
 # Registry ----------------------------------------------------------------
 if (!file.exists(here::here("registries"))) dir.create(here::here("registries"))
 reg_name <- "varsel-sim-pred-csc"
 reg_dir <- here::here("registries", reg_name)
 
-if (continue_bt) {
-  loadRegistry(reg_dir, writeable = TRUE)
-} else {
-  unlink(reg_dir, recursive = TRUE)
-  makeExperimentRegistry(
-    file.dir = reg_dir,
-    packages = c("cooper", "randomForestSRC", "CoxBoost", "survival", "riskRegression"),
-    seed = config$global.seed,
-    source = c(here::here("2-variable-selection-sim/2-algorithms.R"),
-               here::here("2-variable-selection-sim/2-problems.R"),
-               here::here("R/utils.R"))
+unlink(reg_dir, recursive = TRUE)
+makeExperimentRegistry(
+  file.dir = reg_dir,
+  packages = c("cooper", "randomForestSRC", "CoxBoost", "survival", "riskRegression"),
+  seed = config$global.seed,
+  source = c(
+    here::here("2-variable-selection-sim/2-algorithms.R"),
+    here::here("2-variable-selection-sim/2-problems.R"),
+    list.files("R", pattern = "*.R", full.names = TRUE)
   )
-}
+)
+
 
 # Problems -----------------------------------------------------------
 addProblem(name = "sim_surv_binder", fun = sim_surv_binder, seed = config$sim_seed, cache = config$sim_cache)

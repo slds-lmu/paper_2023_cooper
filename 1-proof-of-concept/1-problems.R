@@ -85,27 +85,3 @@ sim_d <- function(data, job, n = 1000) {
     )
   )
 }
-
-
-# Check simulation settings -----------------------------------------------
-
-if (FALSE) {
-  n <- 1000
-  simres_a <- replicate(100, table(sim_a(NULL, NULL, n = n)$data$status))
-  simres_b <- replicate(100, table(sim_b(NULL, NULL, n = n)$data$status))
-  simres_c <- replicate(100, table(sim_c(NULL, NULL, n = n)$data$status))
-  simres_d <- replicate(100, table(sim_d(NULL, NULL, n = n)$data$status))
-
-
-  simres <- list(A = simres_a, B = simres_b, C = simres_c, D = simres_d) |>
-    purrr::imap_dfr(~{
-      rmeans <- rowMeans(.x)
-      rperc <- round(100 * rmeans/1000, 2)
-
-      xres <- as.data.frame(cbind(t(rmeans), t(rperc)))
-      names(xres) <- c("Cens", "C1", "C2", "% Cens", "% C1", "% C2")
-      cbind(setting = .y, xres)
-    })
-
-  simres
-}

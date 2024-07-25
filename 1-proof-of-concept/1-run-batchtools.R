@@ -2,7 +2,8 @@ library(batchtools)
 library(data.table)
 source(here::here("1-proof-of-concept", "1-problems.R"))
 source(here::here("1-proof-of-concept", "1-algorithms.R"))
-source(here::here("R", "utils.R"))
+invisible(lapply(list.files("R", pattern = "*.R", full.names = TRUE), source, echo = FALSE))
+
 if (!dir.exists(here::here("results"))) dir.create(here::here("results"))
 
 # Settings ----------------------------------------------------------------
@@ -28,7 +29,7 @@ if (file.exists(reg_dir)) {
 makeExperimentRegistry(
   file.dir = reg_dir,
   source = c(
-    here::here("R", "utils.R"),
+    list.files("R", pattern = "*.R", full.names = TRUE),
     here::here("1-proof-of-concept", "1-problems.R")
   ),
   seed = config$global_seed
