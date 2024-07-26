@@ -30,15 +30,14 @@ install dependencies as specified in `renv.lock`.
 
 ### Section 2: Proof of Concept
 
-- To re-run simulations, the `1-run-batchtools.R` scripts will need to be adapted to the local
-environment as they expect an HPC setting.
-- Lines 129f will need to be adapted to a local environment.
+- To re-run simulations, the `1-run-batchtools.R` script will need to be adapted to the local
+environment as they expect an HPC setting (lines 129f).
 - The number of replications can be changed using the `repls` variable in line 13.
 - Results are stored in `results/` as .rds files `1-results-poc.rds` and `1-results-long-poc.rds`.
 - Figure 1 of the manuscript is then produced by `1-figure-1-proof-of-concept-bias.R`.
 - Figures 2 through 4 are produced by `2-figure-2-3-4-high-dim-sim-variable-selection.R`.
 - Figure 5 is produced by `2-figure-5-high-dim-sim-performance.R`.
-- Tables 1 through 4 are produced by `2-tables-1-2-3-4-high-dim-sim-variable-selection.R`.
+- Tables 1 through 4 are produced by `2-tables-1-2-3-high-dim-sim-variable-selection.R`.
 
 ### Section 3: High-Dimensional Data
 
