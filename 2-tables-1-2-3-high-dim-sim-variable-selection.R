@@ -1,5 +1,4 @@
 source(here::here("R/tables.R"))
-library(data.table)
 library(dplyr)
 library(kableExtra)
 

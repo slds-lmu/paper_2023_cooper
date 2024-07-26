@@ -1,8 +1,5 @@
-library(batchtools)
-library(data.table)
 library(dplyr)
 library(ggplot2)
-library(kableExtra)
 
 figure_path <- here::here("results", "figures")
 table_path <- here::here("results", "tables")

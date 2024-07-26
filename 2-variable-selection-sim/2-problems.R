@@ -74,13 +74,15 @@ block_corr_binder <- function(n = 400, p = 5000) {
 #' @note Binder et. al. describe U = runif(n), but log(runif(n)) is used to ensure results as stated
 #' with mean baseline survival time of around 10, rather than negative survival times.
 #' This is also consistent with other descriptions of the Cox exponential model.
-sim_surv_binder <- function(job, data,
-                            n_train = 50, n_test = 0,
-                            p = 1000,
-                            ce = 0.5,
-                            lambda = 0.1,
-                            lambda1 = lambda, lambda2 = lambda,
-                            lambda_c = 0.1) {
+sim_surv_binder <- function(
+    job, data,
+    n_train = 50, n_test = 0,
+    p = 1000,
+    ce = 0.5,
+    lambda = 0.1,
+    lambda1 = lambda, lambda2 = lambda,
+    lambda_c = 0.1
+) {
   checkmate::assert_integerish(n_train, lower = 10, len = 1)
   checkmate::assert_integerish(n_test, lower = 0, len = 1)
   checkmate::assert_true((n_train + n_test) %% 2 == 0)
@@ -215,74 +217,3 @@ sim_surv_binder <- function(job, data,
     )
   )
 }
-
-# Debugging and sanity checking -----------------------------------------------------------------------------------
-
-if (FALSE) {
-  # Check event times match expectations
-  library(dplyr)
-  n <- 400
-
-  xdat <- sim_surv_binder(n_train = n, p = 5000, lambda1 = 0.01, lambda2 = 0.1, lambda_c = 0.1)
-  table(xdat$train$status)
-
-  xsum <- purrr::map_df(1:100, ~{
-    status <- sim_surv_binder(n_train = n, p = 5000, lambda1 = 0.1, lambda2 = 0.1)$train$status
-    data.frame(rep = .x, table(status))
-  })
-
-  xsum |>
-    group_by(status) |>
-    summarize(
-      freq_min = min(Freq),
-      freq_mean = mean(Freq),
-      freq_max = max(Freq),
-      prop_min = min(Freq/n),
-      prop_mean = mean(Freq/n),
-      prop_max = max(Freq/n),
-      .groups = "keep"
-    ) |>
-    mutate(across(starts_with("prop"), \(x) scales::label_percent(accuracy = .1)(x))) |>
-    transmute(
-      n = glue::glue("{freq_mean} ({freq_min} - {freq_max})"),
-      prop = glue::glue("{prop_mean} ({prop_min} - {prop_max})")
-    )
-}
-
-# Original/naive/"safe" implementation for reference
-# block_corr_binder <- function(n = 50, p = 1000) {
-#   stopifnot("n must be even" = n %% 2 == 0)
-#
-#   X <- matrix(NA_real_, nrow = n, ncol = p)
-#   ui1 <- runif(n)
-#   ui2 <- runif(n)
-#   ui3 <- runif(n)
-#
-#   for (j in seq_len(ncol(X))) {
-#     if (j <= 0.05 * p) {
-#       X[seq_len(n/2), j] <- -1 + rnorm(n/2)
-#       X[-seq_len(n/2), j] <- 1 + rnorm(n/2)
-#     }
-#
-#     if ((j > (0.05 * p)) & (j <= (0.1 * p))) {
-#       X[, j] <- 1.5 * (ui1 < 0.4) + rnorm(n)
-#     }
-#
-#     if ((0.1 * p < j) & (j <= 0.2 * p)) {
-#       X[, j] <- 0.5 * (ui2 < 0.7) + rnorm(n)
-#     }
-#
-#     if ((0.2 * p < j) & (j <= 0.3 * p)) {
-#       X[, j] <- 1.5 * (ui3 < 0.3) + rnorm(n)
-#     }
-#
-#     if (j > 0.3 * p) {
-#       X[, j] <- rnorm(n)
-#     }
-#   }
-#
-#   X <- as.data.frame(X)
-#   names(X) <- paste0("x", seq_len(p))
-#
-#   X
-# }
