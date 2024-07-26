@@ -5,7 +5,7 @@ library(randomForestSRC)
 library(CoxBoost)
 library(riskRegression)
 if (!dir.exists(here::here("results"))) dir.create(here::here("results"))
-  set.seed(2023)
+set.seed(2023)
 
 bladder_file <- here::here("data/bladder-binder-clinical_geno.rds")
 if (!file.exists(bladder_file)) {
@@ -76,7 +76,7 @@ cli::cli_alert_info("Doing bladder performance evaluation")
 # rf_c1 <- readRDS(here::here("results/3-bladder-rfsrc-c1.rds"))
 # rf_c2 <- readRDS(here::here("results/3-bladder-rfsrc-c2.rds"))
 # cbfit <- readRDS(here::here("results/3-bladder-coxboost.rds"))
-splits <- readRDS(here::here("data/bladder-split.rds"))
+# splits <- readRDS(here::here("data/bladder-split.rds"))
 
 # Fit CSCs with selected variables and gather results
 scores_cmb <- data.table::rbindlist(list(
