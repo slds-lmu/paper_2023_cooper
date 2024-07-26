@@ -34,7 +34,7 @@ res_varsel_long <- res_varsel |>
 # Tables ----------------------------------------------------------------------
 # Produces all tables in the manuscript, all located in the appendix
 
-for (measure in c("PPV", "FPR", "TPR", "NPV")) {
+for (measure in c("PPV", "FPR", "TPR")) {
   tab <- measure_table(res_varsel_long, measure = measure, aggr_point = median, aggr_var = IQR, minmax = max)
 
   tab_kbl <- tab |>

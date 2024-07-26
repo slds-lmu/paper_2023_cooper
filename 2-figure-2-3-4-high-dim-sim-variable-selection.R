@@ -35,61 +35,30 @@ res_varsel_long <- res_varsel |>
   tidyr::pivot_longer(cols = tpr:acc, names_to = "measure", values_to = "value", names_transform = toupper)
 
 
-# PPV -----------------------------------------------------------------------------------------
+# Plots ---------------------------------------------------------------------------------------
+for (measure in c("PPV", "FPR", "F1")) {
 
-p_ppv1 <- res_varsel_long |>
-  filter(measure %in% c("PPV")) |>
-  filter(!is.na(value)) |>
-  ggplot(aes(x = model, y = value, color = model, fill = model)) +
-  facet_grid(rows = vars(cause), cols = vars(block), scales = "free") +
-  coord_flip() +
-  geom_boxplot(alpha = 0.5) +
-  scale_y_continuous(labels = scales::percent_format()) +
-  scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill"), guide = "none") +
-  labs(
-    x = NULL, y = "PPV [%]", color = NULL, fill = NULL
-  ) +
-  theme_minimal(base_size = 14)
+  p <- res_varsel_long |>
+    filter(.data$measure %in% .env$measure) |>
+    filter(!is.na(value)) |>
+    ggplot(aes(x = model, y = value, color = model, fill = model)) +
+    facet_grid(rows = vars(cause), cols = vars(block), scales = "free") +
+    coord_flip() +
+    geom_boxplot(alpha = 0.5) +
+    #scale_y_continuous(labels = scales::percent_format()) +
+    scale_y_continuous(labels = \(x) 100 * x) +
+    scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill"), guide = "none") +
+    labs(
+      x = NULL, y = glue::glue("{measure} [%]"), color = NULL, fill = NULL
+    ) +
+    theme_minimal(base_size = 14) +
+    theme(
+      panel.grid.major.y = element_blank(),
+      panel.grid.minor.y = element_blank(),
+      panel.grid.minor.x = element_blank()
+    )
 
-ggsave(plot = p_ppv1, filename = "2-ppv-equallambda.pdf", path = figure_path, width = 12, height = 4)
-ggsave(plot = p_ppv1, filename = "2-ppv-equallambda.png", path = figure_path, width = 12, height = 4, bg = "white")
+  ggsave(plot = p, filename = glue::glue("2-{tolower(measure)}-equallambda.pdf"), path = figure_path, width = 12, height = 4)
+  ggsave(plot = p, filename = glue::glue("2-{tolower(measure)}-equallambda.png"), path = figure_path, width = 12, height = 4, bg = "white")
 
-
-# FPR -----------------------------------------------------------------------------------------
-
-p_fpr1 <- res_varsel_long |>
-  filter(measure %in% c("FPR")) |>
-  filter(!is.na(value)) |>
-  ggplot(aes(x = model, y = value, color = model, fill = model)) +
-  facet_grid(rows = vars(cause), cols = vars(block), scales = "free") +
-  coord_flip() +
-  geom_boxplot(alpha = 0.5) +
-  scale_y_continuous(labels = scales::percent_format()) +
-  scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill"), guide = "none") +
-  labs(
-    x = NULL, y = "FPR [%]", color = NULL, fill = NULL
-  ) +
-  theme_minimal(base_size = 14)
-
-ggsave(plot = p_fpr1, filename = "2-fpr-equallambda.pdf", path = figure_path, width = 12, height = 4)
-ggsave(plot = p_fpr1, filename = "2-fpr-equallambda.png", path = figure_path, width = 12, height = 4, bg = "white")
-
-
-# F1 ------------------------------------------------------------------------------------------
-
-p_f1 <- res_varsel_long |>
-  filter(measure %in% c("F1")) |>
-  filter(!is.na(value)) |>
-  ggplot(aes(x = model, y = value, color = model, fill = model)) +
-  facet_grid(rows = vars(cause), cols = vars(block), scales = "free") +
-  coord_flip() +
-  geom_boxplot(alpha = 0.5) +
-  scale_y_continuous(labels = scales::percent_format()) +
-  scale_color_brewer(palette = "Dark2", aesthetics = c("color", "fill"), guide = "none") +
-  labs(
-    x = NULL, y = "F1 [%]", color = NULL, fill = NULL
-  ) +
-  theme_minimal(base_size = 14)
-
-ggsave(plot = p_f1, filename = "2-f1-equallambda.pdf", path = figure_path, width = 12, height = 4)
-ggsave(plot = p_f1, filename = "2-f1-equallambda.png", path = figure_path, width = 12, height = 4, bg = "white")
+}
