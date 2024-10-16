@@ -24,7 +24,7 @@ source(here::here("1-figure-1-proof-of-concept-bias.R"))
 # High-Dimensional data simulation
 cli::cli_alert_info("Recreating results for 2-variable-selection-sim")
 source(here::here("2-figure-2-3-4-high-dim-sim-variable-selection.R"))
-source(here::here("2-tables-1-2-3-4-high-dim-sim-variable-selection.R"))
+source(here::here("2-tables-1-2-3-high-dim-sim-variable-selection.R"))
 source(here::here("2-figure-5-high-dim-sim-performance.R"))
 
 
