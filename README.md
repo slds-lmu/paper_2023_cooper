@@ -28,6 +28,13 @@ install dependencies as specified in `renv.lock`.
    Please note that you may want to install the appropriate R version (see e.g. [rig](https://github.com/r-lib/rig))
 - Refer to `run-all.R` to reproduce figures and tables from simulations results and data example.
 
+If `renv` is not used to restore packages, it is necessary to install the `cooper` package from GitHub:
+
+```r
+# install.packages("remotes")
+remotes::install_github("jemus42/cooper")
+```
+
 ### Section 2: Proof of Concept
 
 - To re-run simulations, the `1-run-batchtools.R` script will need to be adapted to the local
@@ -69,3 +76,34 @@ data-raw
 
 - The remaining scripts in `3-example-bladder/` will take some time to fit models but produce results prefixed with `3-` in `results/`
 - Figure 6 is produced by `3-figure-6-bladder-performance.R`
+
+## Session Info
+
+In addition to `renv.lock`, `sessionInfo()` also presents operating system and locale information.
+
+```r
+R version 4.4.1 (2024-06-14)
+Platform: x86_64-pc-linux-gnu
+Running under: Ubuntu 22.04.5 LTS
+
+Matrix products: default
+BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3
+LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.20.so;  LAPACK version 3.10.0
+
+locale:
+ [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C
+ [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8
+ [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8
+ [7] LC_PAPER=en_US.UTF-8       LC_NAME=C
+ [9] LC_ADDRESS=C               LC_TELEPHONE=C
+[11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C
+
+time zone: Europe/Berlin
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices datasets  utils     methods   base
+
+loaded via a namespace (and not attached):
+[1] compiler_4.4.1 tools_4.4.1    renv_1.0.7
+```
