@@ -35,11 +35,13 @@ If `renv` is not used to restore packages, it is necessary to install the `coope
 remotes::install_github("jemus42/cooper")
 ```
 
+Then, run the `run-all.R` script to reproduce the results.
+
 ### Section 2: Proof of Concept
 
 - To re-run simulations, the `1-run-batchtools.R` script will need to be adapted to the local
-environment as they expect an HPC setting (lines 129f).
-- The number of replications can be changed using the `repls` variable in line 13.
+environment as they expect an HPC setting (lines 72f). See instructions below for running them locally.
+- The number of replications can be changed using the `repls` variable in line 15: `repls = 1000`.
 - Results are stored in `results/` as .rds files `1-results-poc.rds` and `1-results-long-poc.rds`.
 - Figure 1 of the manuscript is then produced by `1-figure-1-proof-of-concept-bias.R`.
 - Figures 2 through 4 are produced by `2-figure-2-3-4-high-dim-sim-variable-selection.R`.
@@ -49,8 +51,8 @@ environment as they expect an HPC setting (lines 129f).
 ### Section 3: High-Dimensional Data
 
 - A batchtools script analogous to `1-run-batchtools.R`
-- Lines 106f will need to be adapted to a local environment.
-- The number of replications can be changed using the `repls` variable in line 15.
+- Lines 91f will need to be adapted to a local environment. See instructions below for running them locally.
+- The number of replications can be changed using the `repls` variable in line 15: `repls = 1000`.
 - Results are stored in `results/` as .rds files
    - `2-results-varsel-csc-varsel.rds` for the variable selection performance scores.
    - `2-results-varsel-csc-perf.rds` for the prediction performance scores.
@@ -76,6 +78,31 @@ data-raw
 
 - The remaining scripts in `3-example-bladder/` will take some time to fit models but produce results prefixed with `3-` in `results/`
 - Figure 6 is produced by `3-figure-6-bladder-performance.R`
+
+### Running simulations locally
+
+The simulations form sections 2 and 3 are designed to be run on a high-performance computing (HPC) cluster.
+To run them locally, create a file `./batchtools.conf.R` with contents
+
+```r
+cluster.functions <- makeClusterFunctionsSSH(list(Worker$new("localhost", ncpus = 4, max.load = 10)), fs.latency = 0)
+```
+
+Where the value for `ncpus` determines the number of jobs to run simultaneously, and `max.load` the maximum load average to allow for the local machine. For example, on a machine with 8 logical cores, `ncpus = 4` and `max.load = 7` would run 4 jobs in parallel, as long as the load average is below 7 (while 8 would be the maximum).
+
+With this file in place, running the `*-run-batchtools.R` scripts will run all simulation jobs locally in the background with the specified number of cores.
+
+To only run a subset of jobs, e.g. 5 randomly chosen iterations for each simulation setting and algorithm, replace the `submitJobs()` call with the following:
+
+```r
+sample_ids = jobtbl[, .SD[sample(nrow(.SD), 5)], by = c("problem", "algorithm")]
+
+message("Submitting subset of jobs only!")
+submitJobs(sample_ids)
+```
+
+which may take some time but will create at least some results. The remainder of the scripts can then be run as usual and will create (partial) intermediate results.
+
 
 ## Session Info
 
