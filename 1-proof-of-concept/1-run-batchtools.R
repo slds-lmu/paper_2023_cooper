@@ -2,7 +2,7 @@ library(batchtools)
 library(data.table)
 source(here::here("1-proof-of-concept", "1-problems.R"))
 source(here::here("1-proof-of-concept", "1-algorithms.R"))
-invisible(lapply(list.files("R", pattern = "*.R", full.names = TRUE), source, echo = FALSE))
+invisible(lapply(list.files(here::here("R"), pattern = "*.R", full.names = TRUE), source, echo = FALSE))
 
 if (!dir.exists(here::here("results"))) dir.create(here::here("results"))
 
@@ -26,10 +26,10 @@ if (file.exists(reg_dir)) {
   unlink(reg_dir, recursive = TRUE)
   stopifnot("Deleting registry failed" = !file.exists(reg_dir))
 }
-makeExperimentRegistry(
+reg <- makeExperimentRegistry(
   file.dir = reg_dir,
   source = c(
-    list.files("R", pattern = "*.R", full.names = TRUE),
+    list.files(here::here("R"), pattern = "*.R", full.names = TRUE),
     here::here("1-proof-of-concept", "1-problems.R")
   ),
   seed = config$global_seed
@@ -85,25 +85,44 @@ if (grepl("blog\\d{1}", Sys.info()[["nodename"]])) {
   waitForJobs()
 
 } else {
-  ids <- findNotSubmitted()
-  submitJobs(ids = ids)
+  # Otherwise, run a subset of jobs locally, 5 randomly sampled per simulation setting
+  sample_ids = jobtbl[, .SD[sample(nrow(.SD), 5)], by = "problem"]
+
+  message("Submitting subset of jobs only!")
+  submitJobs(sample_ids)
+
+  # Wait for jobs to complete before proceeding
   waitForJobs()
+}
+
+# Checking for errors
+if (nrow(findErrors()) > 0) {
+  warning("Errors found!")
+  getErrorMessages()
+} else {
+  message("No errors found!")
 }
 
 # Get results -------------------------------------------------------------
 res <-  reduceResultsDataTable()
 pars <- unwrap(getJobPars())
 
-nrow(res)/nrow(getJobTable())
-nrow(findErrors())/nrow(getJobTable())
+jobs_done <- 100 * nrow(res)/nrow(getJobTable())
+jobs_err <- 100 * nrow(findErrors())/nrow(getJobTable())
 
-res_long <- data.table::rbindlist(lapply(res$job.id, \(id) {
+if (jobs_err == 1) {
+  stop("All jobs failed!")
+}
+
+res_long <- rbindlist(lapply(res$job.id, \(id) {
   result <- res[(job.id == id), result][[1]]
   result
   result[, job.id := ..id]
 }))
 
 res_long <- merge(pars, res_long, by = "job.id")
+
+cli::cli_alert_info("Saving {nrow(res_long)} results from {jobs_done}% of jobs with {jobs_err}% errors")
 
 saveRDS(res, here::here("results", "1-results-poc.rds"))
 saveRDS(res_long, here::here("results", "1-results-long-poc.rds"))

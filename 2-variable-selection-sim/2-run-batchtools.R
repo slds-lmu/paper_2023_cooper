@@ -1,11 +1,12 @@
 source(here::here("2-variable-selection-sim/2-problems.R"))
 source(here::here("2-variable-selection-sim/2-algorithms.R"))
 if (!dir.exists(here::here("results"))) dir.create(here::here("results"))
-invisible(lapply(list.files("R", pattern = "*.R", full.names = TRUE), source, echo = FALSE))
+invisible(lapply(list.files(here::here("R"), pattern = "*.R", full.names = TRUE), source, echo = FALSE))
 
 library(batchtools)
 library(randomForestSRC)
 library(CoxBoost)
+library(data.table)
 
 # Settings ----------------------------------------------------------------
 config <- list(
@@ -23,14 +24,14 @@ reg_name <- "varsel-sim-pred-csc"
 reg_dir <- here::here("registries", reg_name)
 
 unlink(reg_dir, recursive = TRUE)
-makeExperimentRegistry(
+reg <- makeExperimentRegistry(
   file.dir = reg_dir,
   packages = c("cooper", "randomForestSRC", "CoxBoost", "survival", "riskRegression"),
   seed = config$global.seed,
   source = c(
     here::here("2-variable-selection-sim/2-algorithms.R"),
     here::here("2-variable-selection-sim/2-problems.R"),
-    list.files("R", pattern = "*.R", full.names = TRUE)
+    list.files(here::here("R"), pattern = "*.R", full.names = TRUE)
   )
 )
 
@@ -42,7 +43,6 @@ addProblem(name = "sim_surv_binder", fun = sim_surv_binder, seed = config$sim_se
 addAlgorithm(name = "cooper", fun = cooper_varsel_wrapper)
 addAlgorithm(name = "rfsrc", fun = rfsrc_varselect_wrapper)
 addAlgorithm(name = "coxboost", fun = coxboost_varselect_wrapper)
-
 
 # Experiments -----------------------------------------------------------
 prob_design <- list(
@@ -100,14 +100,34 @@ if (Sys.info()[["nodename"]] %in% c("blog1", "blog2")) {
   )
 
 } else {
-  ids <- findNotSubmitted()
-  submitJobs(ids = ids)
+  # Otherwise, run a subset of jobs locally, 5 randomly sampled per simulation setting and algorithm
+  sample_ids = jobtbl[, .SD[sample(nrow(.SD), 5)], by = c("problem", "algorithm")]
+
+  message("Submitting subset of jobs only!")
+  submitJobs(sample_ids)
+
+  # Wait for jobs to complete before proceeding
   waitForJobs()
+}
+
+# Checking for errors
+if (nrow(findErrors()) > 0) {
+  warning("Errors found!")
+  getErrorMessages()
+} else {
+  message("No errors found!")
 }
 
 # Getting results
 res <- reduceResultsDataTable()
 pars <- unwrap(getJobPars())
+
+jobs_done <- 100 * nrow(res)/nrow(getJobTable())
+jobs_err <- 100 * nrow(findErrors())/nrow(getJobTable())
+
+if (jobs_err == 1) {
+  stop("All jobs failed!")
+}
 
 # Separately for variable selection and prediction performance scores
 res_varsel <- rbindlist(lapply(res$job.id, \(id) {
