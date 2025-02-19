@@ -1,5 +1,7 @@
 # Simulation Code for Cooperative Penalized Regression (CooPeR) Project
 
+Code accompanying paper ["High-Dimensional Variable Selection With Competing Events Using Cooperative Penalized Regression"](https://doi.org/10.1002/bimj.70036).
+
 Simulation code for [`cooper`](https://github.com/jemus42/cooper) in competing
 risk settings, based on the [original fwelnet implementation](https://github.com/kjytay/fwelnet/)
 ([preprint](https://arxiv.org/pdf/2006.01395.pdf)).
